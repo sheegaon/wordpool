@@ -178,43 +178,6 @@
 
 ---
 
-## Prompt Library Design
-
-### Prompt Structure
-```json
-{
-  "prompt_id": "uuid",
-  "text": "my deepest desire is to be [a]",
-  "difficulty": "easy|medium|hard",
-  "category": "personal|abstract|action|descriptive",
-  "created_at": "timestamp",
-  "usage_count": 0,
-  "avg_copy_quality": 0.0,
-  "enabled": true
-}
-```
-
-### Initial Prompt Examples
-
-**Straightforward:**
-- "my deepest desire is to be (a/an)" → famous, rich, actor
-- "success means being" → happy, wealthy, fulfilled, loved
-- "the secret to happiness is (a/an)" → love, money, contentment
-- "every day I" →  work, eat, play, sleep
-- "I feel most alive when I'm" → running, creating, exploring
-- "the world needs more" → kindness, innovation, compassion
-
-**Deep:**
-- "beauty is fundamentally" → subjective, fleeting, timeless
-- "the meaning of life is" → love, growth, mystery
-- "art should be" → provocative, beautiful, meaningful
-- "freedom means" → choice, independence, responsibility
-
-**Silly:**
-- 
-
----
-
 ## Database Indexes
 
 ### Suggested Indexes for Performance
