@@ -189,9 +189,6 @@ $RECYCLE.BIN/
 # PlotLy JS libraries
 plotly-latest.min.js
 
-# VS-code
-.vscode
-
 # End of https://www.gitignore.io/api/python,windows,pycharm+all,jupyternotebooks
 
 /.vs/
