@@ -1,5 +1,21 @@
 # Technical Architecture and Overview
 
+## Authentication
+
+### API Key Authentication (MVP)
+- **Method**: API key-based authentication
+- **Implementation**: Each player receives a unique API key (UUID v4) on account creation
+- **Request Format**: Include `X-API-Key` header in all authenticated requests
+- **Security**:
+  - API keys stored securely in database with unique constraint
+  - HTTPS-only enforcement
+  - Rate limiting to prevent brute force
+  - Key rotation endpoint available (`/player/rotate-key`)
+- **Advantages**: Stateless, simple, mobile-friendly, no session storage required
+- **Future**: Phase 2+ may add JWT tokens with refresh for enhanced security
+
+---
+
 ## Results & UI
 
 ### Results Display
@@ -62,39 +78,46 @@
 
 ### Player Actions
 
-**POST /rounds/prompt** - Start prompt round (-$10)
-- Body: `{prompt_id: string}` (optional, for selecting specific prompt)
-- Returns: `{round_id, prompt_text, expires_at}` 
-- Errors: `{error: "already_in_round" | "insufficient_balance"}`
+**POST /rounds/prompt** - Start prompt round (-$100 immediately)
+- Body: `{}` (empty, prompt randomly assigned)
+- Returns: `{round_id, prompt_text, expires_at, cost: 100}`
+- Errors: `{error: "already_in_round" | "insufficient_balance" | "max_outstanding_prompts"}`
+- Note: Full $100 deducted immediately, $90 refunded if timeout before submission
 
-**POST /rounds/copy** - Request copy round (-$10 or -$9)
-- Returns: `{round_id, original_word, expires_at, cost: 9|10, discount_active: boolean}` 
+**POST /rounds/copy** - Request copy round (-$100 or -$90 immediately)
+- Returns: `{round_id, original_word, prompt_round_id, expires_at, cost: 90|100, discount_active: boolean}`
 - Errors: `{error: "no_prompts_available" | "already_in_round" | "insufficient_balance"}`
+- Note: Full amount deducted immediately, $90 refunded if timeout before submission
 
 **POST /rounds/vote** - Request vote round (-$1)
 - Returns: `{wordset_id, prompt_text, words: [word1, word2, word3], expires_at}` 
 - Errors: `{error: "no_wordsets_available" | "already_in_round" | "insufficient_balance"}`
 
-**POST /rounds/{round_id}/submit** - Submit word for prompt/copy (-$90 or -$81)
+**POST /rounds/{round_id}/submit** - Submit word for prompt/copy (no additional charge)
 - Body: `{word: string}`
-- Returns: `{success: true}` 
+- Returns: `{success: true, word: string}`
 - Errors: `{error: "invalid_word" | "duplicate" | "expired" | "player_not_in_round" | "not_found"}`
-- Note: Backend accepts submissions up to 5 seconds past expires_at
+- Note: Backend accepts submissions up to 5 seconds past expires_at (grace period)
+- Note: Full amount already deducted at round start
 
 **POST /wordsets/{wordset_id}/vote** - Submit vote
 - Body: `{word: string}`
-- Returns: `{correct: boolean, payout, original_word: string}` 
-- Errors: `{error: "expired" | "already_voted" | "not_found"}`
-- Note: Backend accepts votes up to 5 seconds past expires_at
+- Returns: `{correct: boolean, payout: 5|0, original_word: string, your_choice: string}`
+- Errors: `{error: "expired" | "already_voted" | "not_found" | "player_not_in_round"}`
+- Note: Backend accepts votes up to 5 seconds past expires_at (grace period)
+- Note: Immediate feedback, $5 credited if correct
 
 ### State Queries
 
 **GET /player/balance** - Current balance and daily bonus status
-- Returns: `{balance: integer, starting_balance: 1000, daily_bonus_available: boolean, daily_bonus_amount: 100, last_login: timestamp}`
+- Returns: `{balance: integer, starting_balance: 1000, daily_bonus_available: boolean, daily_bonus_amount: 100, last_login_date: date, outstanding_prompts: integer}`
+- Note: Requires `X-API-Key` header for authentication
 
 **POST /player/claim-daily-bonus** - Claim daily login bonus
-- Returns: `{success: true, amount: 100, new_balance: integer}` 
-- Errors: `{error: "already_claimed_today"}`
+- Returns: `{success: true, amount: 100, new_balance: integer}`
+- Errors: `{error: "already_claimed_today" | "not_eligible"}`
+- Note: Available once per UTC date, first eligible day after creation date
+- Note: Updates last_login_date automatically
 
 **GET /player/current-round** - Get active round if any
 - Returns: `{round_id, round_type: "prompt"|"copy"|"vote", state: object, expires_at}` or `{current_round: null}`
@@ -119,26 +142,31 @@
 - Returns: `{round_id, type, status, expires_at, prompt_text?, original_word?, submitted_word?, cost?}`
 
 **GET /player/pending-results** - List completed wordsets awaiting result viewing
-- Returns: `{pending: [{wordset_id, prompt_text, completed_at, role: "prompt"|"copy"}]}`
+- Returns: `{pending: [{wordset_id, prompt_text, completed_at, role: "prompt"|"copy", payout_collected: boolean}]}`
+- Note: Only includes wordsets where player was contributor (prompt or copy)
 
 **GET /wordsets/{wordset_id}/results** - Get voting results (triggers prize collection)
-- Returns: 
+- Returns:
 ```json
 {
+  "prompt_text": "my deepest desire is to be (a/an)",
   "votes": [
     {"word": "famous", "vote_count": 4, "is_original": true},
     {"word": "popular", "vote_count": 3, "is_original": false},
     {"word": "wealthy", "vote_count": 3, "is_original": false}
   ],
   "your_word": "famous",
+  "your_role": "prompt",
   "your_points": 4,
   "your_payout": 62,
   "total_pool": 250,
   "total_votes": 10,
-  "already_collected": boolean
+  "already_collected": boolean,
+  "finalized_at": "timestamp"
 }
 ```
-- First call credits account, subsequent calls just return data
+- First call credits account and sets `already_collected: true`, subsequent calls just return data
+- Only accessible by contributors (prompt or copy players)
 
 ---
 
@@ -300,13 +328,30 @@ Every 10 seconds:
 ```
 
 ### Error Handling
+
+All error responses follow standardized format:
+```json
+{
+  "error": "error_code",
+  "detail": "Human-readable description (optional)"
+}
 ```
-All API calls should handle:
+
+HTTP Status Codes:
+- `200 OK` - Success
+- `400 Bad Request` - Business logic errors (insufficient_balance, invalid_word, etc.)
+- `401 Unauthorized` - Invalid or missing API key
+- `404 Not Found` - Resource not found (round_id, wordset_id)
+- `409 Conflict` - State conflict (already_in_round, already_voted)
+- `429 Too Many Requests` - Rate limit exceeded
+- `500 Internal Server Error` - Server error
+
+Frontend should handle:
 - Network errors: Show retry button
-- 401 Unauthorized: Re-authenticate
+- 401 Unauthorized: Prompt for valid API key
 - 400 Bad Request: Show error message from response
 - 404 Not Found: Round may have expired, return to idle
-- 429 Too Many Requests: Show rate limit message
+- 429 Too Many Requests: Show rate limit message, suggest waiting
 - 500 Server Error: Show generic error, allow retry
 
 On any error during active round:
@@ -379,9 +424,27 @@ Backend processes timeouts:
 2. Check length (2-15)
 3. Check characters (A-Z only)
 4. Check dictionary membership
-5. For copies: Check against original word
+5. For copies: Check against original word (case-insensitive)
 6. Return success or specific error code
 ```
+
+### Word Randomization
+
+For voting display:
+- Word order randomized per-voter (not stored in database)
+- Prevents pattern recognition if players share results
+- Frontend receives words in array, displays in order provided
+- Backend randomizes before sending to each voter
+
+---
+
+## Health Check & Monitoring
+
+**GET /health** - Health check endpoint
+- Returns: `{status: "ok", database: "connected", redis: "connected"|"fallback"}` (200 OK)
+- Returns: `{status: "error", detail: "..."}` (503 Service Unavailable)
+- Used by Heroku, monitoring tools, load balancers
+- No authentication required
 
 ---
 
@@ -398,10 +461,27 @@ Word Set Created → status: "open"
   ↓
 5th vote received (within 10 min) → fifth_vote_at = now, status: "closing"
   ↓
-  Accept voters for 60 seconds
-  Grace period: voters who started within 60s get full 15s
+  Accept new voters for 60 seconds (POST /rounds/vote)
+  Grace period: voters who called POST /rounds/vote within 60s window get full 15s to submit
   ↓
-20th vote OR (60s + grace elapsed) → status: "closed"
+20th vote OR (60s elapsed since 5th vote, all pending voters submitted) → status: "closed"
   ↓
 Calculate scores and payouts → status: "finalized"
+  (Contributors can now view results via GET /wordsets/{id}/results)
 ```
+
+### Copy Round Abandonment
+
+When a copy round times out without submission:
+1. Round status set to "abandoned"
+2. Player refunded $90 (keeps $10 entry fee as penalty)
+3. Associated prompt_round returned to queue for reassignment
+4. Same player prevented from getting same prompt_round_id again (24h cooldown)
+5. No limit on how many times a prompt can be abandoned by different players
+
+### Outstanding Prompts Limit
+
+Players limited to 10 outstanding prompts where:
+- "Outstanding" = wordsets in status "open" or "closing" (not yet finalized)
+- Viewing results does not affect count
+- Enforced when calling POST /rounds/prompt

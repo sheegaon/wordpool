@@ -2,40 +2,52 @@
 
 ## Implementation Priorities
 
-### Phase 1 - MVP (Core Gameplay)
-1. Player accounts and authentication
-2. Balance management and transactions
-3. Core game loop (prompt, copy, vote)
-4. Word validation (NASPA list)
-5. Queue system (basic FIFO)
-6. Scoring and payouts
-7. One-round-at-a-time enforcement
-8. Results viewing and prize collection
-9. Essential API endpoints
+### Phase 1 - MVP (Core Gameplay) ✅ CLARIFIED
+1. **Player accounts and authentication** - API key-based (UUID v4)
+2. **Balance management and transactions** - Full amount deducted immediately, refunds on timeout
+3. **Core game loop** - Prompt (random assignment), copy, vote with full lifecycle
+4. **Word validation** - NASPA list with 2-15 char, A-Z only validation
+5. **Queue system** - FIFO with Redis/in-memory fallback
+6. **Scoring and payouts** - Proportional distribution with rounding
+7. **One-round-at-a-time enforcement** - Via active_round_id in player table
+8. **Results viewing and prize collection** - Idempotent with ResultView tracking
+9. **Essential API endpoints** - All endpoints documented in ARCHITECTURE.md
+10. **Daily login bonus** - UTC date-based, $100 once per day (excluding creation date)
+11. **Copy discount system** - $90 when prompts_waiting > 10, system contributes $10
+12. **Grace period handling** - 5-second backend grace on all submissions
+13. **Outstanding prompts limit** - Max 10 wordsets in 'open' or 'closing' status
+14. **Vote timeline state machine** - 3rd vote (10 min window), 5th vote (60 sec window)
+15. **Copy abandonment** - Return to queue, prevent same player retry (24h cooldown)
+16. **Self-voting prevention** - Filter at assignment time
+17. **Health check endpoint** - GET /health for monitoring
+18. **Error standardization** - Consistent JSON error format across all endpoints
 
-### Phase 2 - Economic Balance
-1. Daily login bonus
-2. Copy discount when queue > 10
-3. System contribution tracking
-4. Queue depth visibility
-5. Transaction history
-6. Balance safeguards
+### Phase 2 - Polish & Enhancements
+1. **JWT tokens with refresh** - Enhanced authentication beyond API keys
+2. **Transaction history endpoint** - GET /player/transactions with pagination
+3. **Comprehensive player statistics** - Win rates, earnings over time, favorite prompts
+4. **API key rotation** - POST /player/rotate-key endpoint
+5. **Advanced rate limiting** - Per-endpoint, per-player rate limits
+6. **Prompt management** - Track usage_count, avg_copy_quality for rotation
+7. **Admin API endpoints** - Manual injection for testing (AI backup simulation)
 
-### Phase 3 - Polish & UX
-1. Improved error messages
-2. Round history and statistics
-3. Better queue management UI
-4. Performance optimization
-5. Mobile responsiveness
-6. Similarity hinting using cosine similarity
+### Phase 3 - AI & Advanced Features
+1. **AI backup copies/votes** - After 10 minutes inactivity (GPT or embeddings-based)
+2. **Word similarity scoring** - Cosine similarity for copy quality metrics
+3. **Background jobs** - Proper timeout cleanup, finalization triggers
+4. **Comprehensive monitoring** - Metrics, dashboards, alerting
+5. **Performance optimization** - Query optimization, caching, connection pooling
+6. **Database-based queue fallback** - Alternative to Redis for true distributed setup
 
-### Phase 4 - Engagement Features
-1. Player statistics and win rates
-2. Leaderboards
-3. Achievement system
-4. Social features (friends, challenges)
-5. Premium prompts
-6. Seasonal events
+### Phase 4 - Social & Engagement
+1. **Player statistics dashboard** - Detailed win rates, earnings, patterns
+2. **Leaderboards** - Daily/weekly/all-time top earners
+3. **Achievement system** - Badges for milestones
+4. **Social features** - Friends, challenges, sharing
+5. **Premium prompts** - Special categories with higher stakes
+6. **Seasonal events** - Themed prompts and bonuses
+7. **User-submitted prompts** - Community content (moderated)
+8. **OAuth integration** - Google, Twitter, etc.
 
 ---
 
@@ -68,10 +80,14 @@
 
 ## Security Considerations
 
-### Authentication & Authorization
-- JWT tokens or session-based auth
-- Validate player_id matches authenticated user on all endpoints
-- Rate limiting on all endpoints (especially vote to prevent spam)
+### Authentication & Authorization (Phase 1)
+- **API Key-based**: UUID v4 keys, unique per player, stored securely
+- **HTTPS only**: Enforce in production (Heroku provides this)
+- **Header-based**: `X-API-Key` header required for all authenticated endpoints
+- **Validation**: Check API key on every request, return 401 if invalid/missing
+- **Rate limiting**: Prevent brute force on API keys, limit requests per key
+- **No password storage**: MVP has no passwords, just keys (simpler, mobile-friendly)
+- **Future**: Phase 2+ adds JWT with refresh tokens for enhanced security
 
 ### Anti-Cheat Measures
 - Server-side timer validation (grace period but not exploitable)
@@ -81,8 +97,11 @@
 - Transaction validation (ensure balance sufficient before deducting)
 
 ### Data Integrity
-- Atomic transactions for balance updates
-- Idempotent prize
+- **Atomic transactions**: All balance updates use database transactions
+- **Idempotent prize collection**: ResultView table tracks payout_collected flag
+- **Transaction ledger**: Every balance change creates Transaction record with balance_after
+- **Optimistic locking**: Prevent race conditions on concurrent operations
+- **Distributed locks**: Use Redis (or fallback) for critical sections (balance updates, queue operations)
 
 ---
 
@@ -185,15 +204,18 @@
 
 **Players Table:**
 - `player_id` (primary key)
+- `api_key` (unique, indexed) - for authentication lookups
 - `active_round_id` (for checking one-at-a-time constraint)
 - `last_login_date` (for daily bonus queries)
 
-**Rounds Table (Prompt/Copy):**
+**Rounds Table** (unified for prompt/copy/vote):
 - `round_id` (primary key)
 - `player_id` (for user's round history)
+- `round_type` (for filtering by type)
 - `status, created_at` (composite, for queue queries)
 - `expires_at` (for timeout cleanup jobs)
 - `prompt_round_id` (for copy rounds, linking to original)
+- `wordset_id` (for vote rounds, linking to assigned wordset)
 
 **Word Sets Table:**
 - `wordset_id` (primary key)
