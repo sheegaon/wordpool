@@ -8,24 +8,25 @@ Wordpool is a multiplayer word association game with three round types: Prompt, 
 ## Round Types
 
 ### 1. Prompt Round
-- **Cost**: $100
-- **Process**: Player receives a prompt (e.g., "my deepest desire is to be [a]") and submits a single word
+- **Cost**: $100 (10% immediately, remainder deducted upon submission)
+- **Process**: Player receives a prompt (e.g., "my deepest desire is to be (a)") and submits a single word
 - **Word Requirements**:
   - Must be in NASPA Word List (North American Scrabble dictionary)
   - 2-15 letters
   - No proper nouns, abbreviations, or capitalized words
 - **Timing**: 60-second submission window
-- **Abandonment**: If expired, round cancelled with $90 refund ($10 penalty)
+- **Abandonment**: If expired, round cancelled and forfeit initial 10%
 - **Queue**: Prompt enters queue waiting for 2 copy players
+  - AI will provide necessary copies after 10 minutes of inactivity
 
 ### 2. Copy Round
-- **Cost**: $100 (or $90 when queue discount active)
-- **Dynamic Pricing**: When prompts waiting for copies exceeds 10, copy rounds cost $90 (system contributes $10 to maintain $300 prize pool)
+- **Cost**: $100 (or $90 when queue discount active) (10% immediately, remainder deducted upon submission)
+- **Dynamic Pricing**: When prompts waiting for copies exceeds 10, copy rounds cost $90 total (system contributes $10 to maintain $300 prize pool)
 - **Process**: Player receives ONLY the word submitted by a prompt player (without the original prompt) and must submit a similar/related word
 - **Word Requirements**: Same as Prompt Round, plus no duplicate of the original word
 - **Duplicate Handling**: If submitted word matches the original, submission is rejected and player must choose a different word (timer continues)
 - **Timing**: 60-second submission window
-- **Abandonment**: If expired, round cancelled with 90% refund (10% penalty). Copy round is returned to queue for another player to attempt.
+- **Abandonment**: If expired, round cancelled and forfeit initial 10%. Copy round is returned to queue for another player to attempt.
 - **Queue**: Once 2 different copy players successfully submit, the word set (1 original + 2 copies) moves to voting queue
 
 ### 3. Vote Round
@@ -60,9 +61,9 @@ Wordpool is a multiplayer word association game with three round types: Prompt, 
 
 ### Prize Pool Formation
 - **Contributions**: $100 each from 3 players = $300 total pool (system contributes $10 when copy discount active)
-- **Vote Payments Deducted**: $5 gross per correct vote (max $100 for 20 votes)
+- **Vote Payments Deducted**: $5 per correct vote (max $100 for 20 votes)
 - **Rake**: Vote entry fees ($1 per voter) are rake and don't enter prize pool
-- **Remaining Prize Pool**: $300 - (correct votes × $5) = distributed to contributors
+- **Remaining Prize Pool**: $300 - (correct votes × $5) = distributed to contributors proportionally to points earned, rounded down to nearest integer and remainder is raked
 
 ### Points Distribution
 - **Vote for Original**: 1 point to original (prompt) player
@@ -81,7 +82,7 @@ Wordpool is a multiplayer word association game with three round types: Prompt, 
   - Copy B player: 6/16 × $250 = $93
 
 ### Voter Payouts
-- **Correct vote**: $5 gross (+$4 net after $1 entry fee)
+- **Correct vote**: $5 gross ($4 net after $1 entry fee)
 - **Incorrect vote**: $0 (lose $1 entry fee)
 
 ---
@@ -89,10 +90,10 @@ Wordpool is a multiplayer word association game with three round types: Prompt, 
 ## Player Economics
 
 ### Starting Balance
-- New players receive **$1000**
+- New players begin with **$1000**
 
 ### Daily Login Bonus
-- **$100** credited once per day on first login, except on player creation date
+- **$100** credited once per 24-hour period from player creation time, excluding on player creation date
 
 ### Transaction Costs
 - Prompt round: -$100 (10% deducted immediately, remainder deducted upon submission)
@@ -103,7 +104,7 @@ Wordpool is a multiplayer word association game with three round types: Prompt, 
 - Correct votes: +$4 net (+$5 gross - $1 entry)
 - Prize pool earnings: Variable based on performance and votes received
 - Daily login bonus: +$100
-- Correct voter bonus upon 5 correct votes in a row: +$10
+- *Future Ideas:* Correct voter bonus upon 5 correct votes in a row: +$10
 
 ---
 
@@ -150,6 +151,6 @@ At any time (if not already in an active round), players can choose to:
 - **Grace period**: Voters who call the vote endpoint within the 60-second window get their full 15 seconds to vote, even if this extends slightly past 60 seconds
 
 ### Abandonment Handling
-- **Prompt abandonment**: Round cancelled, $90 refunded, $10 penalty
-- **Copy abandonment**: Round cancelled, 90% refunded, 10% penalty. Copy round returned to queue for other copy players.
+- **Prompt abandonment**: Round cancelled, $10 penalty forfeited
+- **Copy abandonment**: Round cancelled, 10% penalty forfeited. Copy round returned to queue for other copy players.
 - **Vote abandonment**: Player loses $1, vote not counted
