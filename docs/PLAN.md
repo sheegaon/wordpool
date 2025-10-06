@@ -82,3 +82,222 @@
 ### Data Integrity
 - Atomic transactions for balance updates
 - Idempotent prize
+
+---
+
+## Monitoring & Analytics
+
+### Key Metrics to Track
+
+**Economic Metrics:**
+- Average payout by role (prompt/copy/voter)
+- Win rate by role
+- Player balance distribution
+- Daily bonus claim rate
+- Copy discount activation frequency
+- Rake collected vs. prizes distributed
+
+**Queue Health:**
+- Prompts waiting for copies (alert if >20)
+- Word sets waiting for votes (alert if >50)
+- Average wait time: prompt → first copy
+- Average wait time: word set creation → 3 votes
+- Average wait time: 3 votes → finalization
+
+**Player Engagement:**
+- Daily active users
+- Average rounds per player per day
+- Round type distribution (prompt/copy/vote %)
+- Retention: D1, D7, D30
+- Churn: players reaching $0 balance
+
+**Performance:**
+- API response times (p50, p95, p99)
+- Failed submissions (by error type)
+- Grace period usage frequency
+- Timeout/abandonment rate by round type
+
+**Game Balance:**
+- Voter accuracy (% correct votes)
+- Original vs. copy win rates
+- Word similarity quality (measured by vote distribution)
+- Most/least profitable prompts
+
+### Alerts to Configure
+1. Queue imbalance: >20 prompts waiting
+2. Economic imbalance: any role avg payout <$80 over 1000 rounds
+3. Low voter participation: <3 votes per word set avg
+4. High abandonment: >20% timeout rate
+5. Server errors: >1% of requests failing
+6. Balance depletion: >10% of active players under $100
+
+---
+
+## Future Enhancements (Post-MVP)
+
+### Gameplay Additions
+1. **Difficulty Tiers**: Easy/Medium/Hard prompts with adjusted payouts
+2. **Themed Rounds**: Holiday, pop culture, or category-specific prompts
+3. **Team Mode**: 2v2 copy rounds with shared payouts
+4. **Streak Bonuses**: Consecutive correct votes earn multipliers
+5. **Power-ups**: "See one copy's vote distribution" for $10
+6. **Speed Bonuses**: Submit within 10 seconds for extra points
+
+### Economic Features
+1. **Subscription**: $10/month for no rake on votes, daily $200 bonus
+2. **Tournaments**: Weekly competitions with prize pools
+3. **Referral Bonuses**: $50 for each friend who joins
+4. **Bundle Pricing**: Buy 10 prompt rounds for $900
+5. **Dynamic Rake**: Lower rake during off-peak hours
+
+### Social Features
+1. **Friends System**: See friends' activity, challenge them
+2. **Chat**: Post-round discussion of word choices
+3. **Leaderboards**: Daily/weekly/all-time top earners
+4. **Replay Sharing**: Share interesting word sets on social media
+5. **Spectator Mode**: Watch live rounds (no voting)
+
+### Advanced Matching
+1. **Skill-Based Matching**: Match similar-skill copy players
+2. **ELO Ratings**: Track player skill, display ranks
+3. **Ranked Mode**: Competitive ladder with seasons
+4. **Private Rooms**: Create custom games with friends
+
+### Analytics for Players
+1. **Personal Stats**: Win rates, favorite prompts, earnings over time
+2. **Word History**: All words you've played, which got most votes
+3. **Insights**: "Your copies fool voters 65% of the time"
+4. **Achievements**: "Voted correctly 50 times in a row"
+
+### Content Management
+1. **User-Submitted Prompts**: Community creates prompts (moderated)
+2. **Prompt Voting**: Rate prompts, promote good ones
+3. **Seasonal Rotations**: Fresh prompt sets every month
+4. **Banned Words**: Block inappropriate or problematic words
+5. **Word of the Day**: Featured prompt with bonus payouts
+
+---
+
+## Prompt Library Design
+
+### Prompt Structure
+```json
+{
+  "prompt_id": "uuid",
+  "text": "my deepest desire is to be [a]",
+  "difficulty": "easy|medium|hard",
+  "category": "personal|abstract|action|descriptive",
+  "created_at": "timestamp",
+  "usage_count": 0,
+  "avg_copy_quality": 0.0,
+  "enabled": true
+}
+```
+
+### Initial Prompt Examples
+
+**Straightforward:**
+- "my deepest desire is to be (a/an)" → famous, rich, actor
+- "success means being" → happy, wealthy, fulfilled, loved
+- "the secret to happiness is (a/an)" → love, money, contentment
+- "every day I" →  work, eat, play, sleep
+- "I feel most alive when I'm" → running, creating, exploring
+- "the world needs more" → kindness, innovation, compassion
+
+**Deep:**
+- "beauty is fundamentally" → subjective, fleeting, timeless
+- "the meaning of life is" → love, growth, mystery
+- "art should be" → provocative, beautiful, meaningful
+- "freedom means" → choice, independence, responsibility
+
+**Silly:**
+- 
+
+---
+
+## Database Indexes
+
+### Suggested Indexes for Performance
+
+**Players Table:**
+- `player_id` (primary key)
+- `active_round_id` (for checking one-at-a-time constraint)
+- `last_login_date` (for daily bonus queries)
+
+**Rounds Table (Prompt/Copy):**
+- `round_id` (primary key)
+- `player_id` (for user's round history)
+- `status, created_at` (composite, for queue queries)
+- `expires_at` (for timeout cleanup jobs)
+- `prompt_round_id` (for copy rounds, linking to original)
+
+**Word Sets Table:**
+- `wordset_id` (primary key)
+- `status, vote_count` (composite, for voting queue)
+- `third_vote_at, fifth_vote_at` (for timeline calculations)
+- `prompt_round_id, copy_round_1_id, copy_round_2_id` (for linking)
+
+**Votes Table:**
+- `vote_id` (primary key)
+- `wordset_id` (for aggregating votes)
+- `player_id, wordset_id` (composite unique, prevent duplicate voting)
+- `created_at` (for vote timeline tracking)
+
+**Transactions Table:**
+- `transaction_id` (primary key)
+- `player_id, created_at` (composite, for transaction history)
+- `type` (for filtering by transaction type)
+- `reference_id` (for linking to rounds/wordsets)
+
+**Result Views Table:**
+- `player_id, wordset_id` (composite unique, for idempotent collection)
+- `payout_collected` (for finding pending results)
+
+---
+
+### Visual Design Principles
+1. **Clear Timers**: Large, visible countdown with color coding (green >30s, yellow 10-30s, red <10s)
+2. **Cost Transparency**: Always show costs and potential earnings upfront
+3. **Queue Visibility**: Show how many prompts/word sets are waiting
+4. **Progress Indicators**: Show round status (submitted, waiting for results)
+5. **Celebratory Feedback**: Animations for wins, uplifting messages
+6. **Loss Mitigation**: Frame losses gently ("Better luck next time! Only -$1")
+7. **Discount Highlighting**: Make $90 copy rounds visually prominent with badges
+
+---
+
+## Launch Checklist
+
+### Pre-Launch Testing
+- [ ] Load test with 1000 concurrent users
+- [ ] Verify queue management under stress
+- [ ] Test all timeout/abandonment scenarios
+- [ ] Validate scoring math across 100+ word sets
+- [ ] Test grace period edge cases
+- [ ] Verify daily bonus logic across date boundaries
+- [ ] Test copy discount activation/deactivation
+- [ ] Security audit (SQL injection, XSS, auth bypass)
+- [ ] Mobile browser compatibility (iOS Safari, Android Chrome)
+- [ ] Network disconnection recovery testing
+
+### Launch Day Prep
+- [ ] Database backups automated
+- [ ] Monitoring dashboards configured
+- [ ] Alert thresholds set
+- [ ] Customer support scripts prepared
+- [ ] FAQ page published
+- [ ] Terms of service and privacy policy finalized
+- [ ] Payment processing (if real money) tested and certified
+- [ ] Rate limiting tuned
+- [ ] CDN configured for static assets
+- [ ] Logging infrastructure ready
+
+### Week 1 Monitoring
+- [ ] Track queue balance hourly
+- [ ] Monitor economic metrics daily
+- [ ] Review player feedback and bug reports
+- [ ] Adjust copy discount threshold if needed
+- [ ] Watch for exploits or gaming patterns
+- [ ] Measure voter accuracy and adjust point ratios if needed
+- [ ] Track timeout/abandonment rates
+- [ ] Ensure prize pools always balance correctly
