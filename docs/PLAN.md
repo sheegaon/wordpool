@@ -27,6 +27,7 @@
 3. Better queue management UI
 4. Performance optimization
 5. Mobile responsiveness
+6. Similarity hinting using cosine similarity
 
 ### Phase 4 - Engagement Features
 1. Player statistics and win rates
