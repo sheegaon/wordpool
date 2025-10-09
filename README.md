@@ -8,32 +8,32 @@ Wordpool is a multiplayer word association game with three round types: Prompt, 
 ## Round Types
 
 ### 1. Prompt Round
-- **Cost**: $100 (full amount deducted immediately, $90 refunded on timeout)
+- **Cost**: \$100 (full amount deducted immediately, \$90 refunded on timeout)
 - **Process**: Player receives a randomly-assigned prompt (e.g., "my deepest desire is to be (a)") and submits a single word
 - **Word Requirements**:
-  - Must be in NASPA Word List (North American Scrabble dictionary)
+  - Must be in OWL2 Word List
   - 2-15 letters
   - No proper nouns, abbreviations, or capitalized words
 - **Timing**: 60-second submission window
-- **Abandonment**: If expired, round cancelled, forfeit $10 entry fee ($90 refunded), prompt removed from queue
+- **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 refunded), prompt removed from queue
 - **Queue**: Prompt enters queue waiting for 2 copy players
   - AI will provide necessary copies after 10 minutes of inactivity (Phase 2+)
 
 ### 2. Copy Round
-- **Cost**: $100 or $90 (full amount deducted immediately, $90 refunded on timeout)
-- **Dynamic Pricing**: When prompts waiting for copies exceeds 10, copy rounds cost $90 total (system contributes $10 to maintain $300 prize pool per wordset)
+- **Cost**: \$100 or \$90 (full amount deducted immediately, \$90 refunded on timeout)
+- **Dynamic Pricing**: When prompts waiting for copies exceeds 10, copy rounds cost \$90 total (system contributes \$10 to maintain \$300 prize pool per wordset)
 - **Process**: Player receives ONLY the word submitted by a prompt player (without the original prompt) and must submit a similar/related word
 - **Word Requirements**: Same as Prompt Round, plus no duplicate of the original word
 - **Duplicate Handling**: If submitted word matches the original, submission is rejected and player must choose a different word (timer continues)
 - **Timing**: 60-second submission window
-- **Abandonment**: If expired, round cancelled, forfeit $10 entry fee ($90 refunded). Associated prompt_round returned to queue for another player to attempt (same player blocked from retry for 24 hours).
+- **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 refunded). Associated prompt_round returned to queue for another player to attempt (same player blocked from retry for 24 hours).
 - **Queue**: Once 2 different copy players successfully submit, the word set (1 original + 2 copies) moves to voting queue
 
 ### 3. Vote Round
-- **Cost**: $1 (deducted immediately)
+- **Cost**: \$1 (deducted immediately)
 - **Process**: Player sees the original prompt and three words (1 original + 2 copies in randomized order per voter) and votes for which they believe is the original
 - **Timing**: 15-second hard limit (frontend enforces, backend has 5-second grace period)
-- **Abandonment**: No vote = forfeit $1
+- **Abandonment**: No vote = forfeit \$1
 - **Voting Pool**: 
   - Minimum 3 votes before finalization (AI will provide necessary votes to get to 3 votes after 10 minutes of inactivity)
   - Maximum 20 votes per word set
@@ -62,10 +62,10 @@ Wordpool is a multiplayer word association game with three round types: Prompt, 
 ## Scoring & Payouts
 
 ### Prize Pool Formation
-- **Contributions**: $100 each from 3 players = $300 total pool (system contributes $10 when copy discount active)
-- **Vote Payments Deducted**: $5 per correct vote (max $100 for 20 votes)
-- **Rake**: Vote entry fees ($1 per voter) are rake and don't enter prize pool
-- **Remaining Prize Pool**: $300 - (correct votes × $5) = distributed to contributors proportionally to points earned, rounded down to nearest integer and remainder is raked
+- **Contributions**: \$100 each from 3 players = \$300 total pool (system contributes \$10 when copy discount active)
+- **Vote Payments Deducted**: \$5 per correct vote (max \$100 for 20 votes)
+- **Rake**: Vote entry fees (\$1 per voter) are rake and don't enter prize pool
+- **Remaining Prize Pool**: \$300 - (correct votes × \$5) = distributed to contributors proportionally to points earned, rounded down to nearest integer and remainder is raked
 
 ### Points Distribution
 - **Vote for Original**: 1 point to original (prompt) player
@@ -77,15 +77,15 @@ Wordpool is a multiplayer word association game with three round types: Prompt, 
   - Total: 16 points
 
 ### Payout Calculation
-- Prize pool split proportionally by points earned, rounded down to nearest $1 (remainder is raked)
-- **Example** (continuing above with $250 remaining pool after $50 in vote payments):
-  - Original player: 4/16 × $250 = $62
-  - Copy A player: 6/16 × $250 = $93
-  - Copy B player: 6/16 × $250 = $93
+- Prize pool split proportionally by points earned, rounded down to nearest \$1 (remainder is raked)
+- **Example** (continuing above with \$250 remaining pool after \$50 in vote payments):
+  - Original player: 4/16 × \$250 = \$62
+  - Copy A player: 6/16 × \$250 = \$93
+  - Copy B player: 6/16 × \$250 = \$93
 
 ### Voter Payouts
-- **Correct vote**: $5 gross ($4 net after $1 entry fee)
-- **Incorrect vote**: $0 (lose $1 entry fee)
+- **Correct vote**: \$5 gross (\$4 net after \$1 entry fee)
+- **Incorrect vote**: \$0 (lose \$1 entry fee)
 
 ---
 
@@ -100,12 +100,12 @@ Wordpool is a multiplayer word association game with three round types: Prompt, 
 - Automatically tracks via `last_login_date` field
 
 ### Transaction Costs
-- Prompt round: -$100 (deducted immediately, $90 refunded on timeout)
-- Copy round: -$100 or -$90 (deducted immediately, $90 or $81 refunded on timeout)
-- Vote round: -$1 (deducted immediately)
+- Prompt round: -\$100 (deducted immediately, \$90 refunded on timeout)
+- Copy round: -\$100 or -\$90 (deducted immediately, \$90 or \$81 refunded on timeout)
+- Vote round: -\$1 (deducted immediately)
 
 ### Revenue Opportunities
-- Correct votes: +$4 net (+$5 gross - $1 entry)
+- Correct votes: +$4 net (+$5 gross - \$1 entry)
 - Prize pool earnings: Variable based on performance and votes received
 - Daily login bonus: +$100
 - *Future Ideas:* Correct voter bonus upon 5 correct votes in a row: +$10
@@ -123,7 +123,7 @@ At any time (if not already in an active round), players can choose to:
 ### Queue System
 - **Prompt Queue**: Submitted prompts waiting for copy players (FIFO)
 - **Copy Assignment**: FIFO from prompt queue when player calls POST /rounds/copy
-- **Copy Queue Discount**: When prompts_waiting > 10, copy rounds cost $90 (system contributes $10 per wordset)
+- **Copy Queue Discount**: When prompts_waiting > 10, copy rounds cost \$90 (system contributes \$10 per wordset)
 - **Vote Queue**: Complete word sets waiting for voters
 - **Vote Assignment Priority**:
   1. Wordsets with ≥5 votes (FIFO by 5th vote time)
@@ -160,7 +160,7 @@ At any time (if not already in an active round), players can choose to:
 - **Grace period**: Voters who called POST /rounds/vote within the 60-second window get their full 15 seconds to vote, even if this extends past 60 seconds
 
 ### Abandonment Handling
-- **Prompt abandonment**: Round cancelled, $10 penalty forfeited ($90 refunded), prompt removed from queue
-- **Copy abandonment**: Round cancelled, $10 penalty forfeited ($90 refunded), prompt_round returned to queue for other players (original player blocked 24h)
-- **Vote abandonment**: Player loses $1, vote not counted
+- **Prompt abandonment**: Round cancelled, \$10 penalty forfeited (\$90 refunded), prompt removed from queue
+- **Copy abandonment**: Round cancelled, \$10 penalty forfeited (\$90 refunded), prompt_round returned to queue for other players (original player blocked 24h)
+- **Vote abandonment**: Player loses \$1, vote not counted
 - **Implementation**: Backend timeout cleanup job processes expired rounds periodically

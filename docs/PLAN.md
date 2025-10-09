@@ -6,7 +6,7 @@
 1. **Player accounts and authentication** - API key-based (UUID v4)
 2. **Balance management and transactions** - Full amount deducted immediately, refunds on timeout
 3. **Core game loop** - Prompt (random assignment), copy, vote with full lifecycle
-4. **Word validation** - NASPA list with 2-15 char, A-Z only validation
+4. **Word validation** - OWL2 list with 2-15 char, A-Z only validation
 5. **Queue system** - FIFO with Redis/in-memory fallback
 6. **Scoring and payouts** - Proportional distribution with rounding
 7. **One-round-at-a-time enforcement** - Via active_round_id in player table
