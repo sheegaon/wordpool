@@ -158,6 +158,13 @@ class RoundService:
         if not prompt_round:
             raise ValueError("Prompt round not found")
 
+        # CRITICAL: Check if player is trying to copy their own prompt
+        if prompt_round.player_id == player.player_id:
+            # Put back in queue and get another
+            QueueService.add_prompt_to_queue(prompt_round_id)
+            # For MVP, just fail - in production, retry with next prompt
+            raise ValueError("Cannot copy your own prompt")
+
         # Check if player abandoned this prompt in last 24h
         cutoff = datetime.now(UTC) - timedelta(hours=24)
         result = await self.db.execute(

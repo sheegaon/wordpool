@@ -16,14 +16,7 @@ React + TypeScript frontend for the WordPool word association game.
 - ✅ Error handling and notifications
 - ✅ Automatic state polling and updates
 - ✅ Robust request cancellation (no memory leaks)
-
-### Recent Improvements
-
-See [IMPROVEMENTS.md](IMPROVEMENTS.md) and [STABLE_VERSIONS.md](STABLE_VERSIONS.md) for detailed documentation on:
-- **AbortController Integration:** Proper cancellation of in-flight requests on component unmount
-- **Memory Leak Prevention:** No more React warnings about setting state on unmounted components
-- **Stable Package Versions:** Downgraded to production-ready versions (React 18, Tailwind 3, Vite 5)
-- **Better Performance:** 22% smaller bundle size, unnecessary network requests canceled immediately
+- ✅ React Router v7 future flags enabled (clean console)
 
 ## Tech Stack
 

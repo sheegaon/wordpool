@@ -147,3 +147,47 @@ async def test_daily_bonus_logic(db_session):
     # Should no longer be available today (last_login_date now set to today)
     available = await player_service.is_daily_bonus_available(player)
     assert available is False
+
+
+@pytest.mark.asyncio
+async def test_cannot_copy_own_prompt(db_session):
+    """Test that players cannot copy their own prompts."""
+    from backend.services.queue_service import QueueService
+
+    player_service = PlayerService(db_session)
+    round_service = RoundService(db_session)
+    transaction_service = TransactionService(db_session)
+
+    player = await player_service.create_player()
+
+    # Seed a test prompt
+    prompt = Prompt(
+        text=f"test self-copy prevention {uuid.uuid4()}",
+        category="test",
+        enabled=True
+    )
+    db_session.add(prompt)
+    await db_session.commit()
+
+    # Start and submit prompt round
+    prompt_round = await round_service.start_prompt_round(player, transaction_service)
+    await round_service.submit_prompt_word(
+        prompt_round.round_id, "cat", player, transaction_service
+    )
+    await db_session.refresh(player)
+
+    # Prompt should now be in queue
+    prompts_before = QueueService.get_prompts_waiting()
+    assert prompts_before >= 1
+
+    # Try to start copy round with same player - should fail
+    with pytest.raises(ValueError, match="Cannot copy your own prompt"):
+        await round_service.start_copy_round(player, transaction_service)
+
+    # Verify prompt was returned to queue (count should be unchanged)
+    prompts_after = QueueService.get_prompts_waiting()
+    assert prompts_after == prompts_before
+
+    # Verify player's balance wasn't deducted (copy round never started)
+    await db_session.refresh(player)
+    assert player.balance == 900  # Only the prompt round cost was deducted
