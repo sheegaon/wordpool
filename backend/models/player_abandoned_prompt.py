@@ -1,14 +1,10 @@
 """Player abandoned prompt tracking for cooldown."""
 from sqlalchemy import Column, DateTime, ForeignKey, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime, UTC
 from backend.database import Base
-
-
-def get_uuid_column(*args, **kwargs):
-    return Column(PGUUID(as_uuid=True), *args, **kwargs)
+from backend.models.base import get_uuid_column
 
 
 class PlayerAbandonedPrompt(Base):

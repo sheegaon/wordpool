@@ -1,20 +1,10 @@
 """Player model."""
 from sqlalchemy import Column, String, Integer, DateTime, Date, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime, UTC
 from backend.database import Base
-
-
-# Use appropriate UUID type based on dialect
-def get_uuid_column(*args, **kwargs):
-    """Get UUID column type based on database dialect."""
-    return Column(
-        PGUUID(as_uuid=True),
-        *args,
-        **kwargs
-    )
+from backend.models.base import get_uuid_column
 
 
 class Player(Base):
