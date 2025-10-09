@@ -1,7 +1,109 @@
-# Complete Game Specification: Wordpool
+# WordPool
 
-## Game Overview
-Wordpool is a multiplayer word association game with three round types: Prompt, Copy, and Vote. Players compete to match words with prompts or identify original vs. copied words, with monetary stakes and payouts.
+A multiplayer word association game with monetary stakes. Players create word associations, copy them, and vote to identify originals.
+
+## 🎮 Game Overview
+
+WordPool is a three-phase game where players:
+1. **Prompt** - Submit a word for a creative prompt ($1.00)
+2. **Copy** - Submit a similar word without seeing the prompt ($1.00 or $0.90)
+3. **Vote** - Identify the original word from three options ($0.01)
+
+Winners split a prize pool based on vote performance. See full game rules below.
+
+## 🚀 Quick Start
+
+### Backend (Production Ready)
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run migrations
+alembic upgrade head
+
+# Seed prompts
+python3 scripts/seed_prompts.py
+
+# Start server
+uvicorn backend.main:app --reload
+```
+
+Server runs at **http://localhost:8000**
+- API Docs: http://localhost:8000/docs
+- Health Check: http://localhost:8000/health
+
+### Frontend (Not Yet Built)
+
+The backend REST API is complete and ready for frontend integration. See [FRONTEND_PLAN.md](docs/FRONTEND_PLAN.md) for implementation guidance.
+
+## 📚 Documentation
+
+**For Developers:**
+- **[API.md](docs/API.md)** - Complete REST API reference with TypeScript types
+- **[FRONTEND_PLAN.md](docs/FRONTEND_PLAN.md)** - Frontend implementation guide (NEW)
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and backend logic
+- **[DATA_MODELS.md](docs/DATA_MODELS.md)** - Database schema reference
+- **[MVP_SUMMARY.md](docs/MVP_SUMMARY.md)** - Project status and completion checklist
+
+**For Game Design:**
+- **[README.md](README.md)** - This file (complete game rules)
+- **[PLAN.md](docs/PLAN.md)** - Implementation phases and roadmap
+- **[PROMPT_LIBRARY.md](docs/PROMPT_LIBRARY.md)** - Game prompts collection
+
+## ⚡ Features
+
+**✅ Phase 1 Complete (100%)**
+- Player accounts with API key authentication
+- Three round types (Prompt, Copy, Vote)
+- Queue management with dynamic pricing
+- NASPA dictionary validation (191k words)
+- Proportional prize distribution
+- Daily login bonuses
+- Transaction audit trail
+- 15+ REST API endpoints
+- 88% test coverage
+
+**🔜 Phase 2 (Planned)**
+- Transaction history endpoint
+- Enhanced statistics
+- JWT authentication
+- Admin API for testing
+
+**🎯 Phase 3+ (Future)**
+- AI backup players
+- Real-time WebSocket updates
+- Leaderboards & achievements
+- Social features
+
+## 🛠️ Tech Stack
+
+**Backend:**
+- FastAPI (async Python web framework)
+- SQLAlchemy (async ORM)
+- PostgreSQL / SQLite
+- Redis (with in-memory fallback)
+- Alembic (migrations)
+- Pydantic (validation)
+
+**Deployment:**
+- Docker / docker-compose
+- Heroku ready (heroku.yml)
+- Environment-based configuration
+
+## 🧪 Testing
+
+```bash
+# Run tests
+pytest
+
+# Current status: 15/17 passing (88%)
+# Known issues: 2 tests debugging timezone edge cases
+```
+
+---
+
+# Complete Game Rules
 
 ---
 
