@@ -15,6 +15,14 @@ React + TypeScript frontend for the WordPool word association game.
 - ✅ Responsive design with Tailwind CSS
 - ✅ Error handling and notifications
 - ✅ Automatic state polling and updates
+- ✅ Robust request cancellation (no memory leaks)
+
+### Recent Improvements
+
+See [IMPROVEMENTS.md](IMPROVEMENTS.md) for detailed documentation on:
+- **AbortController Integration:** Proper cancellation of in-flight requests on component unmount
+- **Memory Leak Prevention:** No more React warnings about setting state on unmounted components
+- **Better Performance:** Unnecessary network requests are canceled immediately
 
 ## Tech Stack
 
@@ -152,6 +160,7 @@ The `GameContext` manages global state:
 - Error notifications auto-dismiss after 5 seconds
 - Invalid API keys trigger automatic logout
 - Network errors prompt retry suggestions
+- **Request cancellation:** AbortController integration prevents memory leaks and React warnings (see [IMPROVEMENTS.md](IMPROVEMENTS.md))
 
 ## Styling
 

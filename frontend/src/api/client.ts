@@ -40,6 +40,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiError>) => {
+    // Ignore aborted requests
+    if (error.code === 'ERR_CANCELED') {
+      return Promise.reject(error);
+    }
     // Transform error to user-friendly message
     if (error.response?.data?.detail) {
       throw new Error(error.response.data.detail);
@@ -60,76 +64,76 @@ api.interceptors.response.use(
 // API Client methods
 export const apiClient = {
   // Health & Info
-  async getHealth(): Promise<HealthResponse> {
-    const { data } = await api.get('/health');
+  async getHealth(signal?: AbortSignal): Promise<HealthResponse> {
+    const { data } = await api.get('/health', { signal });
     return data;
   },
 
   // Player endpoints
-  async createPlayer(): Promise<CreatePlayerResponse> {
-    const { data } = await api.post('/player');
+  async createPlayer(signal?: AbortSignal): Promise<CreatePlayerResponse> {
+    const { data } = await api.post('/player', {}, { signal });
     return data;
   },
 
-  async getBalance(): Promise<Player> {
-    const { data } = await api.get('/player/balance');
+  async getBalance(signal?: AbortSignal): Promise<Player> {
+    const { data } = await api.get('/player/balance', { signal });
     return data;
   },
 
-  async claimDailyBonus(): Promise<DailyBonusResponse> {
-    const { data } = await api.post('/player/claim-daily-bonus');
+  async claimDailyBonus(signal?: AbortSignal): Promise<DailyBonusResponse> {
+    const { data } = await api.post('/player/claim-daily-bonus', {}, { signal });
     return data;
   },
 
-  async getCurrentRound(): Promise<ActiveRound> {
-    const { data } = await api.get('/player/current-round');
+  async getCurrentRound(signal?: AbortSignal): Promise<ActiveRound> {
+    const { data } = await api.get('/player/current-round', { signal });
     return data;
   },
 
-  async getPendingResults(): Promise<PendingResultsResponse> {
-    const { data } = await api.get('/player/pending-results');
+  async getPendingResults(signal?: AbortSignal): Promise<PendingResultsResponse> {
+    const { data } = await api.get('/player/pending-results', { signal });
     return data;
   },
 
-  async rotateKey(): Promise<{ new_api_key: string; message: string }> {
-    const { data } = await api.post('/player/rotate-key');
+  async rotateKey(signal?: AbortSignal): Promise<{ new_api_key: string; message: string }> {
+    const { data } = await api.post('/player/rotate-key', {}, { signal });
     return data;
   },
 
   // Round endpoints
-  async getRoundAvailability(): Promise<RoundAvailability> {
-    const { data } = await api.get('/rounds/available');
+  async getRoundAvailability(signal?: AbortSignal): Promise<RoundAvailability> {
+    const { data } = await api.get('/rounds/available', { signal });
     return data;
   },
 
-  async startPromptRound(): Promise<StartPromptResponse> {
-    const { data } = await api.post('/rounds/prompt', {});
+  async startPromptRound(signal?: AbortSignal): Promise<StartPromptResponse> {
+    const { data } = await api.post('/rounds/prompt', {}, { signal });
     return data;
   },
 
-  async startCopyRound(): Promise<StartCopyResponse> {
-    const { data } = await api.post('/rounds/copy', {});
+  async startCopyRound(signal?: AbortSignal): Promise<StartCopyResponse> {
+    const { data } = await api.post('/rounds/copy', {}, { signal });
     return data;
   },
 
-  async startVoteRound(): Promise<StartVoteResponse> {
-    const { data } = await api.post('/rounds/vote', {});
+  async startVoteRound(signal?: AbortSignal): Promise<StartVoteResponse> {
+    const { data } = await api.post('/rounds/vote', {}, { signal });
     return data;
   },
 
-  async submitWord(roundId: string, word: string): Promise<SubmitWordResponse> {
-    const { data } = await api.post(`/rounds/${roundId}/submit`, { word });
+  async submitWord(roundId: string, word: string, signal?: AbortSignal): Promise<SubmitWordResponse> {
+    const { data } = await api.post(`/rounds/${roundId}/submit`, { word }, { signal });
     return data;
   },
 
   // Wordset endpoints
-  async submitVote(wordsetId: string, word: string): Promise<VoteResponse> {
-    const { data } = await api.post(`/wordsets/${wordsetId}/vote`, { word });
+  async submitVote(wordsetId: string, word: string, signal?: AbortSignal): Promise<VoteResponse> {
+    const { data } = await api.post(`/wordsets/${wordsetId}/vote`, { word }, { signal });
     return data;
   },
 
-  async getWordsetResults(wordsetId: string): Promise<WordsetResults> {
-    const { data } = await api.get(`/wordsets/${wordsetId}/results`);
+  async getWordsetResults(wordsetId: string, signal?: AbortSignal): Promise<WordsetResults> {
+    const { data } = await api.get(`/wordsets/${wordsetId}/results`, { signal });
     return data;
   },
 };
