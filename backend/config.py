@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     secret_key: str = "dev-secret-key-change-in-production"
 
-    # Game Constants
+    # Game Constants (all values in whole dollars)
     starting_balance: int = 1000
     daily_bonus_amount: int = 100
     prompt_cost: int = 100

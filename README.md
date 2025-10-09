@@ -5,9 +5,9 @@ A multiplayer word association game with monetary stakes. Players create word as
 ## 🎮 Game Overview
 
 WordPool is a three-phase game where players:
-1. **Prompt** - Submit a word for a creative prompt ($1.00)
-2. **Copy** - Submit a similar word without seeing the prompt ($1.00 or $0.90)
-3. **Vote** - Identify the original word from three options ($0.01)
+1. **Prompt** - Submit a word for a creative prompt (\$100)
+2. **Copy** - Submit a similar word without seeing the prompt (\$100 or \$90)
+3. **Vote** - Identify the original word from three options (\$1)
 
 Winners split a prize pool based on vote performance. See full game rules below.
 
@@ -113,13 +113,13 @@ pytest
 - **Cost**: \$100 (full amount deducted immediately, \$90 refunded on timeout)
 - **Process**: Player receives a randomly-assigned prompt (e.g., "my deepest desire is to be (a)") and submits a single word
 - **Word Requirements**:
-  - Must be in OWL2 Word List
+  - Must be in NASPA Word List (~179k words)
   - 2-15 letters
-  - No proper nouns, abbreviations, or capitalized words
+  - Letters A-Z only (case insensitive)
 - **Timing**: 60-second submission window
 - **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 refunded), prompt removed from queue
 - **Queue**: Prompt enters queue waiting for 2 copy players
-  - AI will provide necessary copies after 10 minutes of inactivity (Phase 2+)
+  - AI will provide necessary copies after 10 minutes of inactivity (Phase 3+)
 
 ### 2. Copy Round
 - **Cost**: \$100 or \$90 (full amount deducted immediately, \$90 refunded on timeout)
@@ -128,7 +128,7 @@ pytest
 - **Word Requirements**: Same as Prompt Round, plus no duplicate of the original word
 - **Duplicate Handling**: If submitted word matches the original, submission is rejected and player must choose a different word (timer continues)
 - **Timing**: 60-second submission window
-- **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 refunded). Associated prompt_round returned to queue for another player to attempt (same player blocked from retry for 24 hours).
+- **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 or \$81 refunded). Associated prompt_round returned to queue for another player to attempt (same player blocked from retry for 24 hours).
 - **Queue**: Once 2 different copy players successfully submit, the word set (1 original + 2 copies) moves to voting queue
 
 ### 3. Vote Round
@@ -136,12 +136,12 @@ pytest
 - **Process**: Player sees the original prompt and three words (1 original + 2 copies in randomized order per voter) and votes for which they believe is the original
 - **Timing**: 15-second hard limit (frontend enforces, backend has 5-second grace period)
 - **Abandonment**: No vote = forfeit \$1
-- **Voting Pool**: 
-  - Minimum 3 votes before finalization (AI will provide necessary votes to get to 3 votes after 10 minutes of inactivity)
+- **Voting Pool**:
+  - Minimum 3 votes before finalization (AI will provide necessary votes after 10 minutes of inactivity - Phase 3+)
   - Maximum 20 votes per word set
   - After 3rd vote received: word set remains open for 10 minutes OR until 5th vote received, whichever comes first
   - After 5th vote received: accept additional voters for 60 seconds only
-  - After 20th vote OR (5+ votes AND 80 seconds elapsed since 5th vote), word set closes
+  - After 20th vote OR (5+ votes AND 60 seconds elapsed since 5th vote), word set closes
 - **Restrictions**: The 3 contributors (1 prompt + 2 copy players) cannot vote on their own word set (filtered at assignment). Voters can vote once per word set.
 
 ---
@@ -167,7 +167,7 @@ pytest
 - **Contributions**: \$100 each from 3 players = \$300 total pool (system contributes \$10 when copy discount active)
 - **Vote Payments Deducted**: \$5 per correct vote (max \$100 for 20 votes)
 - **Rake**: Vote entry fees (\$1 per voter) are rake and don't enter prize pool
-- **Remaining Prize Pool**: \$300 - (correct votes × \$5) = distributed to contributors proportionally to points earned, rounded down to nearest integer and remainder is raked
+- **Remaining Prize Pool**: \$300 - (correct votes × \$5) = distributed to contributors proportionally to points earned, rounded down to nearest \$1 and remainder is raked
 
 ### Points Distribution
 - **Vote for Original**: 1 point to original (prompt) player
@@ -194,10 +194,10 @@ pytest
 ## Player Economics
 
 ### Starting Balance
-- New players begin with **$1000**
+- New players begin with **\$1000**
 
 ### Daily Login Bonus
-- **$100** credited once per UTC calendar date, excluding player creation date
+- **\$100** credited once per UTC calendar date, excluding player creation date
 - First bonus available the day after account creation
 - Automatically tracks via `last_login_date` field
 
@@ -207,10 +207,10 @@ pytest
 - Vote round: -\$1 (deducted immediately)
 
 ### Revenue Opportunities
-- Correct votes: +$4 net (+$5 gross - \$1 entry)
+- Correct votes: +\$4 net (+\$5 gross - \$1 entry)
 - Prize pool earnings: Variable based on performance and votes received
-- Daily login bonus: +$100
-- *Future Ideas:* Correct voter bonus upon 5 correct votes in a row: +$10
+- Daily login bonus: +\$100
+- *Future Ideas:* Correct voter bonus upon 5 correct votes in a row: +\$10
 
 ---
 
@@ -263,6 +263,6 @@ At any time (if not already in an active round), players can choose to:
 
 ### Abandonment Handling
 - **Prompt abandonment**: Round cancelled, \$10 penalty forfeited (\$90 refunded), prompt removed from queue
-- **Copy abandonment**: Round cancelled, \$10 penalty forfeited (\$90 refunded), prompt_round returned to queue for other players (original player blocked 24h)
+- **Copy abandonment**: Round cancelled, \$10 or \$9 penalty forfeited (rest refunded), prompt_round returned to queue for other players (original player blocked 24h)
 - **Vote abandonment**: Player loses \$1, vote not counted
 - **Implementation**: Backend timeout cleanup job processes expired rounds periodically

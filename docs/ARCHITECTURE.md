@@ -29,10 +29,10 @@ API key authentication with UUID v4 keys issued on player creation. See [API.md]
 - **Deferred Collection**: Prizes not collected until player views results
 - **Results Content**:
   - For contributors: All votes shown, reveal which word was original, points earned, payout amount
-  - For voters: Correct answer revealed immediately after vote submission, $5 credited if correct. Show voters vote tally thus far and add to status area so players can check back to see final vote tally.
+  - For voters: Correct answer revealed immediately after vote submission, \$5 credited if correct. Show voters vote tally thus far and add to status area so players can check back to see final vote tally.
 
 ### Result Timing
-- **For Voters**: Immediate feedback after vote submission (correct/incorrect, original word revealed, $5 gross/$4 net if correct)
+- **For Voters**: Immediate feedback after vote submission (correct/incorrect, original word revealed, \$5 gross/\$4 net if correct)
 - **For Contributors**: Results available immediately after voting period closes
 - **Prize Collection**: Requires viewing results screen to credit account
 
@@ -124,7 +124,7 @@ Calculate scores and payouts → status: "finalized"
 
 When a copy round times out without submission:
 1. Round status set to "abandoned"
-2. Player refunded $90 (keeps $10 entry fee as penalty)
+2. Player refunded \$90 (keeps \$10 entry fee as penalty)
 3. Associated prompt_round returned to queue for reassignment
 4. Same player prevented from getting same prompt_round_id again (24h cooldown)
 5. No limit on how many times a prompt can be abandoned by different players

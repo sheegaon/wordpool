@@ -111,7 +111,7 @@ POST /player
   "player_id": "3555a0e9-d46d-4a36-8756-f0e9c836d822",
   "api_key": "dff60a88-04c8-4a11-a8d8-874add980d12",
   "balance": 1000,
-  "message": "Player created! Use this API key in the X-API-Key header for authentication. Starting balance: $1000"
+  "message": "Player created! Use this API key in the X-API-Key header for authentication. Starting balance: \$1000"
 }
 ```
 
@@ -160,7 +160,7 @@ Get player balance and status.
 ```
 
 #### `POST /player/claim-daily-bonus`
-Claim daily login bonus ($100).
+Claim daily login bonus (\$100).
 
 **Response:**
 ```json
@@ -266,7 +266,7 @@ Get list of finalized wordsets awaiting result viewing.
 ### Round Endpoints
 
 #### `POST /rounds/prompt`
-Start a prompt round (-$100).
+Start a prompt round (-\$100).
 
 **Request Body:**
 ```json
@@ -285,11 +285,11 @@ Start a prompt round (-$100).
 
 **Errors:**
 - `already_in_round` - Player already in active round
-- `insufficient_balance` - Balance < $100
+- `insufficient_balance` - Balance < \$100
 - `max_outstanding_prompts` - Player has 10 open/closing wordsets
 
 #### `POST /rounds/copy`
-Start a copy round (-$100 or -$90).
+Start a copy round (-\$100 or -\$90).
 
 **Response:**
 ```json
@@ -309,7 +309,7 @@ Start a copy round (-$100 or -$90).
 - `insufficient_balance` - Balance < cost
 
 #### `POST /rounds/vote`
-Start a vote round (-$1).
+Start a vote round (-\$1).
 
 **Response:**
 ```json
@@ -325,7 +325,7 @@ Start a vote round (-$1).
 **Errors:**
 - `no_wordsets_available` - No wordsets in queue
 - `already_in_round` - Player already in active round
-- `insufficient_balance` - Balance < $1
+- `insufficient_balance` - Balance < \$1
 
 #### `POST /rounds/{round_id}/submit`
 Submit word for prompt or copy round.
@@ -517,13 +517,13 @@ Visit `/redoc` for alternative ReDoc documentation.
 - **Grace period**: 5 seconds (not shown to users - allows late submissions)
 
 ### Economics
-- **Starting balance**: $10.00 (1000 cents)
-- **Daily bonus**: $1.00 (100 cents)
-- **Prompt cost**: $1.00 (100 cents)
-- **Copy cost**: $1.00 normal, $0.90 with discount (100 or 90 cents)
-- **Vote cost**: $0.01 (1 cent)
-- **Vote payout (correct)**: $0.05 (5 cents)
-- **Wordset prize pool**: $3.00 (300 cents)
+- **Starting balance**: \$1000
+- **Daily bonus**: \$100
+- **Prompt cost**: \$100
+- **Copy cost**: \$100 normal, \$90 with discount
+- **Vote cost**: \$1
+- **Vote payout (correct)**: \$5
+- **Wordset prize pool**: \$300
 - **Copy discount threshold**: >10 prompts waiting
 - **Max outstanding prompts**: 10 per player
 
@@ -543,7 +543,7 @@ Visit `/redoc` for alternative ReDoc documentation.
 ### Prize Distribution
 - Prize pool split among prompt + 2 copy contributors
 - Share proportional to votes received for your word
-- System contributes $0.10 if copy used discount pricing
+- System contributes \$10 if copy used discount pricing
 
 ## Frontend Integration
 
@@ -632,7 +632,7 @@ interface VoteState {
 ## Notes
 
 - All timestamps in UTC ISO 8601 format
-- All currency amounts in cents (100 = $1.00)
+- All currency amounts in whole dollars (integer values: 100 = \$100)
 - Words automatically converted to uppercase
 - Grace period allows submissions up to 5 seconds past expiry
 - `/docs` and `/redoc` provide interactive API testing

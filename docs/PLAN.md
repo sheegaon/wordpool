@@ -12,8 +12,8 @@
 7. **One-round-at-a-time enforcement** - Via active_round_id in player table
 8. **Results viewing and prize collection** - Idempotent with ResultView tracking
 9. **Essential API endpoints** - All endpoints documented in ARCHITECTURE.md
-10. **Daily login bonus** - UTC date-based, $100 once per day (excluding creation date)
-11. **Copy discount system** - $90 when prompts_waiting > 10, system contributes $10
+10. **Daily login bonus** - UTC date-based, \$100 once per day (excluding creation date)
+11. **Copy discount system** - \$90 when prompts_waiting > 10, system contributes \$10
 12. **Grace period handling** - 5-second backend grace on all submissions
 13. **Outstanding prompts limit** - Max 10 wordsets in 'open' or 'closing' status
 14. **Vote timeline state machine** - 3rd vote (10 min window), 5th vote (60 sec window)
@@ -65,7 +65,7 @@
 3. Word set receives exactly 3 votes and sits for 10 minutes
 4. Word set receives 5 votes immediately (should trigger 60s window)
 5. 20 voters queue up simultaneously (should cap at 20)
-6. Player balance exactly $100 or $1 (boundary conditions)
+6. Player balance exactly \$100 or \$1 (boundary conditions)
 7. Daily bonus at midnight boundary
 8. Clock skew between client and server
 
@@ -129,7 +129,7 @@
 - Average rounds per player per day
 - Round type distribution (prompt/copy/vote %)
 - Retention: D1, D7, D30
-- Churn: players reaching $0 balance
+- Churn: players reaching \$0 balance
 
 **Performance:**
 - API response times (p50, p95, p99)
@@ -145,11 +145,11 @@
 
 ### Alerts to Configure
 1. Queue imbalance: >20 prompts waiting
-2. Economic imbalance: any role avg payout <$80 over 1000 rounds
+2. Economic imbalance: any role avg payout <\$80 over 1000 rounds
 3. Low voter participation: <3 votes per word set avg
 4. High abandonment: >20% timeout rate
 5. Server errors: >1% of requests failing
-6. Balance depletion: >10% of active players under $100
+6. Balance depletion: >10% of active players under \$100
 
 ---
 
@@ -160,14 +160,14 @@
 2. **Themed Rounds**: Holiday, pop culture, or category-specific prompts
 3. **Team Mode**: 2v2 copy rounds with shared payouts
 4. **Streak Bonuses**: Consecutive correct votes earn multipliers
-5. **Power-ups**: "See one copy's vote distribution" for $10
+5. **Power-ups**: "See one copy's vote distribution" for \$10
 6. **Speed Bonuses**: Submit within 10 seconds for extra points
 
 ### Economic Features
-1. **Subscription**: $10/month for no rake on votes, daily $200 bonus
+1. **Subscription**: \$10/month for no rake on votes, daily \$200 bonus
 2. **Tournaments**: Weekly competitions with prize pools
-3. **Referral Bonuses**: $50 for each friend who joins
-4. **Bundle Pricing**: Buy 10 prompt rounds for $900
+3. **Referral Bonuses**: \$50 for each friend who joins
+4. **Bundle Pricing**: Buy 10 prompt rounds for \$900
 5. **Dynamic Rake**: Lower rake during off-peak hours
 
 ### Social Features
@@ -247,8 +247,8 @@
 3. **Queue Visibility**: Show how many prompts/word sets are waiting
 4. **Progress Indicators**: Show round status (submitted, waiting for results)
 5. **Celebratory Feedback**: Animations for wins, uplifting messages
-6. **Loss Mitigation**: Frame losses gently ("Better luck next time! Only -$1")
-7. **Discount Highlighting**: Make $90 copy rounds visually prominent with badges
+6. **Loss Mitigation**: Frame losses gently ("Better luck next time! Only -\$1")
+7. **Discount Highlighting**: Make \$90 copy rounds visually prominent with badges
 
 ---
 
