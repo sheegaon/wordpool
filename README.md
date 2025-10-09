@@ -33,9 +33,21 @@ Server runs at **http://localhost:8000**
 - API Docs: http://localhost:8000/docs
 - Health Check: http://localhost:8000/health
 
-### Frontend (Not Yet Built)
+### Frontend (MVP Complete)
 
-The backend REST API is complete and ready for frontend integration. See [FRONTEND_PLAN.md](docs/FRONTEND_PLAN.md) for implementation guidance.
+```bash
+# Navigate to frontend
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+Frontend runs at **http://localhost:5173**
+- See [frontend/README.md](frontend/README.md) for detailed documentation
 
 ## 📚 Documentation
 
@@ -53,7 +65,9 @@ The backend REST API is complete and ready for frontend integration. See [FRONTE
 
 ## ⚡ Features
 
-**✅ Phase 1 Complete (100%)**
+**✅ Phase 1 MVP Complete (100%)**
+
+*Backend:*
 - Player accounts with API key authentication
 - Three round types (Prompt, Copy, Vote)
 - Queue management with dynamic pricing
@@ -63,6 +77,16 @@ The backend REST API is complete and ready for frontend integration. See [FRONTE
 - Transaction audit trail
 - 15+ REST API endpoints
 - 88% test coverage
+
+*Frontend:*
+- React + TypeScript with Vite
+- Responsive UI with Tailwind CSS
+- Real-time countdown timers
+- Dashboard with balance & round selection
+- All three round types implemented
+- Results viewing with vote breakdown
+- Automatic state polling & updates
+- Error handling & notifications
 
 **🔜 Phase 2 (Planned)**
 - Transaction history endpoint
