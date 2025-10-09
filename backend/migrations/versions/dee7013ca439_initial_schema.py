@@ -166,7 +166,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_votes_player_id'), 'votes', ['player_id'], unique=False)
     op.create_index(op.f('ix_votes_wordset_id'), 'votes', ['wordset_id'], unique=False)
     op.create_foreign_key('fk_players_active_round_id', 'players', 'rounds', ['active_round_id'], ['round_id'], ondelete='SET NULL')
-    op.create_foreign_key('fk_rounds_wordset_id', 'rounds', 'wordsets', ['wordset_id'], ['wordset_id'])
+    op.create_foreign_key('fk_rounds_wordset_id', 'rounds', 'wordsets', ['wordset_id'], ['wordset_id'], ondelete='SET NULL')
     # ### end Alembic commands ###
 
 
