@@ -1,14 +1,10 @@
 """WordSet model."""
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime, UTC
 from backend.database import Base
-
-
-def get_uuid_column(*args, **kwargs):
-    return Column(PGUUID(as_uuid=True), *args, **kwargs)
+from backend.models.base import get_uuid_column
 
 
 class WordSet(Base):

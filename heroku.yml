@@ -2,5 +2,9 @@ build:
   docker:
     web: Dockerfile
 
+release:
+  command:
+    - alembic upgrade head
+
 run:
-  web: alembic upgrade head && uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+  web: uvicorn backend.main:app --host 0.0.0.0 --port $PORT

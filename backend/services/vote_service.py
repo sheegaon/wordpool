@@ -1,6 +1,7 @@
 """Vote service for managing voting rounds and finalization."""
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from backend.models.player import Player
 from backend.models.round import Round
 from backend.models.wordset import WordSet
@@ -41,10 +42,15 @@ class VoteService:
 
         Filters out wordsets where player was contributor.
         """
-        # Get all open/closing wordsets
+        # Get all open/closing wordsets with eager-loaded rounds (prevents N+1 queries)
         result = await self.db.execute(
             select(WordSet)
             .where(WordSet.status.in_(["open", "closing"]))
+            .options(
+                selectinload(WordSet.prompt_round),
+                selectinload(WordSet.copy_round_1),
+                selectinload(WordSet.copy_round_2),
+            )
         )
         all_wordsets = list(result.scalars().all())
 
@@ -54,15 +60,11 @@ class VoteService:
         # Filter out wordsets where player was contributor
         available = []
         for ws in all_wordsets:
-            # Get contributor player IDs
-            prompt_round = await self.db.get(Round, ws.prompt_round_id)
-            copy1_round = await self.db.get(Round, ws.copy_round_1_id)
-            copy2_round = await self.db.get(Round, ws.copy_round_2_id)
-
+            # Get contributor player IDs (now loaded eagerly, no extra queries)
             contributor_ids = {
-                prompt_round.player_id,
-                copy1_round.player_id,
-                copy2_round.player_id,
+                ws.prompt_round.player_id,
+                ws.copy_round_1.player_id,
+                ws.copy_round_2.player_id,
             }
 
             # Filter out self-voting
