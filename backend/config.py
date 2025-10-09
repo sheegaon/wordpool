@@ -38,9 +38,14 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode='before')
     @classmethod
     def fix_postgres_url(cls, v: str, info: ValidationInfo):
-        """Ensure postgres URLs are in the correct format for SQLAlchemy."""
-        if info.data.get("environment") != "development" and v and v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql://", 1)
+        """Ensure postgres URLs use the async driver required by SQLAlchemy."""
+        environment = info.data.get("environment", "development")
+        if environment != "development" and v:
+            if v.startswith("postgresql+"):
+                return v
+            if v.startswith(("postgres://", "postgresql://")):
+                _, _, rest = v.partition("://")
+                return f"postgresql+asyncpg://{rest}"
         return v
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
