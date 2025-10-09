@@ -1,5 +1,5 @@
 """Application configuration management."""
-from pydantic import field_validator, ValidationInfo
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
@@ -35,18 +35,15 @@ class Settings(BaseSettings):
     vote_round_seconds: int = 15
     grace_period_seconds: int = 5
 
-    @field_validator("database_url", mode='before')
-    @classmethod
-    def fix_postgres_url(cls, v: str, info: ValidationInfo):
-        """Ensure postgres URLs use the async driver required by SQLAlchemy."""
-        environment = info.data.get("environment", "development")
-        if environment != "development" and v:
-            if v.startswith("postgresql+"):
-                return v
-            if v.startswith(("postgres://", "postgresql://")):
-                _, _, rest = v.partition("://")
-                return f"postgresql+asyncpg://{rest}"
-        return v
+    @model_validator(mode="after")
+    def ensure_asyncpg(self):
+        """Normalize Postgres URLs so SQLAlchemy uses the asyncpg driver."""
+        url = self.database_url
+        if url and url.startswith(("postgres://", "postgresql://")):
+            scheme, sep, rest = url.partition("://")
+            if "+asyncpg" not in scheme:
+                self.database_url = f"postgresql+asyncpg://{rest}"
+        return self
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
