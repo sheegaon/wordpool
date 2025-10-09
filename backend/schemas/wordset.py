@@ -2,6 +2,7 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from uuid import UUID
+from backend.schemas.base import BaseSchema
 
 
 class VoteRequest(BaseModel):
@@ -32,7 +33,7 @@ class WordVoteCount(BaseModel):
     is_original: bool
 
 
-class WordSetResults(BaseModel):
+class WordSetResults(BaseSchema):
     """Complete wordset results."""
     prompt_text: str
     votes: list[WordVoteCount]
@@ -44,6 +45,3 @@ class WordSetResults(BaseModel):
     total_votes: int
     already_collected: bool
     finalized_at: datetime
-
-    class Config:
-        from_attributes = True

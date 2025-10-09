@@ -28,6 +28,7 @@ from backend.utils.exceptions import (
     RoundNotFoundError,
     NoWordsetsAvailableError,
 )
+from datetime import datetime, UTC
 from uuid import UUID
 import random
 import logging
@@ -35,6 +36,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def ensure_utc(dt: datetime) -> datetime:
+    """Ensure datetime has UTC timezone for proper JSON serialization."""
+    if dt and dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
 
 
 @router.post("/prompt", response_model=StartPromptRoundResponse)
@@ -58,7 +66,7 @@ async def start_prompt_round(
         return StartPromptRoundResponse(
             round_id=round.round_id,
             prompt_text=round.prompt_text,
-            expires_at=round.expires_at,
+            expires_at=ensure_utc(round.expires_at),
             cost=round.cost,
         )
     except Exception as e:
@@ -88,7 +96,7 @@ async def start_copy_round(
             round_id=round.round_id,
             original_word=round.original_word,
             prompt_round_id=round.prompt_round_id,
-            expires_at=round.expires_at,
+            expires_at=ensure_utc(round.expires_at),
             cost=round.cost,
             discount_active=QueueService.is_copy_discount_active(),
         )
@@ -124,7 +132,7 @@ async def start_vote_round(
             wordset_id=wordset.wordset_id,
             prompt_text=wordset.prompt_text,
             words=words,
-            expires_at=round.expires_at,
+            expires_at=ensure_utc(round.expires_at),
         )
     except NoWordsetsAvailableError as e:
         raise HTTPException(status_code=400, detail="no_wordsets_available")
@@ -216,7 +224,7 @@ async def get_round_details(
         round_id=round.round_id,
         type=round.round_type,
         status=round.status,
-        expires_at=round.expires_at,
+        expires_at=ensure_utc(round.expires_at),
         prompt_text=round.prompt_text,
         original_word=round.original_word,
         submitted_word=round.submitted_word or round.copy_word,

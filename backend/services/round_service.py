@@ -148,36 +148,49 @@ class RoundService:
         - Deduct cost immediately
         - Prevent same player from getting abandoned prompt (24h)
         """
-        # Get next prompt from queue
-        prompt_round_id = QueueService.get_next_prompt()
-        if not prompt_round_id:
-            raise ValueError("No prompts available")
+        # Retry logic: try up to 10 times to get a valid prompt
+        max_attempts = 10
+        prompt_round_id = None
+        prompt_round = None
 
-        # Get prompt round
-        prompt_round = await self.db.get(Round, prompt_round_id)
-        if not prompt_round:
-            raise ValueError("Prompt round not found")
+        for attempt in range(max_attempts):
+            # Get next prompt from queue
+            prompt_round_id = QueueService.get_next_prompt()
+            if not prompt_round_id:
+                raise ValueError("No prompts available")
 
-        # CRITICAL: Check if player is trying to copy their own prompt
-        if prompt_round.player_id == player.player_id:
-            # Put back in queue and get another
-            QueueService.add_prompt_to_queue(prompt_round_id)
-            # For MVP, just fail - in production, retry with next prompt
-            raise ValueError("Cannot copy your own prompt")
+            # Get prompt round
+            prompt_round = await self.db.get(Round, prompt_round_id)
+            if not prompt_round:
+                logger.warning(f"Prompt round not found in DB: {prompt_round_id}")
+                continue  # Try next prompt
 
-        # Check if player abandoned this prompt in last 24h
-        cutoff = datetime.now(UTC) - timedelta(hours=24)
-        result = await self.db.execute(
-            select(PlayerAbandonedPrompt)
-            .where(PlayerAbandonedPrompt.player_id == player.player_id)
-            .where(PlayerAbandonedPrompt.prompt_round_id == prompt_round_id)
-            .where(PlayerAbandonedPrompt.abandoned_at > cutoff)
-        )
-        if result.scalar_one_or_none():
-            # Put back in queue and get another
-            QueueService.add_prompt_to_queue(prompt_round_id)
-            # For MVP, just fail - in production, retry with next prompt
-            raise ValueError("Cannot retry abandoned prompt within 24h")
+            # CRITICAL: Check if player is trying to copy their own prompt
+            if prompt_round.player_id == player.player_id:
+                # Put back in queue and try another
+                QueueService.add_prompt_to_queue(prompt_round_id)
+                logger.info(f"Player {player.player_id} got their own prompt, retrying...")
+                continue
+
+            # Check if player abandoned this prompt in last 24h
+            cutoff = datetime.now(UTC) - timedelta(hours=24)
+            result = await self.db.execute(
+                select(PlayerAbandonedPrompt)
+                .where(PlayerAbandonedPrompt.player_id == player.player_id)
+                .where(PlayerAbandonedPrompt.prompt_round_id == prompt_round_id)
+                .where(PlayerAbandonedPrompt.abandoned_at > cutoff)
+            )
+            if result.scalar_one_or_none():
+                # Put back in queue and try another
+                QueueService.add_prompt_to_queue(prompt_round_id)
+                logger.info(f"Player {player.player_id} abandoned this prompt recently, retrying...")
+                continue
+
+            # Valid prompt found!
+            break
+        else:
+            # Exhausted all attempts
+            raise ValueError("Could not find a valid prompt after multiple attempts")
 
         # Get current copy cost (with discount if applicable)
         copy_cost = QueueService.get_copy_cost()

@@ -3,9 +3,10 @@ from pydantic import BaseModel
 from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
+from backend.schemas.base import BaseSchema
 
 
-class PlayerBalance(BaseModel):
+class PlayerBalance(BaseSchema):
     """Player balance response."""
     balance: int
     starting_balance: int
@@ -13,9 +14,6 @@ class PlayerBalance(BaseModel):
     daily_bonus_amount: int
     last_login_date: Optional[date]
     outstanding_prompts: int
-
-    class Config:
-        from_attributes = True
 
 
 class ClaimDailyBonusResponse(BaseModel):
@@ -25,7 +23,7 @@ class ClaimDailyBonusResponse(BaseModel):
     new_balance: int
 
 
-class CurrentRoundResponse(BaseModel):
+class CurrentRoundResponse(BaseSchema):
     """Current active round response."""
     round_id: Optional[UUID]
     round_type: Optional[str]
@@ -33,16 +31,13 @@ class CurrentRoundResponse(BaseModel):
     expires_at: Optional[datetime]
 
 
-class PendingResult(BaseModel):
+class PendingResult(BaseSchema):
     """Pending result item."""
     wordset_id: UUID
     prompt_text: str
     completed_at: datetime
     role: str  # "prompt" or "copy"
     payout_collected: bool
-
-    class Config:
-        from_attributes = True
 
 
 class PendingResultsResponse(BaseModel):
