@@ -81,7 +81,12 @@ const AppRoutes: React.FC = () => {
 // Main App
 function App() {
   return (
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <GameProvider>
         <AppRoutes />
       </GameProvider>
