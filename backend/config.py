@@ -43,10 +43,9 @@ class Settings(BaseSettings):
         if environment != "development" and v:
             if v.startswith("postgresql+"):
                 return v
-            if v.startswith("postgres://"):
-                return "postgresql+asyncpg://" + v[len("postgres://"):]
-            if v.startswith("postgresql://"):
-                return "postgresql+asyncpg://" + v[len("postgresql://"):]
+            if v.startswith(("postgres://", "postgresql://")):
+                _, _, rest = v.partition("://")
+                return f"postgresql+asyncpg://{rest}"
         return v
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
