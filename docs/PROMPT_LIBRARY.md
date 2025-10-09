@@ -1,6 +1,6 @@
 # Prompt Library Examples for Wordpool
 
-Prompts are incomplete sentences or phrases with a blank. These encourage creative, dictionary-valid word responses (e.g., from NASPA list). Prompts should be neutral, engaging, and varied in difficulty/categories to maintain balance—avoiding sensitive topics per safety guidelines.
+Prompts are incomplete sentences or phrases with a blank. These encourage creative, dictionary-valid word responses. Prompts should be neutral, engaging, and varied in difficulty/categories to maintain balance—avoiding sensitive topics per safety guidelines.
 
 ## Summary Tables
 

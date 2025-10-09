@@ -73,7 +73,7 @@ wordpool/
 │   └── test_integration.py        # End-to-end tests
 ├── scripts/
 │   ├── seed_prompts.py            # Populate prompt library
-│   └── download_naspa.py          # Download NASPA word list
+│   └── download_dictionary.py     # Download word list
 ├── docker-compose.yml
 ├── Dockerfile
 ├── heroku.yml
@@ -608,12 +608,12 @@ print("Schemas OK")
 
 ### **Step 8: Word Validation Service**
 
-**Goal**: Validate words against NASPA dictionary
+**Goal**: Validate words against dictionary
 
 **Tasks**:
-1. Create `scripts/download_naspa.py`:
-   - Download NASPA Word List (NWL2020 or TWL)
-   - Save to `backend/data/naspa_words.txt`
+1. Create `scripts/download_dictionary.py`:
+   - Download Word List (NWL2020 or TWL)
+   - Save to `backend/data/dictionary.txt`
    - One word per line, uppercase
 
 2. Create `backend/services/word_validator.py`:
@@ -626,7 +626,7 @@ print("Schemas OK")
            self.dictionary: Set[str] = self._load_dictionary()
 
        def _load_dictionary(self) -> Set[str]:
-           path = os.path.join(os.path.dirname(__file__), "../data/naspa_words.txt")
+           path = os.path.join(os.path.dirname(__file__), "../data/dictionary.txt")
            with open(path) as f:
                return {line.strip().upper() for line in f}
 
@@ -1352,11 +1352,9 @@ curl http://localhost:8000/docs
    - Insert into database
    - ~100 prompts across all categories
 
-2. Download NASPA word list (if not done)
+2. Create a few test players
 
-3. Create a few test players
-
-4. Create script runner:
+3. Create script runner:
    ```bash
    python scripts/seed_prompts.py
    ```
