@@ -137,7 +137,7 @@ export const Dashboard: React.FC = () => {
                 {roundAvailability?.can_prompt ? 'Start Prompt Round' :
                   player.balance < 100 ? 'Insufficient Balance' :
                   player.outstanding_prompts >= 10 ? 'Too Many Outstanding Prompts' :
-                  'Start Prompt Round'}
+                  'Not Available'}
               </button>
             </div>
 
@@ -194,7 +194,7 @@ export const Dashboard: React.FC = () => {
                 {roundAvailability?.can_vote ? 'Start Vote Round' :
                   roundAvailability?.wordsets_waiting === 0 ? 'No Wordsets Available' :
                   player.balance < 1 ? 'Insufficient Balance' :
-                  'Start Vote Round'}
+                  'Not Available'}
               </button>
             </div>
           </div>
