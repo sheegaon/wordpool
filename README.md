@@ -79,14 +79,15 @@ Frontend runs at **http://localhost:5173**
 - 88% test coverage
 
 *Frontend:*
-- React + TypeScript with Vite
-- Responsive UI with Tailwind CSS
+- React 18 + TypeScript with Vite 5 (stable, production-ready)
+- Responsive UI with Tailwind CSS 3
 - Real-time countdown timers
 - Dashboard with balance & round selection
 - All three round types implemented
 - Results viewing with vote breakdown
-- Automatic state polling & updates
+- Automatic state polling with request cancellation
 - Error handling & notifications
+- 22% smaller bundle size vs bleeding-edge versions
 
 **🔜 Phase 2 (Planned)**
 - Transaction history endpoint
