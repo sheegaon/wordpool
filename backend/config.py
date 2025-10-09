@@ -1,4 +1,5 @@
 """Application configuration management."""
+from pydantic import field_validator, ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
@@ -33,6 +34,14 @@ class Settings(BaseSettings):
     copy_round_seconds: int = 60
     vote_round_seconds: int = 15
     grace_period_seconds: int = 5
+
+    @field_validator("database_url", mode='before')
+    @classmethod
+    def fix_postgres_url(cls, v: str, info: ValidationInfo):
+        """Ensure postgres URLs are in the correct format for SQLAlchemy."""
+        if info.data.get("environment") != "development" and v and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
