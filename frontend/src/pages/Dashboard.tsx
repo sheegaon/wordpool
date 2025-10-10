@@ -1,6 +1,7 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
+import { Timer } from '../components/Timer';
 
 export const Dashboard: React.FC = () => {
   const {
@@ -14,8 +15,21 @@ export const Dashboard: React.FC = () => {
     refreshRoundAvailability,
     claimBonus,
     logout,
+    refreshCurrentRound,
+    refreshRoundAvailability,
+    refreshBalance,
   } = useGame();
   const navigate = useNavigate();
+  const [isRoundExpired, setIsRoundExpired] = useState(false);
+
+  const activeRoundRoute = useMemo(() => {
+    return activeRound?.round_type ? `/${activeRound.round_type}` : null;
+  }, [activeRound?.round_type]);
+
+  const activeRoundLabel = useMemo(() => {
+    if (!activeRound?.round_type) return '';
+    return `${activeRound.round_type.charAt(0).toUpperCase()}${activeRound.round_type.slice(1)}`;
+  }, [activeRound?.round_type]);
 
   // Comprehensive refresh function
   const refreshDashboard = useCallback(async () => {
@@ -51,12 +65,35 @@ export const Dashboard: React.FC = () => {
   }, [refreshDashboard]);
 
   useEffect(() => {
-    // If there's an active round, navigate to it
-    if (activeRound?.round_id && activeRound.round_type) {
-      const route = `/${activeRound.round_type}`;
-      navigate(route);
+    if (!activeRound?.round_id) {
+      setIsRoundExpired(false);
+      return;
     }
-  }, [activeRound, navigate]);
+
+    if (!activeRound.expires_at) {
+      setIsRoundExpired(false);
+      return;
+    }
+
+    const expiresAt = new Date(activeRound.expires_at).getTime();
+    const now = Date.now();
+    setIsRoundExpired(expiresAt <= now);
+  }, [activeRound?.round_id, activeRound?.expires_at]);
+
+  const handleContinueRound = useCallback(() => {
+    if (activeRoundRoute) {
+      navigate(activeRoundRoute);
+    }
+  }, [activeRoundRoute, navigate]);
+
+  const handleRoundExpired = useCallback(async () => {
+    setIsRoundExpired(true);
+    await Promise.all([
+      refreshCurrentRound(),
+      refreshRoundAvailability(),
+      refreshBalance(),
+    ]);
+  }, [refreshBalance, refreshCurrentRound, refreshRoundAvailability]);
 
   const handleClaimBonus = async () => {
     try {
@@ -106,27 +143,28 @@ export const Dashboard: React.FC = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Balance Card */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="text-center">
-            <p className="text-gray-600 mb-2">Your Balance</p>
-            <p className="text-5xl font-bold text-green-600">${player.balance}</p>
-          </div>
-        </div>
-
-        {/* Daily Bonus */}
-        {player.daily_bonus_available && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-semibold text-yellow-800">Daily Bonus Available!</p>
-                <p className="text-sm text-yellow-700">Claim your ${player.daily_bonus_amount} bonus</p>
+        {/* Active Round Notification */}
+        {activeRound?.round_id && !isRoundExpired && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1">
+                <p className="font-semibold text-orange-800">
+                  Active {activeRoundLabel || 'Current'} Round in Progress
+                </p>
+                <div className="mt-2 flex flex-col gap-2 text-sm text-orange-700 sm:flex-row sm:items-center">
+                  <span>Time remaining:</span>
+                  <Timer
+                    expiresAt={activeRound.expires_at}
+                    onExpired={handleRoundExpired}
+                    compact
+                  />
+                </div>
               </div>
               <button
-                onClick={handleClaimBonus}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded-lg"
+                onClick={handleContinueRound}
+                className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-lg"
               >
-                Claim
+                Continue Round
               </button>
             </div>
           </div>
@@ -151,6 +189,32 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Daily Bonus */}
+        {player.daily_bonus_available && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-semibold text-yellow-800">Daily Bonus Available!</p>
+                <p className="text-sm text-yellow-700">Claim your ${player.daily_bonus_amount} bonus</p>
+              </div>
+              <button
+                onClick={handleClaimBonus}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded-lg"
+              >
+                Claim
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Balance Card */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <div className="text-center">
+            <p className="text-gray-600 mb-2">Your Balance</p>
+            <p className="text-5xl font-bold text-green-600">${player.balance}</p>
+          </div>
+        </div>
 
         {/* Round Selection */}
         <div className="bg-white rounded-lg shadow-lg p-6">

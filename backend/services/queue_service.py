@@ -1,8 +1,9 @@
 """Queue management service."""
-from backend.utils import queue_client
-from backend.config import get_settings
 from uuid import UUID
 import logging
+
+from backend.utils import queue_client
+from backend.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
