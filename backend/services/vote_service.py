@@ -2,6 +2,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from datetime import datetime, UTC, timedelta
+from backend.utils.exceptions import NoWordsetsAvailableError,  AlreadyVotedError, RoundExpiredError
+from uuid import UUID
+import uuid
+import random
+import logging
+
 from backend.models.player import Player
 from backend.models.round import Round
 from backend.models.wordset import WordSet
@@ -10,18 +17,6 @@ from backend.models.result_view import ResultView
 from backend.services.transaction_service import TransactionService
 from backend.services.scoring_service import ScoringService
 from backend.config import get_settings
-from datetime import datetime, UTC, timedelta
-from backend.utils.exceptions import (
-    NoWordsetsAvailableError,
-    SelfVotingError,
-    AlreadyVotedError,
-    RoundExpiredError,
-)
-from datetime import datetime, timedelta
-from uuid import UUID
-import uuid
-import random
-import logging
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

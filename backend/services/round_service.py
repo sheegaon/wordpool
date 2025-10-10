@@ -1,6 +1,12 @@
 """Round service for managing prompt, copy, and vote rounds."""
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from datetime import datetime, UTC, timedelta
+from typing import Optional
+from uuid import UUID
+import uuid
+import logging
+
 from backend.models.player import Player
 from backend.models.prompt import Prompt
 from backend.models.round import Round
@@ -10,19 +16,7 @@ from backend.services.transaction_service import TransactionService
 from backend.services.queue_service import QueueService
 from backend.services.word_validator import get_word_validator
 from backend.config import get_settings
-from datetime import datetime, UTC, timedelta
-from backend.utils.exceptions import (
-    InvalidWordError,
-    DuplicateWordError,
-    RoundNotFoundError,
-    RoundExpiredError,
-)
-from datetime import datetime, timedelta
-from typing import Optional
-from uuid import UUID
-import uuid
-import random
-import logging
+from backend.utils.exceptions import InvalidWordError, DuplicateWordError, RoundNotFoundError, RoundExpiredError
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -362,11 +356,29 @@ class RoundService:
         - Copy: Refund $90, keep $10 penalty, return prompt to queue, track cooldown
         """
         round = await self.db.get(Round, round_id)
-        if not round or round.status != "active":
+        if not round:
             return
 
-        # Check if actually expired
-        if datetime.now(UTC) <= round.expires_at:
+        expires_at = round.expires_at
+        expires_at_aware = (
+            expires_at.replace(tzinfo=UTC) if expires_at and expires_at.tzinfo is None else expires_at
+        )
+        grace_cutoff = (
+            expires_at_aware + timedelta(seconds=settings.grace_period_seconds)
+            if expires_at_aware
+            else None
+        )
+
+        # Respect grace period before cleanup
+        if grace_cutoff and datetime.now(UTC) <= grace_cutoff:
+            return
+
+        # If round already resolved, ensure active flag cleared and stop
+        if round.status != "active":
+            player = await self.db.get(Player, round.player_id)
+            if player and player.active_round_id == round_id:
+                player.active_round_id = None
+                await self.db.commit()
             return
 
         # Mark as expired/abandoned
@@ -411,6 +423,9 @@ class RoundService:
                 f"Copy round {round_id} abandoned, refunded ${refund_amount}, "
                 f"returned prompt {round.prompt_round_id} to queue"
             )
+        else:
+            round.status = "expired"
+            logger.info(f"Round {round_id} of type {round.round_type} expired")
 
         # Clear player's active round if still set
         player = await self.db.get(Player, round.player_id)
