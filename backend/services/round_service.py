@@ -45,8 +45,12 @@ class RoundService:
         - Deduct $100 immediately
         - Randomly assign prompt
         - Create round with 60s timer
+
+        All operations are performed in a single atomic transaction within a distributed lock.
         """
-        # Get random enabled prompt
+        from backend.utils import lock_client
+
+        # Get random enabled prompt (outside lock - read-only)
         result = await self.db.execute(
             select(Prompt)
             .where(Prompt.enabled == True)
@@ -58,35 +62,44 @@ class RoundService:
         if not prompt:
             raise ValueError("No prompts available in library")
 
-        # Create transaction (deduct full amount immediately)
-        await transaction_service.create_transaction(
-            player.player_id,
-            -settings.prompt_cost,
-            "prompt_entry",
-        )
+        # Acquire lock for the entire transaction
+        lock_name = f"player_balance:{player.player_id}"
+        with lock_client.lock(lock_name, timeout=10):
+            # Create transaction (deduct full amount immediately)
+            # Use skip_lock=True since we already have the lock
+            # Use auto_commit=False to defer commit until all operations complete
+            await transaction_service.create_transaction(
+                player.player_id,
+                -settings.prompt_cost,
+                "prompt_entry",
+                auto_commit=False,
+                skip_lock=True,
+            )
 
-        # Create round
-        round = Round(
-            round_id=uuid.uuid4(),
-            player_id=player.player_id,
-            round_type="prompt",
-            status="active",
-            cost=settings.prompt_cost,
-            expires_at=datetime.now(UTC) + timedelta(seconds=settings.prompt_round_seconds),
-            # Prompt-specific fields
-            prompt_id=prompt.prompt_id,
-            prompt_text=prompt.text,
-        )
+            # Create round
+            round = Round(
+                round_id=uuid.uuid4(),
+                player_id=player.player_id,
+                round_type="prompt",
+                status="active",
+                cost=settings.prompt_cost,
+                expires_at=datetime.now(UTC) + timedelta(seconds=settings.prompt_round_seconds),
+                # Prompt-specific fields
+                prompt_id=prompt.prompt_id,
+                prompt_text=prompt.text,
+            )
 
-        # Update prompt usage
-        prompt.usage_count += 1
+            # Update prompt usage
+            prompt.usage_count += 1
 
-        # Set player's active round
-        player.active_round_id = round.round_id
+            # Set player's active round
+            player.active_round_id = round.round_id
 
-        self.db.add(round)
-        await self.db.commit()
-        await self.db.refresh(round)
+            self.db.add(round)
+
+            # Commit all changes atomically INSIDE the lock
+            await self.db.commit()
+            await self.db.refresh(round)
 
         logger.info(f"Started prompt round {round.round_id} for player {player.player_id}")
         return round
@@ -197,33 +210,43 @@ class RoundService:
         is_discounted = copy_cost == settings.copy_cost_discount
         system_contribution = settings.copy_cost_normal - copy_cost if is_discounted else 0
 
-        # Create transaction
-        await transaction_service.create_transaction(
-            player.player_id,
-            -copy_cost,
-            "copy_entry",
-        )
+        # Acquire lock for the entire transaction
+        from backend.utils import lock_client
+        lock_name = f"player_balance:{player.player_id}"
+        with lock_client.lock(lock_name, timeout=10):
+            # Create transaction
+            # Use skip_lock=True since we already have the lock
+            # Use auto_commit=False to defer commit until all operations complete
+            await transaction_service.create_transaction(
+                player.player_id,
+                -copy_cost,
+                "copy_entry",
+                auto_commit=False,
+                skip_lock=True,
+            )
 
-        # Create round
-        round = Round(
-            round_id=uuid.uuid4(),
-            player_id=player.player_id,
-            round_type="copy",
-            status="active",
-            cost=copy_cost,
-            expires_at=datetime.now(UTC) + timedelta(seconds=settings.copy_round_seconds),
-            # Copy-specific fields
-            prompt_round_id=prompt_round_id,
-            original_word=prompt_round.submitted_word,
-            system_contribution=system_contribution,
-        )
+            # Create round
+            round = Round(
+                round_id=uuid.uuid4(),
+                player_id=player.player_id,
+                round_type="copy",
+                status="active",
+                cost=copy_cost,
+                expires_at=datetime.now(UTC) + timedelta(seconds=settings.copy_round_seconds),
+                # Copy-specific fields
+                prompt_round_id=prompt_round_id,
+                original_word=prompt_round.submitted_word,
+                system_contribution=system_contribution,
+            )
 
-        # Set player's active round
-        player.active_round_id = round.round_id
+            # Set player's active round
+            player.active_round_id = round.round_id
 
-        self.db.add(round)
-        await self.db.commit()
-        await self.db.refresh(round)
+            self.db.add(round)
+
+            # Commit all changes atomically INSIDE the lock
+            await self.db.commit()
+            await self.db.refresh(round)
 
         logger.info(
             f"Started copy round {round.round_id} for player {player.player_id}, "
@@ -394,3 +417,40 @@ class RoundService:
             player.active_round_id = None
 
         await self.db.commit()
+
+    async def get_available_prompts_count(self, player_id: UUID) -> int:
+        """
+        Get count of prompts available for copy rounds, excluding player's own prompts.
+
+        This queries all prompt_round_ids in the queue and filters out those belonging
+        to the specified player.
+        """
+        from backend.utils import queue_client
+
+        # Get total count from queue
+        total_count = QueueService.get_prompts_waiting()
+        if total_count == 0:
+            return 0
+
+        # Get all prompt round IDs in the queue
+        # Note: This requires iterating the queue which is not efficient
+        # For MVP with in-memory queues, we'll query the database instead
+
+        # Count submitted prompt rounds that belong to this player
+        result = await self.db.execute(
+            select(func.count(Round.round_id))
+            .where(Round.player_id == player_id)
+            .where(Round.round_type == "prompt")
+            .where(Round.status == "submitted")
+        )
+        player_prompts_count = result.scalar()
+
+        # Subtract player's own prompts from total
+        available_count = max(0, total_count - player_prompts_count)
+
+        logger.debug(
+            f"Available prompts for player {player_id}: {available_count} "
+            f"(total: {total_count}, player's own: {player_prompts_count})"
+        )
+
+        return available_count

@@ -191,16 +191,20 @@ async def get_rounds_available(
 ):
     """Get which round types are currently available."""
     player_service = PlayerService(db)
+    round_service = RoundService(db)
 
     can_prompt, _ = await player_service.can_start_prompt_round(player)
     can_copy, _ = await player_service.can_start_copy_round(player)
     can_vote, _ = await player_service.can_start_vote_round(player)
 
+    # Get prompts waiting count excluding player's own prompts
+    prompts_waiting = await round_service.get_available_prompts_count(player.player_id)
+
     return RoundAvailability(
         can_prompt=can_prompt,
         can_copy=can_copy,
         can_vote=can_vote,
-        prompts_waiting=QueueService.get_prompts_waiting(),
+        prompts_waiting=prompts_waiting,
         wordsets_waiting=QueueService.get_wordsets_waiting(),
         copy_discount_active=QueueService.is_copy_discount_active(),
         copy_cost=QueueService.get_copy_cost(),

@@ -113,37 +113,49 @@ class VoteService:
         - Deduct $1 immediately
         - Create round with 15s timer
         - Return round and wordset with randomized word order
+
+        All operations are performed in a single atomic transaction.
         """
-        # Get available wordset
+        # Get available wordset (outside lock - read-only)
         wordset = await self.get_available_wordset_for_player(player.player_id)
         if not wordset:
             raise NoWordsetsAvailableError("No wordsets available for voting")
 
-        # Create transaction
-        await transaction_service.create_transaction(
-            player.player_id,
-            -settings.vote_cost,
-            "vote_entry",
-        )
+        # Acquire lock for the entire transaction
+        from backend.utils import lock_client
+        lock_name = f"player_balance:{player.player_id}"
+        with lock_client.lock(lock_name, timeout=10):
+            # Create transaction
+            # Use skip_lock=True since we already have the lock
+            # Use auto_commit=False to defer commit until all operations complete
+            await transaction_service.create_transaction(
+                player.player_id,
+                -settings.vote_cost,
+                "vote_entry",
+                auto_commit=False,
+                skip_lock=True,
+            )
 
-        # Create round
-        round = Round(
-            round_id=uuid.uuid4(),
-            player_id=player.player_id,
-            round_type="vote",
-            status="active",
-            cost=settings.vote_cost,
-            expires_at=datetime.now(UTC) + timedelta(seconds=settings.vote_round_seconds),
-            # Vote-specific fields
-            wordset_id=wordset.wordset_id,
-        )
+            # Create round
+            round = Round(
+                round_id=uuid.uuid4(),
+                player_id=player.player_id,
+                round_type="vote",
+                status="active",
+                cost=settings.vote_cost,
+                expires_at=datetime.now(UTC) + timedelta(seconds=settings.vote_round_seconds),
+                # Vote-specific fields
+                wordset_id=wordset.wordset_id,
+            )
 
-        # Set player's active round
-        player.active_round_id = round.round_id
+            # Set player's active round
+            player.active_round_id = round.round_id
 
-        self.db.add(round)
-        await self.db.commit()
-        await self.db.refresh(round)
+            self.db.add(round)
+
+            # Commit all changes atomically INSIDE the lock
+            await self.db.commit()
+            await self.db.refresh(round)
 
         logger.info(f"Started vote round {round.round_id} for wordset {wordset.wordset_id}")
         return round, wordset
