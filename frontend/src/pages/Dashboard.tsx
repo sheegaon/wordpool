@@ -43,17 +43,10 @@ export const Dashboard: React.FC = () => {
       }
     };
 
-    // Add event listener for when the window gets focus
-    const handleFocus = () => {
-      refreshDashboard();
-    };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
     };
   }, [refreshDashboard]);
 
