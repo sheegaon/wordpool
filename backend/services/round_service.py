@@ -180,6 +180,20 @@ class RoundService:
                 logger.info(f"Player {player.player_id} got their own prompt, retrying...")
                 continue
 
+            # Prevent player from submitting multiple copies for the same prompt
+            existing_copy_result = await self.db.execute(
+                select(Round.round_id)
+                .where(Round.round_type == "copy")
+                .where(Round.prompt_round_id == prompt_round_id)
+                .where(Round.player_id == player.player_id)
+            )
+            if existing_copy_result.scalar_one_or_none():
+                QueueService.add_prompt_to_queue(prompt_round_id)
+                logger.info(
+                    f"Player {player.player_id} already submitted a copy for prompt {prompt_round_id}, retrying..."
+                )
+                continue
+
             # Check if player abandoned this prompt in last 24h
             cutoff = datetime.now(UTC) - timedelta(hours=24)
             result = await self.db.execute(
@@ -469,12 +483,27 @@ class RoundService:
         )
         player_prompts_count = result.scalar()
 
-        # Subtract player's own prompts from total
-        available_count = max(0, total_count - player_prompts_count)
+        # Count prompts this player already copied that are still waiting for a second copy
+        result = await self.db.execute(
+            select(func.count(Round.round_id))
+            .join(
+                WordSet,
+                WordSet.prompt_round_id == Round.prompt_round_id,
+                isouter=True,
+            )
+            .where(Round.round_type == "copy")
+            .where(Round.player_id == player_id)
+            .where(Round.status == "submitted")
+            .where(WordSet.wordset_id == None)
+        )
+        already_copied_waiting = result.scalar()
+
+        # Subtract player's own prompts and any prompts they've already copied
+        available_count = max(0, total_count - player_prompts_count - already_copied_waiting)
 
         logger.debug(
             f"Available prompts for player {player_id}: {available_count} "
-            f"(total: {total_count}, player's own: {player_prompts_count})"
+            f"(total: {total_count}, player's own: {player_prompts_count}, already copied: {already_copied_waiting})"
         )
 
         return available_count
