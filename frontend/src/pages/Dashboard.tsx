@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 
@@ -8,10 +8,47 @@ export const Dashboard: React.FC = () => {
     activeRound,
     pendingResults,
     roundAvailability,
+    refreshBalance,
+    refreshCurrentRound,
+    refreshPendingResults,
+    refreshRoundAvailability,
     claimBonus,
     logout,
   } = useGame();
   const navigate = useNavigate();
+
+  // Comprehensive refresh function
+  const refreshDashboard = useCallback(async () => {
+    try {
+      await Promise.allSettled([
+        refreshBalance(),
+        refreshCurrentRound(),
+        refreshPendingResults(),
+        refreshRoundAvailability(),
+      ]);
+    } catch (err) {
+      // Error is already handled in context
+    }
+  }, [refreshBalance, refreshCurrentRound, refreshPendingResults, refreshRoundAvailability]);
+
+  // Refresh when component mounts or becomes visible
+  useEffect(() => {
+    // Immediate refresh when component mounts
+    refreshDashboard();
+
+    // Add event listener for when the page becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshDashboard();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshDashboard]);
 
   useEffect(() => {
     // If there's an active round, navigate to it
