@@ -29,11 +29,7 @@ class RoundService:
         self.db = db
         self.word_validator = get_word_validator()
 
-    async def start_prompt_round(
-        self,
-        player: Player,
-        transaction_service: TransactionService,
-    ) -> Round:
+    async def start_prompt_round(self, player: Player, transaction_service: TransactionService) -> Round:
         """
         Start a prompt round.
 
@@ -143,11 +139,7 @@ class RoundService:
         logger.info(f"Submitted word for prompt round {round_id}: {word}")
         return round_object
 
-    async def start_copy_round(
-        self,
-        player: Player,
-        transaction_service: TransactionService,
-    ) -> Round:
+    async def start_copy_round(self, player: Player, transaction_service: TransactionService) -> Round:
         """
         Start a copy round.
 
@@ -178,6 +170,20 @@ class RoundService:
                 # Put back in queue and try another
                 QueueService.add_prompt_to_queue(prompt_round_id)
                 logger.info(f"Player {player.player_id} got their own prompt, retrying...")
+                continue
+
+            # Prevent player from submitting multiple copies for the same prompt
+            existing_copy_result = await self.db.execute(
+                select(Round.round_id)
+                .where(Round.round_type == "copy")
+                .where(Round.prompt_round_id == prompt_round_id)
+                .where(Round.player_id == player.player_id)
+            )
+            if existing_copy_result.scalar_one_or_none():
+                QueueService.add_prompt_to_queue(prompt_round_id)
+                logger.info(
+                    f"Player {player.player_id} already submitted a copy for prompt {prompt_round_id}, retrying..."
+                )
                 continue
 
             # Check if player abandoned this prompt in last 24h
@@ -306,6 +312,14 @@ class RoundService:
             .where(Round.status == "submitted")
         )
         copy_rounds = list(result.scalars().all())
+
+        if len(copy_rounds) == 1:
+            # Still need a second copy – requeue prompt for another player
+            QueueService.add_prompt_to_queue(prompt_round_id)
+            logger.info(
+                f"Prompt round {prompt_round_id} requeued after first copy submission"
+            )
+            return
 
         if len(copy_rounds) >= 2:
             # Get prompt round
@@ -452,21 +466,39 @@ class RoundService:
         # Note: This requires iterating the queue which is not efficient
         # For MVP with in-memory queues, we'll query the database instead
 
-        # Count submitted prompt rounds that belong to this player
+        # Count submitted prompt rounds that belong to this player AND don't have wordsets yet
+        # (only count prompts still waiting for copies, not those already processed)
         result = await self.db.execute(
             select(func.count(Round.round_id))
+            .join(WordSet, WordSet.prompt_round_id == Round.round_id, isouter=True)
             .where(Round.player_id == player_id)
             .where(Round.round_type == "prompt")
             .where(Round.status == "submitted")
+            .where(WordSet.wordset_id == None)  # Exclude prompts that already have wordsets
         )
         player_prompts_count = result.scalar()
 
-        # Subtract player's own prompts from total
-        available_count = max(0, total_count - player_prompts_count)
+        # Count prompts this player already copied that are still waiting for a second copy
+        result = await self.db.execute(
+            select(func.count(Round.round_id))
+            .join(
+                WordSet,
+                WordSet.prompt_round_id == Round.prompt_round_id,
+                isouter=True,
+            )
+            .where(Round.round_type == "copy")
+            .where(Round.player_id == player_id)
+            .where(Round.status == "submitted")
+            .where(WordSet.wordset_id == None)
+        )
+        already_copied_waiting = result.scalar()
+
+        # Subtract player's own prompts and any prompts they've already copied
+        available_count = max(0, total_count - player_prompts_count - already_copied_waiting)
 
         logger.debug(
             f"Available prompts for player {player_id}: {available_count} "
-            f"(total: {total_count}, player's own: {player_prompts_count})"
+            f"(total: {total_count}, player's own: {player_prompts_count}, already copied: {already_copied_waiting})"
         )
 
         return available_count

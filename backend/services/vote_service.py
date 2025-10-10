@@ -28,16 +28,8 @@ class VoteService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_available_wordset_for_player(self, player_id: UUID) -> WordSet | None:
-        """
-        Get available wordset for voting with priority:
-        1. Wordsets with >=5 votes (FIFO by fifth_vote_at)
-        2. Wordsets with 3-4 votes (FIFO by third_vote_at)
-        3. Wordsets with <3 votes (random)
-
-        Filters out wordsets where player was contributor.
-        """
-        # Get all open/closing wordsets with eager-loaded rounds (prevents N+1 queries)
+    async def _load_available_wordsets_for_player(self, player_id: UUID) -> list[WordSet]:
+        """Load wordsets the player can vote on (excludes contributors and already-voted)."""
         result = await self.db.execute(
             select(WordSet)
             .where(WordSet.status.in_(["open", "closing"]))
@@ -48,30 +40,44 @@ class VoteService:
             )
         )
         all_wordsets = list(result.scalars().all())
-
         if not all_wordsets:
-            return None
+            return []
 
-        # Filter out wordsets where player was contributor
-        available = []
-        for ws in all_wordsets:
-            # Get contributor player IDs (now loaded eagerly, no extra queries)
-            contributor_ids = {
+        # Filter out wordsets where player was a contributor
+        candidate_wordsets = [
+            ws for ws in all_wordsets
+            if player_id not in {
                 ws.prompt_round.player_id,
                 ws.copy_round_1.player_id,
                 ws.copy_round_2.player_id,
             }
+        ]
+        candidate_ids = [ws.wordset_id for ws in candidate_wordsets]
 
-            # Filter out self-voting
-            if player_id not in contributor_ids:
-                # Check if player already voted
-                vote_result = await self.db.execute(
-                    select(Vote)
-                    .where(Vote.wordset_id == ws.wordset_id)
-                    .where(Vote.player_id == player_id)
-                )
-                if not vote_result.scalar_one_or_none():
-                    available.append(ws)
+        if not candidate_wordsets:
+            return []
+
+        # Filter out wordsets where player already voted
+        voted_ids: set[UUID] = set()
+        if candidate_ids:
+            vote_result = await self.db.execute(
+                select(Vote.wordset_id)
+                .where(Vote.player_id == player_id)
+                .where(Vote.wordset_id.in_(candidate_ids))
+            )
+            voted_ids = {row[0] for row in vote_result.all()}
+
+        available = [ws for ws in candidate_wordsets if ws.wordset_id not in voted_ids]
+        return available
+
+    async def get_available_wordset_for_player(self, player_id: UUID) -> WordSet | None:
+        """
+        Get available wordset for voting with priority:
+        1. Wordsets with >=5 votes (FIFO by fifth_vote_at)
+        2. Wordsets with 3-4 votes (FIFO by third_vote_at)
+        3. Wordsets with <3 votes (random)
+        """
+        available = await self._load_available_wordsets_for_player(player_id)
 
         if not available:
             return None
@@ -94,7 +100,12 @@ class VoteService:
             return random.choice(priority3)
 
         # Fallback: random from any available
-        return random.choice(available) if available else None
+        return random.choice(available)
+
+    async def count_available_wordsets_for_player(self, player_id: UUID) -> int:
+        """Count how many wordsets the player can vote on."""
+        available = await self._load_available_wordsets_for_player(player_id)
+        return len(available)
 
     async def start_vote_round(
         self,
@@ -173,9 +184,18 @@ class VoteService:
         - Update vote timeline
         - Check for finalization
         """
-        # Check grace period
-        grace_cutoff = round.expires_at + timedelta(seconds=settings.grace_period_seconds)
-        if datetime.now(UTC) > grace_cutoff:
+        # Check grace period - ensure both datetimes have same timezone awareness
+        current_time = datetime.now(UTC)
+        expires_at = round.expires_at
+        
+        # Handle timezone-naive datetime from database
+        if expires_at.tzinfo is None:
+            # If expires_at is naive, treat it as UTC
+            expires_at = expires_at.replace(tzinfo=UTC)
+        
+        grace_cutoff = expires_at + timedelta(seconds=settings.grace_period_seconds)
+        
+        if current_time > grace_cutoff:
             raise RoundExpiredError("Round expired past grace period")
 
         # Normalize word
@@ -276,6 +296,7 @@ class VoteService:
         - OR 3 votes AND 10 minutes elapsed since 3rd vote
         """
         should_finalize = False
+        current_time = datetime.now(UTC)
 
         # Max votes reached
         if wordset.vote_count >= 20:
@@ -284,14 +305,24 @@ class VoteService:
 
         # 5+ votes and 60 seconds elapsed
         elif wordset.vote_count >= 5 and wordset.fifth_vote_at:
-            elapsed = (datetime.now(UTC) - wordset.fifth_vote_at).total_seconds()
+            fifth_vote_at = wordset.fifth_vote_at
+            # Handle timezone-naive datetime from database
+            if fifth_vote_at.tzinfo is None:
+                fifth_vote_at = fifth_vote_at.replace(tzinfo=UTC)
+            
+            elapsed = (current_time - fifth_vote_at).total_seconds()
             if elapsed >= 60:
                 should_finalize = True
                 logger.info(f"Wordset {wordset.wordset_id} closing window expired (60s)")
 
         # 3 votes and 10 minutes elapsed (no 5th vote)
         elif wordset.vote_count >= 3 and wordset.third_vote_at and not wordset.fifth_vote_at:
-            elapsed = (datetime.now(UTC) - wordset.third_vote_at).total_seconds()
+            third_vote_at = wordset.third_vote_at
+            # Handle timezone-naive datetime from database
+            if third_vote_at.tzinfo is None:
+                third_vote_at = third_vote_at.replace(tzinfo=UTC)
+                
+            elapsed = (current_time - third_vote_at).total_seconds()
             if elapsed >= 600:  # 10 minutes
                 should_finalize = True
                 logger.info(f"Wordset {wordset.wordset_id} 10min window expired")
