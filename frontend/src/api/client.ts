@@ -46,34 +46,48 @@ const extractErrorMessage = (error: any): string => {
   
   // If it's an object with a message property, use that
   if (error && typeof error === 'object') {
-    if (error.message) {
-      return error.message;
-    }
-    
     // Handle FastAPI/Pydantic validation errors
     if (error.detail) {
+      const detail = error.detail;
       // If detail is an array (Pydantic validation errors)
-      if (Array.isArray(error.detail)) {
+      if (Array.isArray(detail)) {
         // Extract the first validation error message
-        const firstError = error.detail[0];
-        if (firstError && firstError.msg) {
-          return firstError.msg;
+        const firstError = detail[0];
+        if (firstError) {
+          if (typeof firstError === 'string') {
+            return firstError;
+          }
+          if (typeof firstError === 'object' && 'msg' in firstError && typeof firstError.msg === 'string') {
+            return firstError.msg;
+          }
         }
-        // Fallback to the first error as string
-        return String(error.detail[0] || 'Validation error');
+        // Fallback to a generic validation error message
+        return 'Validation error';
       }
       // If detail is a string (regular API errors)
-      if (typeof error.detail === 'string') {
-        return error.detail;
+      if (typeof detail === 'string') {
+        return detail;
+      }
+      if (detail && typeof detail === 'object') {
+        if ('msg' in detail && typeof detail.msg === 'string') {
+          return detail.msg;
+        }
+        if ('message' in detail && typeof detail.message === 'string') {
+          return detail.message;
+        }
       }
     }
-    
+
     // Handle backend error objects like {"error": "invalid_word", "message": "..."}
     if (error.error && error.message) {
       return error.message;
     }
+
+    if (error.message) {
+      return error.message;
+    }
   }
-  
+
   // Fallback to string conversion
   return String(error);
 };
