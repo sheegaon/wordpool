@@ -307,6 +307,14 @@ class RoundService:
         )
         copy_rounds = list(result.scalars().all())
 
+        if len(copy_rounds) == 1:
+            # Still need a second copy – requeue prompt for another player
+            QueueService.add_prompt_to_queue(prompt_round_id)
+            logger.info(
+                f"Prompt round {prompt_round_id} requeued after first copy submission"
+            )
+            return
+
         if len(copy_rounds) >= 2:
             # Get prompt round
             prompt_round = await self.db.get(Round, prompt_round_id)
