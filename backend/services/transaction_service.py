@@ -94,7 +94,7 @@ class TransactionService:
         if skip_lock:
             return await _create_transaction_impl()
         else:
-            lock_name = f"player_balance:{player_id}"
+            lock_name = f"create_transaction:{player_id}"
             with lock_client.lock(lock_name, timeout=10):
                 return await _create_transaction_impl()
 

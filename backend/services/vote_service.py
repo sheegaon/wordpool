@@ -123,7 +123,7 @@ class VoteService:
 
         # Acquire lock for the entire transaction
         from backend.utils import lock_client
-        lock_name = f"player_balance:{player.player_id}"
+        lock_name = f"start_vote_round:{player.player_id}"
         with lock_client.lock(lock_name, timeout=10):
             # Create transaction
             # Use skip_lock=True since we already have the lock
