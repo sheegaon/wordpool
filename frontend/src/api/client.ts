@@ -124,20 +124,36 @@ api.interceptors.response.use(
     if (error.code === 'ERR_CANCELED') {
       return Promise.reject(error);
     }
-    // Transform error to user-friendly message
-    if (error.response?.data?.detail) {
-      throw new Error(error.response.data.detail);
+    // Transform error into a format the UI can parse without losing detail
+    if (error.response) {
+      const { status, data } = error.response;
+
+      let errorPayload: any;
+      if (data == null) {
+        errorPayload = {};
+      } else if (Array.isArray(data)) {
+        errorPayload = { detail: data };
+      } else if (typeof data === 'object') {
+        errorPayload = { ...data };
+      } else {
+        errorPayload = { detail: String(data) };
+      }
+
+      if (status === 401) {
+        errorPayload.detail = errorPayload.detail || 'Invalid API key. Please login again.';
+      } else if (status === 429) {
+        errorPayload.detail = errorPayload.detail || 'Rate limit exceeded. Please try again later.';
+      }
+
+      errorPayload.status = status;
+      return Promise.reject(errorPayload);
     }
-    if (error.response?.status === 401) {
-      throw new Error('Invalid API key. Please login again.');
-    }
-    if (error.response?.status === 429) {
-      throw new Error('Rate limit exceeded. Please try again later.');
-    }
+
     if (error.code === 'ERR_NETWORK') {
-      throw new Error('Network error. Please check your connection.');
+      return Promise.reject({ message: 'Network error. Please check your connection.' });
     }
-    throw new Error('An unexpected error occurred.');
+
+    return Promise.reject(error);
   }
 );
 
