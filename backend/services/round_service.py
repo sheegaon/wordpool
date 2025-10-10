@@ -77,7 +77,7 @@ class RoundService:
             )
 
             # Create round
-            round = Round(
+            round_object = Round(
                 round_id=uuid.uuid4(),
                 player_id=player.player_id,
                 round_type="prompt",
@@ -93,16 +93,16 @@ class RoundService:
             prompt.usage_count += 1
 
             # Set player's active round
-            player.active_round_id = round.round_id
+            player.active_round_id = round_object.round_id
 
-            self.db.add(round)
+            self.db.add(round_object)
 
             # Commit all changes atomically INSIDE the lock
             await self.db.commit()
-            await self.db.refresh(round)
+            await self.db.refresh(round_object)
 
-        logger.info(f"Started prompt round {round.round_id} for player {player.player_id}")
-        return round
+        logger.info(f"Started prompt round {round_object.round_id} for player {player.player_id}")
+        return round_object
 
     async def submit_prompt_word(
         self,

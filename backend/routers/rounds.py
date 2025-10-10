@@ -61,13 +61,13 @@ async def start_prompt_round(
         raise HTTPException(status_code=400, detail=error)
 
     try:
-        round = await round_service.start_prompt_round(player, transaction_service)
+        round_object = await round_service.start_prompt_round(player, transaction_service)
 
         return StartPromptRoundResponse(
-            round_id=round.round_id,
-            prompt_text=round.prompt_text,
-            expires_at=ensure_utc(round.expires_at),
-            cost=round.cost,
+            round_id=round_object.round_id,
+            prompt_text=round_object.prompt_text,
+            expires_at=ensure_utc(round_object.expires_at),
+            cost=round_object.cost,
         )
     except Exception as e:
         logger.error(f"Error starting prompt round: {e}")
@@ -90,14 +90,14 @@ async def start_copy_round(
         raise HTTPException(status_code=400, detail=error)
 
     try:
-        round = await round_service.start_copy_round(player, transaction_service)
+        round_object = await round_service.start_copy_round(player, transaction_service)
 
         return StartCopyRoundResponse(
-            round_id=round.round_id,
-            original_word=round.original_word,
-            prompt_round_id=round.prompt_round_id,
-            expires_at=ensure_utc(round.expires_at),
-            cost=round.cost,
+            round_id=round_object.round_id,
+            original_word=round_object.original_word,
+            prompt_round_id=round_object.prompt_round_id,
+            expires_at=ensure_utc(round_object.expires_at),
+            cost=round_object.cost,
             discount_active=QueueService.is_copy_discount_active(),
         )
     except Exception as e:
@@ -121,18 +121,18 @@ async def start_vote_round(
         raise HTTPException(status_code=400, detail=error)
 
     try:
-        round, wordset = await vote_service.start_vote_round(player, transaction_service)
+        round_object, wordset = await vote_service.start_vote_round(player, transaction_service)
 
         # Randomize word order per-voter
         words = [wordset.original_word, wordset.copy_word_1, wordset.copy_word_2]
         random.shuffle(words)
 
         return StartVoteRoundResponse(
-            round_id=round.round_id,
+            round_id=round_object.round_id,
             wordset_id=wordset.wordset_id,
             prompt_text=wordset.prompt_text,
             words=words,
-            expires_at=ensure_utc(round.expires_at),
+            expires_at=ensure_utc(round_object.expires_at),
         )
     except NoWordsetsAvailableError as e:
         raise HTTPException(status_code=400, detail="no_wordsets_available")
@@ -153,17 +153,17 @@ async def submit_word(
     round_service = RoundService(db)
 
     # Get round
-    round = await db.get(Round, round_id)
-    if not round or round.player_id != player.player_id:
+    round_object = await db.get(Round, round_id)
+    if not round_object or round_object.player_id != player.player_id:
         raise HTTPException(status_code=404, detail="Round not found")
 
     try:
-        if round.round_type == "prompt":
-            round = await round_service.submit_prompt_word(
+        if round_object.round_type == "prompt":
+            round_object = await round_service.submit_prompt_word(
                 round_id, request.word, player, transaction_service
             )
-        elif round.round_type == "copy":
-            round = await round_service.submit_copy_word(
+        elif round_object.round_type == "copy":
+            round_object = await round_service.submit_copy_word(
                 round_id, request.word, player, transaction_service
             )
         else:
