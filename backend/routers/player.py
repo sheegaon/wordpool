@@ -19,6 +19,7 @@ from backend.services.player_service import PlayerService
 from backend.services.transaction_service import TransactionService
 from backend.utils.exceptions import DailyBonusNotAvailableError
 from backend.config import get_settings
+from datetime import datetime, UTC
 from sqlalchemy import select
 import logging
 
@@ -26,6 +27,13 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 router = APIRouter()
+
+
+def ensure_utc(dt: datetime) -> datetime:
+    """Ensure datetime has UTC timezone for proper JSON serialization."""
+    if dt and dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
 
 
 @router.post("", response_model=CreatePlayerResponse, status_code=201)
@@ -146,7 +154,7 @@ async def get_current_round(
     state = {
         "round_id": str(round.round_id),
         "status": round.status,
-        "expires_at": round.expires_at.isoformat(),
+        "expires_at": ensure_utc(round.expires_at).isoformat(),
         "cost": round.cost,
     }
 
@@ -177,7 +185,7 @@ async def get_current_round(
         round_id=round.round_id,
         round_type=round.round_type,
         state=state,
-        expires_at=round.expires_at,
+        expires_at=ensure_utc(round.expires_at),
     )
 
 
@@ -231,7 +239,7 @@ async def get_pending_results(
             PendingResult(
                 wordset_id=ws.wordset_id,
                 prompt_text=ws.prompt_text,
-                completed_at=ws.finalized_at,
+                completed_at=ensure_utc(ws.finalized_at),
                 role=role,
                 payout_collected=result_view.payout_collected if result_view else False,
             )

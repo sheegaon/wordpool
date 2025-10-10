@@ -24,17 +24,21 @@ class TransactionService:
         amount: int,
         trans_type: str,
         reference_id: UUID | None = None,
+        auto_commit: bool = True,
+        skip_lock: bool = False,
     ) -> Transaction:
         """
         Create transaction and update player balance atomically.
 
-        Uses distributed lock to prevent race conditions.
+        Uses distributed lock to prevent race conditions (unless skip_lock=True).
 
         Args:
             player_id: Player UUID
             amount: Amount (negative for charges, positive for payouts)
             trans_type: Transaction type
             reference_id: Optional reference to round/wordset/vote
+            auto_commit: If True, commits immediately. If False, caller must commit.
+            skip_lock: If True, assumes caller has already acquired the lock.
 
         Returns:
             Created transaction
@@ -42,9 +46,7 @@ class TransactionService:
         Raises:
             InsufficientBalanceError: If balance would go negative
         """
-        lock_name = f"player_balance:{player_id}"
-
-        with lock_client.lock(lock_name, timeout=10):
+        async def _create_transaction_impl():
             # Get current player with row lock
             result = await self.db.execute(
                 select(Player).where(Player.player_id == player_id).with_for_update()
@@ -77,15 +79,24 @@ class TransactionService:
             )
 
             self.db.add(transaction)
-            await self.db.commit()
-            await self.db.refresh(transaction)
+
+            if auto_commit:
+                await self.db.commit()
+                await self.db.refresh(transaction)
 
             logger.info(
                 f"Transaction created: player={player_id}, amount={amount}, "
-                f"type={trans_type}, new_balance={new_balance}"
+                f"type={trans_type}, new_balance={new_balance}, auto_commit={auto_commit}"
             )
 
             return transaction
+
+        if skip_lock:
+            return await _create_transaction_impl()
+        else:
+            lock_name = f"create_transaction:{player_id}"
+            with lock_client.lock(lock_name, timeout=10):
+                return await _create_transaction_impl()
 
     async def get_player_transactions(
         self,

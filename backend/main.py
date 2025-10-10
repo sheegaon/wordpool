@@ -3,11 +3,23 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config import get_settings
 import logging
+import os
+from pathlib import Path
 
-# Configure logging
+# Create logs directory if it doesn't exist
+logs_dir = Path("logs")
+logs_dir.mkdir(exist_ok=True)
+
+# Configure logging with both console and file handlers
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        # Console handler (stdout)
+        logging.StreamHandler(),
+        # File handler (logs/wordpool.log)
+        logging.FileHandler(logs_dir / "wordpool.log"),
+    ]
 )
 
 logger = logging.getLogger(__name__)

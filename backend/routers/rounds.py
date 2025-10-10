@@ -28,6 +28,7 @@ from backend.utils.exceptions import (
     RoundNotFoundError,
     NoWordsetsAvailableError,
 )
+from datetime import datetime, UTC
 from uuid import UUID
 import random
 import logging
@@ -35,6 +36,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def ensure_utc(dt: datetime) -> datetime:
+    """Ensure datetime has UTC timezone for proper JSON serialization."""
+    if dt and dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
 
 
 @router.post("/prompt", response_model=StartPromptRoundResponse)
@@ -53,13 +61,13 @@ async def start_prompt_round(
         raise HTTPException(status_code=400, detail=error)
 
     try:
-        round = await round_service.start_prompt_round(player, transaction_service)
+        round_object = await round_service.start_prompt_round(player, transaction_service)
 
         return StartPromptRoundResponse(
-            round_id=round.round_id,
-            prompt_text=round.prompt_text,
-            expires_at=round.expires_at,
-            cost=round.cost,
+            round_id=round_object.round_id,
+            prompt_text=round_object.prompt_text,
+            expires_at=ensure_utc(round_object.expires_at),
+            cost=round_object.cost,
         )
     except Exception as e:
         logger.error(f"Error starting prompt round: {e}")
@@ -82,14 +90,14 @@ async def start_copy_round(
         raise HTTPException(status_code=400, detail=error)
 
     try:
-        round = await round_service.start_copy_round(player, transaction_service)
+        round_object = await round_service.start_copy_round(player, transaction_service)
 
         return StartCopyRoundResponse(
-            round_id=round.round_id,
-            original_word=round.original_word,
-            prompt_round_id=round.prompt_round_id,
-            expires_at=round.expires_at,
-            cost=round.cost,
+            round_id=round_object.round_id,
+            original_word=round_object.original_word,
+            prompt_round_id=round_object.prompt_round_id,
+            expires_at=ensure_utc(round_object.expires_at),
+            cost=round_object.cost,
             discount_active=QueueService.is_copy_discount_active(),
         )
     except Exception as e:
@@ -113,18 +121,18 @@ async def start_vote_round(
         raise HTTPException(status_code=400, detail=error)
 
     try:
-        round, wordset = await vote_service.start_vote_round(player, transaction_service)
+        round_object, wordset = await vote_service.start_vote_round(player, transaction_service)
 
         # Randomize word order per-voter
         words = [wordset.original_word, wordset.copy_word_1, wordset.copy_word_2]
         random.shuffle(words)
 
         return StartVoteRoundResponse(
-            round_id=round.round_id,
+            round_id=round_object.round_id,
             wordset_id=wordset.wordset_id,
             prompt_text=wordset.prompt_text,
             words=words,
-            expires_at=round.expires_at,
+            expires_at=ensure_utc(round_object.expires_at),
         )
     except NoWordsetsAvailableError as e:
         raise HTTPException(status_code=400, detail="no_wordsets_available")
@@ -145,17 +153,17 @@ async def submit_word(
     round_service = RoundService(db)
 
     # Get round
-    round = await db.get(Round, round_id)
-    if not round or round.player_id != player.player_id:
+    round_object = await db.get(Round, round_id)
+    if not round_object or round_object.player_id != player.player_id:
         raise HTTPException(status_code=404, detail="Round not found")
 
     try:
-        if round.round_type == "prompt":
-            round = await round_service.submit_prompt_word(
+        if round_object.round_type == "prompt":
+            round_object = await round_service.submit_prompt_word(
                 round_id, request.word, player, transaction_service
             )
-        elif round.round_type == "copy":
-            round = await round_service.submit_copy_word(
+        elif round_object.round_type == "copy":
+            round_object = await round_service.submit_copy_word(
                 round_id, request.word, player, transaction_service
             )
         else:
@@ -183,17 +191,30 @@ async def get_rounds_available(
 ):
     """Get which round types are currently available."""
     player_service = PlayerService(db)
+    round_service = RoundService(db)
 
     can_prompt, _ = await player_service.can_start_prompt_round(player)
     can_copy, _ = await player_service.can_start_copy_round(player)
     can_vote, _ = await player_service.can_start_vote_round(player)
 
+    # Get prompts waiting count excluding player's own prompts
+    prompts_waiting = await round_service.get_available_prompts_count(player.player_id)
+    wordsets_waiting = QueueService.get_wordsets_waiting()
+
+    # Override can_copy if no prompts are waiting
+    if prompts_waiting == 0:
+        can_copy = False
+
+    # Override can_vote if no wordsets are waiting
+    if wordsets_waiting == 0:
+        can_vote = False
+
     return RoundAvailability(
         can_prompt=can_prompt,
         can_copy=can_copy,
         can_vote=can_vote,
-        prompts_waiting=QueueService.get_prompts_waiting(),
-        wordsets_waiting=QueueService.get_wordsets_waiting(),
+        prompts_waiting=prompts_waiting,
+        wordsets_waiting=wordsets_waiting,
         copy_discount_active=QueueService.is_copy_discount_active(),
         copy_cost=QueueService.get_copy_cost(),
         current_round_id=player.active_round_id,
@@ -216,7 +237,7 @@ async def get_round_details(
         round_id=round.round_id,
         type=round.round_type,
         status=round.status,
-        expires_at=round.expires_at,
+        expires_at=ensure_utc(round.expires_at),
         prompt_text=round.prompt_text,
         original_word=round.original_word,
         submitted_word=round.submitted_word or round.copy_word,

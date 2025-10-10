@@ -17,12 +17,20 @@ from backend.utils.exceptions import (
     RoundExpiredError,
     AlreadyVotedError,
 )
+from datetime import datetime, UTC
 from uuid import UUID
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def ensure_utc(dt: datetime) -> datetime:
+    """Ensure datetime has UTC timezone for proper JSON serialization."""
+    if dt and dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
 
 
 @router.post("/{wordset_id}/vote", response_model=VoteResponse)
@@ -88,6 +96,10 @@ async def get_wordset_results(
         results = await vote_service.get_wordset_results(
             wordset_id, player.player_id, transaction_service
         )
+
+        # Ensure finalized_at has UTC timezone
+        if 'finalized_at' in results and results['finalized_at']:
+            results['finalized_at'] = ensure_utc(results['finalized_at'])
 
         return WordSetResults(**results)
     except ValueError as e:

@@ -19,6 +19,19 @@ import type {
 // Base URL - configure based on environment
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// Helper for dev logging
+const isDev = import.meta.env.DEV;
+const logApi = (method: string, endpoint: string, status: 'start' | 'success' | 'error', details?: any) => {
+  if (!isDev) return;
+  const emoji = status === 'start' ? '📤' : status === 'success' ? '✅' : '❌';
+  const message = `${emoji} API [${method.toUpperCase()} ${endpoint}]`;
+  if (details) {
+    console.log(message, details);
+  } else {
+    console.log(message);
+  }
+};
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -27,19 +40,40 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add API key
+// Request interceptor to add API key and log requests
 api.interceptors.request.use((config) => {
   const apiKey = localStorage.getItem('wordpool_api_key');
   if (apiKey && config.headers) {
     config.headers['X-API-Key'] = apiKey;
   }
+  
+  // Log the request
+  const method = config.method?.toUpperCase() || 'UNKNOWN';
+  const endpoint = config.url || '';
+  logApi(method, endpoint, 'start');
+  
   return config;
 });
 
-// Response interceptor for error handling
+// Response interceptor for success/error logging and error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log successful response
+    const method = response.config.method?.toUpperCase() || 'UNKNOWN';
+    const endpoint = response.config.url || '';
+    logApi(method, endpoint, 'success', response.data);
+    
+    return response;
+  },
   (error: AxiosError<ApiError>) => {
+    // Log error response
+    if (error.config) {
+      const method = error.config.method?.toUpperCase() || 'UNKNOWN';
+      const endpoint = error.config.url || '';
+      const errorMessage = error.response?.data?.detail || error.message;
+      logApi(method, endpoint, 'error', errorMessage);
+    }
+    
     // Ignore aborted requests
     if (error.code === 'ERR_CANCELED') {
       return Promise.reject(error);

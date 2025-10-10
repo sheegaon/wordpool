@@ -2,20 +2,18 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from uuid import UUID
+from backend.schemas.base import BaseSchema
 
 
-class StartPromptRoundResponse(BaseModel):
+class StartPromptRoundResponse(BaseSchema):
     """Start prompt round response."""
     round_id: UUID
     prompt_text: str
     expires_at: datetime
     cost: int
 
-    class Config:
-        from_attributes = True
 
-
-class StartCopyRoundResponse(BaseModel):
+class StartCopyRoundResponse(BaseSchema):
     """Start copy round response."""
     round_id: UUID
     original_word: str
@@ -24,20 +22,14 @@ class StartCopyRoundResponse(BaseModel):
     cost: int
     discount_active: bool
 
-    class Config:
-        from_attributes = True
 
-
-class StartVoteRoundResponse(BaseModel):
+class StartVoteRoundResponse(BaseSchema):
     """Start vote round response."""
     round_id: UUID
     wordset_id: UUID
     prompt_text: str
     words: list[str]
     expires_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class SubmitWordRequest(BaseModel):
@@ -71,7 +63,7 @@ class RoundAvailability(BaseModel):
     current_round_id: UUID | None
 
 
-class RoundDetails(BaseModel):
+class RoundDetails(BaseSchema):
     """Round details response."""
     round_id: UUID
     type: str
@@ -81,6 +73,3 @@ class RoundDetails(BaseModel):
     original_word: str | None = None
     submitted_word: str | None = None
     cost: int
-
-    class Config:
-        from_attributes = True
