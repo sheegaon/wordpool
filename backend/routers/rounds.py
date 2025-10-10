@@ -199,13 +199,22 @@ async def get_rounds_available(
 
     # Get prompts waiting count excluding player's own prompts
     prompts_waiting = await round_service.get_available_prompts_count(player.player_id)
+    wordsets_waiting = QueueService.get_wordsets_waiting()
+
+    # Override can_copy if no prompts are waiting
+    if prompts_waiting == 0:
+        can_copy = False
+
+    # Override can_vote if no wordsets are waiting
+    if wordsets_waiting == 0:
+        can_vote = False
 
     return RoundAvailability(
         can_prompt=can_prompt,
         can_copy=can_copy,
         can_vote=can_vote,
         prompts_waiting=prompts_waiting,
-        wordsets_waiting=QueueService.get_wordsets_waiting(),
+        wordsets_waiting=wordsets_waiting,
         copy_discount_active=QueueService.is_copy_discount_active(),
         copy_cost=QueueService.get_copy_cost(),
         current_round_id=player.active_round_id,
