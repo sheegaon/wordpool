@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 import apiClient from '../api/client';
@@ -13,10 +13,15 @@ export const VoteRound: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roundData, setRoundData] = useState<VoteState | null>(null);
   const [voteResult, setVoteResult] = useState<VoteResponse | null>(null);
+  const hasInitialized = useRef(false);
 
   const { isExpired } = useTimer(roundData?.expires_at || null);
 
   useEffect(() => {
+    // Prevent duplicate calls in React StrictMode
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     const initRound = async () => {
       // Check if we have an active vote round
       if (activeRound?.round_type === 'vote' && activeRound.state) {
@@ -48,7 +53,7 @@ export const VoteRound: React.FC = () => {
     };
 
     initRound();
-  }, []);
+  }, [activeRound, navigate, refreshCurrentRound]);
 
   const handleVote = async (word: string) => {
     if (!roundData || isSubmitting) return;
