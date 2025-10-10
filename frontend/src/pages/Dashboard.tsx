@@ -20,7 +20,7 @@ export const Dashboard: React.FC = () => {
   // Comprehensive refresh function
   const refreshDashboard = useCallback(async () => {
     try {
-      await Promise.all([
+      await Promise.allSettled([
         refreshBalance(),
         refreshCurrentRound(),
         refreshPendingResults(),
