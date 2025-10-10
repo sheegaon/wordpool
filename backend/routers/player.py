@@ -17,9 +17,10 @@ from backend.schemas.player import (
 )
 from backend.services.player_service import PlayerService
 from backend.services.transaction_service import TransactionService
+from backend.services.round_service import RoundService
 from backend.utils.exceptions import DailyBonusNotAvailableError
 from backend.config import get_settings
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 from sqlalchemy import select
 import logging
 
@@ -150,11 +151,39 @@ async def get_current_round(
             expires_at=None,
         )
 
+    # If round already resolved, clear pointer and return empty response
+    if round.status != "active":
+        if player.active_round_id == round.round_id:
+            player.active_round_id = None
+            await db.commit()
+            await db.refresh(player)
+        return CurrentRoundResponse(
+            round_id=None,
+            round_type=None,
+            state=None,
+            expires_at=None,
+        )
+
+    expires_at_utc = ensure_utc(round.expires_at)
+    grace_cutoff = expires_at_utc + timedelta(seconds=settings.grace_period_seconds)
+
+    if datetime.now(UTC) > grace_cutoff:
+        round_service = RoundService(db)
+        transaction_service = TransactionService(db)
+        await round_service.handle_timeout(round.round_id, transaction_service)
+        await db.refresh(player)
+        return CurrentRoundResponse(
+            round_id=None,
+            round_type=None,
+            state=None,
+            expires_at=None,
+        )
+
     # Build state based on round type
     state = {
         "round_id": str(round.round_id),
         "status": round.status,
-        "expires_at": ensure_utc(round.expires_at).isoformat(),
+        "expires_at": expires_at_utc.isoformat(),
         "cost": round.cost,
     }
 
@@ -185,7 +214,7 @@ async def get_current_round(
         round_id=round.round_id,
         round_type=round.round_type,
         state=state,
-        expires_at=ensure_utc(round.expires_at),
+        expires_at=expires_at_utc,
     )
 
 

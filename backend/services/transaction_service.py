@@ -1,13 +1,14 @@
 """Transaction service for atomic balance updates."""
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from uuid import UUID
+import uuid
+import logging
+
 from backend.models.player import Player
 from backend.models.transaction import Transaction
 from backend.utils import lock_client
 from backend.utils.exceptions import InsufficientBalanceError
-from uuid import UUID
-import uuid
-import logging
 
 logger = logging.getLogger(__name__)
 

@@ -1,11 +1,12 @@
 """Scoring and payout calculation service."""
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from uuid import UUID
+import logging
+
 from backend.models.wordset import WordSet
 from backend.models.vote import Vote
 from backend.models.round import Round
-from uuid import UUID
-import logging
 
 logger = logging.getLogger(__name__)
 

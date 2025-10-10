@@ -228,18 +228,18 @@ async def get_round_details(
     db: AsyncSession = Depends(get_db),
 ):
     """Get round details."""
-    round = await db.get(Round, round_id)
+    round_object = await db.get(Round, round_id)
 
-    if not round or round.player_id != player.player_id:
+    if not round_object or round_object.player_id != player.player_id:
         raise HTTPException(status_code=404, detail="Round not found")
 
     return RoundDetails(
-        round_id=round.round_id,
-        type=round.round_type,
-        status=round.status,
-        expires_at=ensure_utc(round.expires_at),
-        prompt_text=round.prompt_text,
-        original_word=round.original_word,
-        submitted_word=round.submitted_word or round.copy_word,
-        cost=round.cost,
+        round_id=round_object.round_id,
+        type=round_object.round_type,
+        status=round_object.status,
+        expires_at=ensure_utc(round_object.expires_at),
+        prompt_text=round_object.prompt_text,
+        original_word=round_object.original_word,
+        submitted_word=round_object.submitted_word or round_object.copy_word,
+        cost=round_object.cost,
     )
