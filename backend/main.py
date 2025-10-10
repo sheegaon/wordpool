@@ -36,14 +36,14 @@ app = FastAPI(
 # CORS middleware with environment-based origins
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 if not allowed_origins or allowed_origins == [""]:
-    # Default origins for development
+    # Default origins for development + production fallback
     allowed_origins = [
-        "http://localhost:5173",        # Vite dev server
-        "http://localhost:3000",        # Alternative React dev server
-        "http://127.0.0.1:5173",        # Alternative localhost format
-        "http://127.0.0.1:3000",        # Alternative localhost format
+        "https://wordpool-amber.vercel.app",  # Your production frontend
+        "http://localhost:5173",              # Vite dev server
+        "http://localhost:3000",              # Alternative React dev server
+        "http://127.0.0.1:5173",              # Alternative localhost format
+        "http://127.0.0.1:3000",              # Alternative localhost format
     ]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
