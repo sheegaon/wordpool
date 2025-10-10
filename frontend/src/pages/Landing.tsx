@@ -31,12 +31,12 @@ export const Landing: React.FC = () => {
       return;
     }
 
+    // Store original key for restoration if test fails
+    const originalKey = localStorage.getItem('wordpool_api_key');
+
     try {
       setIsLoading(true);
       setError(null);
-
-      // Store original key for restoration if test fails
-      const originalKey = localStorage.getItem('wordpool_api_key');
       
       // Set the new key to test it
       localStorage.setItem('wordpool_api_key', existingKey.trim());
@@ -50,7 +50,6 @@ export const Landing: React.FC = () => {
       
     } catch (err) {
       // API key test failed - restore original key and show error
-      const originalKey = localStorage.getItem('wordpool_api_key');
       if (originalKey && originalKey !== existingKey.trim()) {
         localStorage.setItem('wordpool_api_key', originalKey);
       } else {

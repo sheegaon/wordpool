@@ -73,6 +73,7 @@ export const VoteRound: React.FC = () => {
       }, 3000);
     } catch (err) {
       setError(extractErrorMessage(err) || 'Failed to submit vote');
+    } finally {
       setIsSubmitting(false);
     }
   };
