@@ -63,8 +63,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
-      setError(extractErrorMessage(err) || 'Failed to fetch balance');
-      if (err instanceof Error && err.message.includes('Invalid API key')) {
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage || 'Failed to fetch balance');
+      if (errorMessage && errorMessage.includes('Invalid API key')) {
         logout();
       }
     }
