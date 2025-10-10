@@ -44,18 +44,15 @@ class VoteService:
             return []
 
         # Filter out wordsets where player was a contributor
-        candidate_wordsets = []
-        candidate_ids = []
-        for ws in all_wordsets:
-            contributor_ids = {
+        candidate_wordsets = [
+            ws for ws in all_wordsets
+            if player_id not in {
                 ws.prompt_round.player_id,
                 ws.copy_round_1.player_id,
                 ws.copy_round_2.player_id,
             }
-            if player_id in contributor_ids:
-                continue
-            candidate_wordsets.append(ws)
-            candidate_ids.append(ws.wordset_id)
+        ]
+        candidate_ids = [ws.wordset_id for ws in candidate_wordsets]
 
         if not candidate_wordsets:
             return []
