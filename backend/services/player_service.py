@@ -161,7 +161,12 @@ class PlayerService:
 
         return True, ""
 
-    async def can_start_vote_round(self, player: Player) -> tuple[bool, str]:
+    async def can_start_vote_round(
+        self,
+        player: Player,
+        vote_service=None,
+        available_count: int | None = None,
+    ) -> tuple[bool, str]:
         """Check if player can start vote round."""
         from backend.services.queue_service import QueueService
 
@@ -174,8 +179,14 @@ class PlayerService:
             return False, "already_in_round"
 
         # Check wordsets available
-        if not QueueService.has_wordsets_available():
-            return False, "no_wordsets_available"
+        if vote_service:
+            if available_count is None:
+                available_count = await vote_service.count_available_wordsets_for_player(player.player_id)
+            if available_count == 0:
+                return False, "no_wordsets_available"
+        else:
+            if not QueueService.has_wordsets_available():
+                return False, "no_wordsets_available"
 
         return True, ""
 

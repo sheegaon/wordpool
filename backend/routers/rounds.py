@@ -116,7 +116,7 @@ async def start_vote_round(
     vote_service = VoteService(db)
 
     # Check if can start
-    can_start, error = await player_service.can_start_vote_round(player)
+    can_start, error = await player_service.can_start_vote_round(player, vote_service)
     if not can_start:
         raise HTTPException(status_code=400, detail=error)
 
@@ -192,14 +192,19 @@ async def get_rounds_available(
     """Get which round types are currently available."""
     player_service = PlayerService(db)
     round_service = RoundService(db)
-
-    can_prompt, _ = await player_service.can_start_prompt_round(player)
-    can_copy, _ = await player_service.can_start_copy_round(player)
-    can_vote, _ = await player_service.can_start_vote_round(player)
+    vote_service = VoteService(db)
 
     # Get prompts waiting count excluding player's own prompts
     prompts_waiting = await round_service.get_available_prompts_count(player.player_id)
-    wordsets_waiting = QueueService.get_wordsets_waiting()
+    wordsets_waiting = await vote_service.count_available_wordsets_for_player(player.player_id)
+
+    can_prompt, _ = await player_service.can_start_prompt_round(player)
+    can_copy, _ = await player_service.can_start_copy_round(player)
+    can_vote, _ = await player_service.can_start_vote_round(
+        player,
+        vote_service,
+        available_count=wordsets_waiting,
+    )
 
     # Override can_copy if no prompts are waiting
     if prompts_waiting == 0:
