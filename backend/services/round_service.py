@@ -29,11 +29,7 @@ class RoundService:
         self.db = db
         self.word_validator = get_word_validator()
 
-    async def start_prompt_round(
-        self,
-        player: Player,
-        transaction_service: TransactionService,
-    ) -> Round:
+    async def start_prompt_round(self, player: Player, transaction_service: TransactionService) -> Round:
         """
         Start a prompt round.
 
@@ -143,11 +139,7 @@ class RoundService:
         logger.info(f"Submitted word for prompt round {round_id}: {word}")
         return round_object
 
-    async def start_copy_round(
-        self,
-        player: Player,
-        transaction_service: TransactionService,
-    ) -> Round:
+    async def start_copy_round(self, player: Player, transaction_service: TransactionService) -> Round:
         """
         Start a copy round.
 
@@ -474,12 +466,15 @@ class RoundService:
         # Note: This requires iterating the queue which is not efficient
         # For MVP with in-memory queues, we'll query the database instead
 
-        # Count submitted prompt rounds that belong to this player
+        # Count submitted prompt rounds that belong to this player AND don't have wordsets yet
+        # (only count prompts still waiting for copies, not those already processed)
         result = await self.db.execute(
             select(func.count(Round.round_id))
+            .join(WordSet, WordSet.prompt_round_id == Round.round_id, isouter=True)
             .where(Round.player_id == player_id)
             .where(Round.round_type == "prompt")
             .where(Round.status == "submitted")
+            .where(WordSet.wordset_id == None)  # Exclude prompts that already have wordsets
         )
         player_prompts_count = result.scalar()
 
