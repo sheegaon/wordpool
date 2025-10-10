@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
-import apiClient from '../api/client';
+import apiClient, { extractErrorMessage } from '../api/client';
 
 export const Landing: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,7 +18,7 @@ export const Landing: React.FC = () => {
       setApiKey(response.api_key);
       navigate('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create player');
+      setError(extractErrorMessage(err) || 'Failed to create player');
     } finally {
       setIsLoading(false);
     }
@@ -31,16 +31,33 @@ export const Landing: React.FC = () => {
       return;
     }
 
+    // Store original key for restoration if test fails
+    const originalKey = localStorage.getItem('wordpool_api_key');
+
     try {
       setIsLoading(true);
       setError(null);
-      setApiKey(existingKey.trim());
-      // Try to fetch balance to validate the key
+      
+      // Set the new key to test it
+      localStorage.setItem('wordpool_api_key', existingKey.trim());
+      
+      // Test the API key by fetching balance
       await apiClient.getBalance();
+      
+      // If we get here, the API key is valid
+      setApiKey(existingKey.trim());
       navigate('/dashboard');
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid API key');
-      setApiKey('');
+      // API key test failed - restore original key and show error
+      if (originalKey && originalKey !== existingKey.trim()) {
+        localStorage.setItem('wordpool_api_key', originalKey);
+      } else {
+        localStorage.removeItem('wordpool_api_key');
+      }
+      
+      setError(extractErrorMessage(err) || 'Invalid API key');
+      // Don't call setApiKey here since the key is invalid
     } finally {
       setIsLoading(false);
     }

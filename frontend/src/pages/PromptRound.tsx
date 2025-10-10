@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
-import apiClient from '../api/client';
+import apiClient, { extractErrorMessage } from '../api/client';
 import { Timer } from '../components/Timer';
 import { useTimer } from '../hooks/useTimer';
 import type { PromptState } from '../api/types';
@@ -44,7 +44,7 @@ export const PromptRound: React.FC = () => {
             prompt_text: response.prompt_text,
           });
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to start round');
+          setError(extractErrorMessage(err) || 'Failed to start round');
           setTimeout(() => navigate('/dashboard'), 2000);
         }
       }
@@ -65,7 +65,7 @@ export const PromptRound: React.FC = () => {
       await refreshBalance();
       navigate('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit word');
+      setError(extractErrorMessage(err) || 'Failed to submit word');
     } finally {
       setIsSubmitting(false);
     }
