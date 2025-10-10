@@ -9,6 +9,10 @@ export const Dashboard: React.FC = () => {
     activeRound,
     pendingResults,
     roundAvailability,
+    refreshBalance,
+    refreshCurrentRound,
+    refreshPendingResults,
+    refreshRoundAvailability,
     claimBonus,
     logout,
     refreshCurrentRound,
@@ -26,6 +30,39 @@ export const Dashboard: React.FC = () => {
     if (!activeRound?.round_type) return '';
     return `${activeRound.round_type.charAt(0).toUpperCase()}${activeRound.round_type.slice(1)}`;
   }, [activeRound?.round_type]);
+
+  // Comprehensive refresh function
+  const refreshDashboard = useCallback(async () => {
+    try {
+      await Promise.allSettled([
+        refreshBalance(),
+        refreshCurrentRound(),
+        refreshPendingResults(),
+        refreshRoundAvailability(),
+      ]);
+    } catch (err) {
+      // Error is already handled in context
+    }
+  }, [refreshBalance, refreshCurrentRound, refreshPendingResults, refreshRoundAvailability]);
+
+  // Refresh when component mounts or becomes visible
+  useEffect(() => {
+    // Immediate refresh when component mounts
+    refreshDashboard();
+
+    // Add event listener for when the page becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshDashboard();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshDashboard]);
 
   useEffect(() => {
     if (!activeRound?.round_id) {
