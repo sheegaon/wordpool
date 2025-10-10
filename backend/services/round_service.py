@@ -18,6 +18,7 @@ from backend.utils.exceptions import (
     RoundExpiredError,
 )
 from datetime import datetime, timedelta
+from typing import Optional
 from uuid import UUID
 import uuid
 import random
@@ -110,19 +111,19 @@ class RoundService:
         word: str,
         player: Player,
         transaction_service: TransactionService,
-    ) -> Round:
+    ) -> Optional[Round]:
         """Submit word for prompt round."""
         # Get round
-        round = await self.db.get(Round, round_id)
-        if not round or round.player_id != player.player_id:
+        round_object = await self.db.get(Round, round_id)
+        if not round_object or round_object.player_id != player.player_id:
             raise RoundNotFoundError("Round not found")
 
-        if round.status != "active":
+        if round_object.status != "active":
             raise ValueError("Round is not active")
 
         # Check grace period
         # Make grace_cutoff timezone-aware if expires_at is naive (SQLite stores naive)
-        expires_at_aware = round.expires_at.replace(tzinfo=UTC) if round.expires_at.tzinfo is None else round.expires_at
+        expires_at_aware = round_object.expires_at.replace(tzinfo=UTC) if round_object.expires_at.tzinfo is None else round_object.expires_at
         grace_cutoff = expires_at_aware + timedelta(seconds=settings.grace_period_seconds)
         if datetime.now(UTC) > grace_cutoff:
             raise RoundExpiredError("Round expired past grace period")
@@ -133,20 +134,20 @@ class RoundService:
             raise InvalidWordError(error)
 
         # Update round
-        round.submitted_word = word.upper()
-        round.status = "submitted"
+        round_object.submitted_word = word.upper()
+        round_object.status = "submitted"
 
         # Clear player's active round
         player.active_round_id = None
 
         # Add to queue
-        QueueService.add_prompt_to_queue(round.round_id)
+        QueueService.add_prompt_to_queue(round_object.round_id)
 
         await self.db.commit()
-        await self.db.refresh(round)
+        await self.db.refresh(round_object)
 
         logger.info(f"Submitted word for prompt round {round_id}: {word}")
-        return round
+        return round_object
 
     async def start_copy_round(
         self,
