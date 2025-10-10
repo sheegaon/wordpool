@@ -25,6 +25,19 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
+// Helper for dev logging
+const isDev = import.meta.env.DEV;
+const logApi = (method: string, status: 'start' | 'success' | 'error', details?: any) => {
+  if (!isDev) return;
+  const emoji = status === 'start' ? '📤' : status === 'success' ? '✅' : '❌';
+  const message = `${emoji} API [${method}]`;
+  if (details) {
+    console.log(message, details);
+  } else {
+    console.log(message);
+  }
+};
+
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [apiKey, setApiKeyState] = useState<string | null>(() =>
     localStorage.getItem('wordpool_api_key')
@@ -56,13 +69,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshBalance = useCallback(async (signal?: AbortSignal) => {
     if (!apiKey) return;
+    logApi('getBalance', 'start');
     try {
       const data = await apiClient.getBalance(signal);
       setPlayer(data);
       setError(null);
+      logApi('getBalance', 'success', { balance: data.balance });
     } catch (err) {
       // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
+      logApi('getBalance', 'error', err instanceof Error ? err.message : 'Unknown error');
       setError(err instanceof Error ? err.message : 'Failed to fetch balance');
       if (err instanceof Error && err.message.includes('Invalid API key')) {
         logout();
@@ -72,51 +88,63 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshCurrentRound = useCallback(async (signal?: AbortSignal) => {
     if (!apiKey) return;
+    logApi('getCurrentRound', 'start');
     try {
       const data = await apiClient.getCurrentRound(signal);
       setActiveRound(data);
       setError(null);
+      logApi('getCurrentRound', 'success', { roundId: data?.round_id, type: data?.round_type });
     } catch (err) {
       // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
+      logApi('getCurrentRound', 'error', err instanceof Error ? err.message : 'Unknown error');
       setError(err instanceof Error ? err.message : 'Failed to fetch current round');
     }
   }, [apiKey]);
 
   const refreshPendingResults = useCallback(async (signal?: AbortSignal) => {
     if (!apiKey) return;
+    logApi('getPendingResults', 'start');
     try {
       const data = await apiClient.getPendingResults(signal);
       setPendingResults(data.pending);
       setError(null);
+      logApi('getPendingResults', 'success', { count: data.pending.length });
     } catch (err) {
       // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
+      logApi('getPendingResults', 'error', err instanceof Error ? err.message : 'Unknown error');
       setError(err instanceof Error ? err.message : 'Failed to fetch pending results');
     }
   }, [apiKey]);
 
   const refreshRoundAvailability = useCallback(async (signal?: AbortSignal) => {
     if (!apiKey) return;
+    logApi('getRoundAvailability', 'start');
     try {
       const data = await apiClient.getRoundAvailability(signal);
       setRoundAvailability(data);
       setError(null);
+      logApi('getRoundAvailability', 'success', data);
     } catch (err) {
       // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
+      logApi('getRoundAvailability', 'error', err instanceof Error ? err.message : 'Unknown error');
       setError(err instanceof Error ? err.message : 'Failed to fetch round availability');
     }
   }, [apiKey]);
 
   const claimBonus = useCallback(async () => {
     if (!apiKey) return;
+    logApi('claimDailyBonus', 'start');
     try {
       setLoading(true);
       await apiClient.claimDailyBonus();
       await refreshBalance();
       setError(null);
+      logApi('claimDailyBonus', 'success');
     } catch (err) {
+      logApi('claimDailyBonus', 'error', err instanceof Error ? err.message : 'Unknown error');
       setError(err instanceof Error ? err.message : 'Failed to claim bonus');
       throw err;
     } finally {
