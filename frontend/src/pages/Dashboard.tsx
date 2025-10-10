@@ -15,9 +15,6 @@ export const Dashboard: React.FC = () => {
     refreshRoundAvailability,
     claimBonus,
     logout,
-    refreshCurrentRound,
-    refreshRoundAvailability,
-    refreshBalance,
   } = useGame();
   const navigate = useNavigate();
   const [isRoundExpired, setIsRoundExpired] = useState(false);
