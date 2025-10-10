@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
-import apiClient from '../api/client';
+import apiClient, { extractErrorMessage } from '../api/client';
 import type { WordsetResults } from '../api/types';
 
 export const Results: React.FC = () => {
@@ -32,7 +32,7 @@ export const Results: React.FC = () => {
         await refreshPendingResults();
         await refreshBalance();
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch results');
+        setError(extractErrorMessage(err) || 'Failed to fetch results');
       } finally {
         setLoading(false);
       }

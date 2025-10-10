@@ -32,6 +32,52 @@ const logApi = (method: string, endpoint: string, status: 'start' | 'success' | 
   }
 };
 
+// Helper function to extract meaningful error messages
+const extractErrorMessage = (error: any): string => {
+  // If it's already a string, return it
+  if (typeof error === 'string') {
+    return error;
+  }
+  
+  // If it's an Error object, use its message
+  if (error instanceof Error) {
+    return error.message;
+  }
+  
+  // If it's an object with a message property, use that
+  if (error && typeof error === 'object') {
+    if (error.message) {
+      return error.message;
+    }
+    
+    // Handle FastAPI/Pydantic validation errors
+    if (error.detail) {
+      // If detail is an array (Pydantic validation errors)
+      if (Array.isArray(error.detail)) {
+        // Extract the first validation error message
+        const firstError = error.detail[0];
+        if (firstError && firstError.msg) {
+          return firstError.msg;
+        }
+        // Fallback to the first error as string
+        return String(error.detail[0] || 'Validation error');
+      }
+      // If detail is a string (regular API errors)
+      if (typeof error.detail === 'string') {
+        return error.detail;
+      }
+    }
+    
+    // Handle backend error objects like {"error": "invalid_word", "message": "..."}
+    if (error.error && error.message) {
+      return error.message;
+    }
+  }
+  
+  // Fallback to string conversion
+  return String(error);
+};
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -173,3 +219,6 @@ export const apiClient = {
 };
 
 export default apiClient;
+
+// Export the error message extraction utility for use in components
+export { extractErrorMessage };

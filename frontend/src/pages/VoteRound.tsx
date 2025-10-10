@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
-import apiClient from '../api/client';
+import apiClient, { extractErrorMessage } from '../api/client';
 import { Timer } from '../components/Timer';
 import { useTimer } from '../hooks/useTimer';
 import type { VoteState, VoteResponse } from '../api/types';
@@ -46,7 +46,7 @@ export const VoteRound: React.FC = () => {
             words: response.words,
           });
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to start round');
+          setError(extractErrorMessage(err) || 'Failed to start round');
           setTimeout(() => navigate('/dashboard'), 2000);
         }
       }
@@ -72,7 +72,7 @@ export const VoteRound: React.FC = () => {
         navigate('/dashboard');
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit vote');
+      setError(extractErrorMessage(err) || 'Failed to submit vote');
       setIsSubmitting(false);
     }
   };

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import apiClient from '../api/client';
+import apiClient, { extractErrorMessage } from '../api/client';
 import type { Player, ActiveRound, PendingResult, RoundAvailability } from '../api/types';
 
 interface GameContextType {
@@ -63,7 +63,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
-      setError(err instanceof Error ? err.message : 'Failed to fetch balance');
+      setError(extractErrorMessage(err) || 'Failed to fetch balance');
       if (err instanceof Error && err.message.includes('Invalid API key')) {
         logout();
       }
@@ -79,7 +79,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
-      setError(err instanceof Error ? err.message : 'Failed to fetch current round');
+      setError(extractErrorMessage(err) || 'Failed to fetch current round');
     }
   }, [apiKey]);
 
@@ -92,7 +92,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
-      setError(err instanceof Error ? err.message : 'Failed to fetch pending results');
+      setError(extractErrorMessage(err) || 'Failed to fetch pending results');
     }
   }, [apiKey]);
 
@@ -105,7 +105,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
-      setError(err instanceof Error ? err.message : 'Failed to fetch round availability');
+      setError(extractErrorMessage(err) || 'Failed to fetch round availability');
     }
   }, [apiKey]);
 
@@ -117,7 +117,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await refreshBalance();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to claim bonus');
+      setError(extractErrorMessage(err) || 'Failed to claim bonus');
       throw err;
     } finally {
       setLoading(false);
