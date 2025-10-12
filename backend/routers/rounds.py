@@ -171,7 +171,7 @@ async def submit_phrase(
 
         return SubmitPhraseResponse(
             success=True,
-            word=request.word.upper(),
+            phrase=request.phrase.upper(),
         )
     except InvalidWordError as e:
         raise HTTPException(status_code=400, detail={"error": "invalid_word", "message": str(e)})
