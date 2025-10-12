@@ -1,6 +1,7 @@
 """Player service for account management."""
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 from datetime import date
 from uuid import UUID
 import uuid
@@ -12,6 +13,7 @@ from backend.models.wordset import WordSet
 from backend.models.round import Round
 from backend.config import get_settings
 from backend.utils.exceptions import DailyBonusNotAvailableError
+from backend.services.username_service import UsernameService, is_username_input_valid
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -24,18 +26,39 @@ class PlayerService:
         self.db = db
 
     async def create_player(self) -> Player:
-        """Create new player with starting balance and API key."""
-        player = Player(
-            player_id=uuid.uuid4(),
-            api_key=str(uuid.uuid4()),
-            balance=settings.starting_balance,
-            last_login_date=date.today(),  # Set to today so no bonus on creation
-        )
-        self.db.add(player)
-        await self.db.commit()
-        await self.db.refresh(player)
-        logger.info(f"Created player: {player.player_id} with balance {player.balance}")
-        return player
+        """Create new player with starting balance, API key, and generated username."""
+        username_service = UsernameService(self.db)
+
+        for attempt in range(6):
+            username, username_canonical = await username_service.generate_unique_username()
+            player = Player(
+                player_id=uuid.uuid4(),
+                api_key=str(uuid.uuid4()),
+                username=username,
+                username_canonical=username_canonical,
+                balance=settings.starting_balance,
+                last_login_date=date.today(),  # Set to today so no bonus on creation
+            )
+            self.db.add(player)
+            try:
+                await self.db.commit()
+                await self.db.refresh(player)
+                logger.info(
+                    "Created player: %s username=%s balance=%s",
+                    player.player_id,
+                    player.username,
+                    player.balance,
+                )
+                return player
+            except IntegrityError as exc:
+                await self.db.rollback()
+                logger.warning(
+                    "Username collision when creating player (attempt %s): %s",
+                    attempt + 1,
+                    exc,
+                )
+
+        raise RuntimeError("Failed to create player after multiple attempts")
 
     async def get_player_by_api_key(self, api_key: str) -> Player | None:
         """Get player by API key (for authentication)."""
@@ -50,6 +73,13 @@ class PlayerService:
             select(Player).where(Player.player_id == player_id)
         )
         return result.scalar_one_or_none()
+
+    async def get_player_by_username(self, username: str) -> Player | None:
+        """Get player by username lookup."""
+        if not is_username_input_valid(username):
+            return None
+        username_service = UsernameService(self.db)
+        return await username_service.find_player_by_username(username)
 
     async def is_daily_bonus_available(self, player: Player) -> bool:
         """Check if daily bonus can be claimed."""

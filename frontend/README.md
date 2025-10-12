@@ -6,7 +6,8 @@ React + TypeScript frontend for the WordPool word association game.
 
 ### Phase 1 MVP (Complete)
 
-- ✅ Player authentication with API key
+- ✅ Pseudonymous player login with auto-generated usernames
+- ✅ API key storage & recovery via username login
 - ✅ Dashboard with balance display
 - ✅ Daily bonus claiming
 - ✅ Three round types (Prompt, Copy, Vote)
@@ -105,7 +106,7 @@ The frontend connects to the backend API using the `apiClient` in `src/api/clien
 
 ### Authentication
 
-API keys are stored in `localStorage` and automatically included in all requests via request interceptors.
+Players receive a whimsical username plus an API key. The username is enough to log back in—the API key is re-issued and stored in `localStorage` for authenticated requests.
 
 ### State Management
 
@@ -124,7 +125,7 @@ The `GameContext` manages global state:
 
 ## User Flow
 
-1. **Landing Page** - Create account or login with existing API key
+1. **Landing Page** - Create account (username + API key) or log in with your username
 2. **Dashboard** - View balance, claim bonus, select round type
 3. **Round Screens** - Complete prompt/copy/vote rounds with timers
 4. **Results** - View finalized wordsets and collect payouts

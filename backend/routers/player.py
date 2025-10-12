@@ -14,6 +14,8 @@ from backend.schemas.player import (
     PendingResult,
     CreatePlayerResponse,
     RotateKeyResponse,
+    UsernameLoginRequest,
+    UsernameLoginResponse,
 )
 from backend.services.player_service import PlayerService
 from backend.services.transaction_service import TransactionService
@@ -51,9 +53,15 @@ async def create_player(
 
     return CreatePlayerResponse(
         player_id=player.player_id,
+        username=player.username,
         api_key=player.api_key,
         balance=player.balance,
-        message=f"Player created! Use this API key in the X-API-Key header for authentication. Starting balance: ${player.balance}"
+        message=(
+            "Player created! Your username is "
+            f'"{player.username}". The API key is required for API calls - '
+            "keep it somewhere safe. Starting balance: "
+            f"${player.balance}"
+        ),
     )
 
 
@@ -94,12 +102,33 @@ async def get_balance(
     outstanding = await player_service.get_outstanding_prompts_count(player.player_id)
 
     return PlayerBalance(
+        username=player.username,
         balance=player.balance,
         starting_balance=settings.starting_balance,
         daily_bonus_available=bonus_available,
         daily_bonus_amount=settings.daily_bonus_amount,
         last_login_date=player.last_login_date,
         outstanding_prompts=outstanding,
+    )
+
+
+@router.post("/login", response_model=UsernameLoginResponse)
+async def login_with_username(
+    request: UsernameLoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve API key for an existing player via username."""
+    player_service = PlayerService(db)
+    player = await player_service.get_player_by_username(request.username)
+
+    if not player:
+        raise HTTPException(status_code=404, detail="username_not_found")
+
+    return UsernameLoginResponse(
+        player_id=player.player_id,
+        username=player.username,
+        api_key=player.api_key,
+        message="Welcome back! We've restored your API key for this username.",
     )
 
 

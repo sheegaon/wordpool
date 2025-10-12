@@ -49,6 +49,12 @@ npm run dev
 Frontend runs at **http://localhost:5173**
 - See [frontend/README.md](frontend/README.md) for detailed documentation
 
+## 🧑‍🚀 Accounts & Login
+
+- New players click **Create New Account** to receive a themed username and API key.
+- The username is all you need to return later—enter it on the landing page and the backend will re-issue your API key.
+- Keep the API key secret if you plan to call the API directly; the web client handles it automatically.
+
 ## 📚 Documentation
 
 **For Developers:**
@@ -60,7 +66,7 @@ Frontend runs at **http://localhost:5173**
 
 **For Game Design:**
 - **[README.md](README.md)** - This file (complete game rules)
-- **[PLAN.md](docs/PROJECT_PLAN)** - Implementation phases and roadmap
+- **[PROJECT_PLAN.md](docs/PROJECT_PLAN)** - Implementation phases and roadmap
 - **[PROMPT_LIBRARY.md](docs/PROMPT_LIBRARY.md)** - Game prompts collection
 
 ## ⚡ Features
@@ -68,7 +74,8 @@ Frontend runs at **http://localhost:5173**
 **✅ Phase 1 MVP Complete (100%)**
 
 *Backend:*
-- Player accounts with API key authentication
+- Pseudonymous player accounts with auto-generated usernames
+- API key authentication (surfaced via username login)
 - Three round types (Prompt, Copy, Vote)
 - Queue management with dynamic pricing
 - NASPA dictionary validation (191k words)
@@ -118,13 +125,46 @@ Frontend runs at **http://localhost:5173**
 
 ## 🧪 Testing
 
+### Unit Tests (Backend Logic)
 ```bash
-# Run tests
-pytest
+# Run backend unit tests
+pytest tests/test_game_flow.py tests/test_api_player.py tests/test_word_validator.py -v
 
 # Current status: 15/17 passing (88%)
 # Known issues: 2 tests debugging timezone edge cases
 ```
+
+### Integration Tests (Localhost API)
+**NEW:** Comprehensive integration test suite for testing the live API
+
+```bash
+# Start backend server first
+uvicorn backend.main:app --reload
+
+# Run all integration tests
+./run_localhost_tests.sh all
+# OR
+python run_localhost_tests.py all
+
+# Run specific test suites
+./run_localhost_tests.sh integration  # Core API tests
+./run_localhost_tests.sh scenarios    # Game flow scenarios
+./run_localhost_tests.sh stress       # Load & performance tests
+./run_localhost_tests.sh quick        # Fast subset (integration + scenarios)
+```
+
+**Test Coverage:**
+- ✅ Player creation & authentication (API keys, rotation)
+- ✅ Balance tracking & daily bonuses
+- ✅ Prompt/Copy/Vote round lifecycles
+- ✅ Complete game flows (end-to-end)
+- ✅ Queue dynamics & copy discounts
+- ✅ Error handling & validation
+- ✅ Concurrent operations (multi-player)
+- ✅ Load testing (100+ players)
+- ✅ Rate limiting behavior
+
+**Documentation:** See [tests/README_LOCALHOST_TESTS.md](tests/README_LOCALHOST_TESTS.md) for detailed information
 
 ---
 

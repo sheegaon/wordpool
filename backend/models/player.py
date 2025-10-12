@@ -1,5 +1,5 @@
 """Player model."""
-from sqlalchemy import Column, String, Integer, DateTime, Date, ForeignKey
+from sqlalchemy import Column, String, Integer, DateTime, Date, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime, UTC
@@ -13,10 +13,16 @@ class Player(Base):
 
     player_id = get_uuid_column(primary_key=True, default=uuid.uuid4)
     api_key = Column(String(36), unique=True, nullable=False, index=True, default=lambda: str(uuid.uuid4()))
+    username = Column(String(80), unique=True, nullable=False)
+    username_canonical = Column(String(80), nullable=False)
     balance = Column(Integer, default=1000, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     last_login_date = Column(Date, nullable=True)
     active_round_id = get_uuid_column(ForeignKey("rounds.round_id", ondelete="SET NULL"), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("username_canonical", name="uq_players_username_canonical"),
+    )
 
     # Relationships
     active_round = relationship("Round", foreign_keys=[active_round_id], post_update=True)
@@ -28,4 +34,4 @@ class Player(Base):
     abandoned_prompts = relationship("PlayerAbandonedPrompt", back_populates="player")
 
     def __repr__(self):
-        return f"<Player(player_id={self.player_id}, balance={self.balance})>"
+        return f"<Player(player_id={self.player_id}, username={self.username}, balance={self.balance})>"
