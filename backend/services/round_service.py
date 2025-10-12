@@ -41,21 +41,21 @@ class RoundService:
         """
         from backend.utils import lock_client
 
-        # Get random enabled prompt (outside lock - read-only)
-        result = await self.db.execute(
-            select(Prompt)
-            .where(Prompt.enabled == True)
-            .order_by(func.random())
-            .limit(1)
-        )
-        prompt = result.scalar_one_or_none()
-
-        if not prompt:
-            raise ValueError("No prompts available in library")
-
         # Acquire lock for the entire transaction
         lock_name = f"start_prompt_round:{player.player_id}"
         with lock_client.lock(lock_name, timeout=10):
+            # Get random enabled prompt (inside lock to keep session consistent)
+            result = await self.db.execute(
+                select(Prompt)
+                .where(Prompt.enabled == True)
+                .order_by(func.random())
+                .limit(1)
+            )
+            prompt = result.scalar_one_or_none()
+
+            if not prompt:
+                raise ValueError("No prompts available in library")
+
             # Create transaction (deduct full amount immediately)
             # Use skip_lock=True since we already have the lock
             # Use auto_commit=False to defer commit until all operations complete
@@ -84,14 +84,21 @@ class RoundService:
             self.db.add(round_object)
             await self.db.flush()
 
-            # Update prompt usage
-            prompt.usage_count += 1
-
             # Set player's active round (after adding round to session)
             player.active_round_id = round_object.round_id
 
             # Commit all changes atomically INSIDE the lock
             await self.db.commit()
+
+            # Update prompt usage count after commit (in separate transaction to avoid session issues)
+            result = await self.db.execute(
+                select(Prompt).where(Prompt.prompt_id == prompt.prompt_id)
+            )
+            prompt_obj = result.scalar_one_or_none()
+            if prompt_obj:
+                prompt_obj.usage_count += 1
+                await self.db.commit()
+
             await self.db.refresh(round_object)
 
         logger.info(f"Started prompt round {round_object.round_id} for player {player.player_id}")
