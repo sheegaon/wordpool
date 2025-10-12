@@ -30,9 +30,9 @@ class Settings(BaseSettings):
     copy_discount_threshold: int = 10  # prompts waiting to trigger discount
 
     # Timing
-    prompt_round_seconds: int = 60
-    copy_round_seconds: int = 60
-    vote_round_seconds: int = 15
+    prompt_round_seconds: int = 180
+    copy_round_seconds: int = 180
+    vote_round_seconds: int = 60
     grace_period_seconds: int = 5
 
     # Phrase Validation

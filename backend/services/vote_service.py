@@ -117,7 +117,7 @@ class VoteService:
 
         - Get available phraseset (with priority)
         - Deduct $1 immediately
-        - Create round with 15s timer
+        - Create round with 60s timer
         - Return round and phraseset with randomized word order
 
         All operations are performed in a single atomic transaction.

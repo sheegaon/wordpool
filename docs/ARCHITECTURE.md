@@ -112,7 +112,7 @@ Word Set Created → status: "open"
 5th vote received (within 10 min) → fifth_vote_at = now, status: "closing"
   ↓
   Accept new voters for 60 seconds (POST /rounds/vote)
-  Grace period: voters who called POST /rounds/vote within 60s window get full 15s to submit
+  Grace period: voters who called POST /rounds/vote within 60s window get full 60s to submit
   ↓
 20th vote OR (60s elapsed since 5th vote, all pending voters submitted) → status: "closed"
   ↓
