@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import random
-import re
 from itertools import count
 from typing import Tuple
 
@@ -12,8 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.data.username_pool import USERNAME_POOL
 from backend.models.player import Player
-
-_CANONICAL_PATTERN = re.compile(r"[a-z0-9]+")
 
 
 def canonicalize_username(username: str) -> str:
@@ -50,18 +47,20 @@ class UsernameService:
         pool = USERNAME_POOL.copy()
         random.shuffle(pool)
 
+        normalized_pool: list[tuple[str, str]] = []
         for candidate in pool:
             display = normalize_username(candidate)
             canonical = canonicalize_username(display)
-            if canonical and canonical not in taken:
+            if not canonical:
+                continue
+            normalized_pool.append((display, canonical))
+            if canonical not in taken:
                 taken.add(canonical)
                 return display, canonical
 
-        # Exhausted base pool, fall back to numeric suffixes.
-        for candidate in pool:
-            base_display = normalize_username(candidate)
-            base_canonical = canonicalize_username(base_display)
-            for suffix in count(2):
+        # Exhausted base pool, fall back to numeric suffixes by iterating suffixes first.
+        for suffix in count(2):
+            for base_display, _ in normalized_pool:
                 display = f"{base_display} {suffix}"
                 canonical = canonicalize_username(display)
                 if canonical and canonical not in taken:

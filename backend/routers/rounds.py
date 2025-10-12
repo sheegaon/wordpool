@@ -22,8 +22,8 @@ from backend.services.queue_service import QueueService
 from backend.utils.exceptions import (
     InsufficientBalanceError,
     AlreadyInRoundError,
-    InvalidWordError,
-    DuplicateWordError,
+    InvalidPhraseError,
+    DuplicatePhraseError,
     RoundExpiredError,
     RoundNotFoundError,
     NoWordsetsAvailableError,
@@ -124,14 +124,14 @@ async def start_vote_round(
         round_object, phraseset = await vote_service.start_vote_round(player, transaction_service)
 
         # Randomize word order per-voter
-        words = [phraseset.original_phrase, phraseset.copy_word_1, phraseset.copy_word_2]
+        phrases = [phraseset.original_phrase, phraseset.copy_phrase_1, phraseset.copy_phrase_2]
         random.shuffle(phrases)
 
         return StartVoteRoundResponse(
             round_id=round_object.round_id,
             phraseset_id=phraseset.phraseset_id,
             prompt_text=phraseset.prompt_text,
-            phrases=words,
+            phrases=phrases,
             expires_at=ensure_utc(round_object.expires_at),
         )
     except NoWordsetsAvailableError as e:
@@ -148,7 +148,7 @@ async def submit_phrase(
     player: Player = Depends(get_current_player),
     db: AsyncSession = Depends(get_db),
 ):
-    """Submit word for prompt or copy round."""
+    """Submit phrase for prompt or copy round."""
     transaction_service = TransactionService(db)
     round_service = RoundService(db)
 
@@ -159,24 +159,24 @@ async def submit_phrase(
 
     try:
         if round_object.round_type == "prompt":
-            round_object = await round_service.submit_prompt_word(
+            round_object = await round_service.submit_prompt_phrase(
                 round_id, request.phrase, player, transaction_service
             )
         elif round_object.round_type == "copy":
-            round_object = await round_service.submit_copy_word(
+            round_object = await round_service.submit_copy_phrase(
                 round_id, request.phrase, player, transaction_service
             )
         else:
-            raise HTTPException(status_code=400, detail="Invalid round type for word submission")
+            raise HTTPException(status_code=400, detail="Invalid round type for phrase submission")
 
         return SubmitPhraseResponse(
             success=True,
-            word=request.word.upper(),
+            phrase=request.phrase.upper(),
         )
-    except InvalidWordError as e:
-        raise HTTPException(status_code=400, detail={"error": "invalid_word", "message": str(e)})
-    except DuplicateWordError as e:
-        raise HTTPException(status_code=400, detail={"error": "duplicate", "message": str(e)})
+    except InvalidPhraseError as e:
+        raise HTTPException(status_code=400, detail={"error": "invalid_phrase", "message": str(e)})
+    except DuplicatePhraseError as e:
+        raise HTTPException(status_code=400, detail={"error": "duplicate_phrase", "message": str(e)})
     except RoundExpiredError as e:
         raise HTTPException(status_code=400, detail={"error": "expired", "message": str(e)})
     except Exception as e:
@@ -245,6 +245,6 @@ async def get_round_details(
         expires_at=ensure_utc(round_object.expires_at),
         prompt_text=round_object.prompt_text,
         original_phrase=round_object.original_phrase,
-        submitted_word=round_object.submitted_word or round_object.copy_word,
+        submitted_phrase=round_object.submitted_phrase or round_object.copy_phrase,
         cost=round_object.cost,
     )

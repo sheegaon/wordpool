@@ -37,7 +37,7 @@ class InvalidPhraseError(WordPoolException):
 
 
 class DuplicateWordError(WordPoolException):
-    """Copy word matches original word."""
+    """Copy word matches original phrase."""
     pass
 
 

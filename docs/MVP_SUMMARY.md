@@ -16,7 +16,7 @@
   - Player (with API key authentication)
   - Prompt (library)
   - Round (unified for prompt/copy/vote)
-  - WordSet
+  - PhraseSet
   - Vote
   - Transaction (ledger with balance_after)
   - DailyBonus
@@ -28,7 +28,7 @@
 - ✅ Step 15: Authentication dependency (API key-based via X-API-Key header)
 
 #### Business Logic Services
-- ✅ Step 8: Word validation service
+- ✅ Step 8: Phrase validation service
 - ✅ Step 9: Transaction service (atomic balance updates with distributed locks)
 - ✅ Step 10: Queue service (FIFO with copy discount logic)
 - ✅ Step 11: Player service (account management, daily bonus, constraints)
@@ -60,9 +60,9 @@
   - GET /rounds/available
   - GET /rounds/{round_id}
 
-- ✅ Step 18: Wordsets Router - All wordset endpoints implemented
-  - POST /wordsets/{wordset_id}/vote
-  - GET /wordsets/{wordset_id}/results
+- ✅ Step 18: Phrasesets Router - All phraseset endpoints implemented
+  - POST /phrasesets/{phraseset_id}/vote
+  - GET /phrasesets/{phraseset_id}/results
 
 #### Testing & Documentation
 - ✅ Step 22: Tests - 15/17 tests passing (88%)
@@ -99,7 +99,7 @@ wordpool/
 │   │   ├── player.py           (with UTC datetime fixes)
 │   │   ├── prompt.py
 │   │   ├── round.py
-│   │   ├── wordset.py
+│   │   ├── phraseset.py
 │   │   ├── vote.py
 │   │   ├── transaction.py
 │   │   ├── daily_bonus.py
@@ -108,7 +108,7 @@ wordpool/
 │   ├── schemas/                ✅ All Pydantic request/response schemas
 │   │   ├── player.py
 │   │   ├── round.py
-│   │   ├── wordset.py
+│   │   ├── phraseset.py
 │   │   └── vote.py
 │   ├── services/               ✅ All 7 services complete
 │   │   ├── word_validator.py
@@ -122,7 +122,7 @@ wordpool/
 │   │   ├── health.py
 │   │   ├── player.py           (includes rotate-key endpoint)
 │   │   ├── rounds.py
-│   │   └── wordsets.py
+│   │   └── phrasesets.py
 │   ├── utils/                  ✅ Redis abstraction layer
 │   │   ├── queue_client.py
 │   │   ├── lock_client.py
@@ -177,9 +177,6 @@ pip install -r requirements.txt
 # Run database migrations
 alembic upgrade head
 
-# Seed prompt library (if not done)
-python3 scripts/seed_prompts.py
-
 # Start server
 uvicorn backend.main:app --reload
 
@@ -211,10 +208,10 @@ curl http://localhost:8000/health
 # Should return: {"status":"ok","database":"connected","redis":"memory"}
 ```
 
-### Test Word Validator
+### Test Phrase Validator
 ```python
-from backend.services import get_word_validator
-validator = get_word_validator()
+from backend.services import get_phrase_validator
+validator = get_phrase_validator()
 print(validator.validate("HELLO"))  # (True, "")
 print(validator.validate("XYZQPW"))  # (False, "Word not in dictionary")
 ```
@@ -280,7 +277,7 @@ print(f"Copy discount threshold: {settings.copy_discount_threshold} prompts")
 ✅ Player accounts with API key authentication
 ✅ Daily login bonuses
 ✅ Prompt/Copy/Vote round lifecycle
-✅ Word validation against NASPA dictionary
+✅ Phrase validation against NASPA dictionary
 ✅ Queue management with copy discounts
 ✅ Vote timeline state machine
 ✅ Proportional prize distribution

@@ -31,6 +31,7 @@ export interface PromptState {
   expires_at: string;
   cost: number;
   prompt_text: string;
+  feedback_type?: 'like' | 'dislike' | null;
 }
 
 export interface CopyState {
@@ -150,4 +151,20 @@ export interface HealthResponse {
   status: string;
   database: string;
   redis: string;
+}
+
+export interface SubmitPromptFeedbackRequest {
+  feedback_type: 'like' | 'dislike';
+}
+
+export interface PromptFeedbackResponse {
+  success: boolean;
+  feedback_type: 'like' | 'dislike';
+  message: string;
+}
+
+export interface GetPromptFeedbackResponse {
+  feedback_type: 'like' | 'dislike' | null;
+  feedback_id: string | null;
+  created_at: string | null;
 }

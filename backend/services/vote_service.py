@@ -117,7 +117,7 @@ class VoteService:
 
         - Get available phraseset (with priority)
         - Deduct $1 immediately
-        - Create round with 15s timer
+        - Create round with 60s timer
         - Return round and phraseset with randomized word order
 
         All operations are performed in a single atomic transaction.
@@ -200,13 +200,17 @@ class VoteService:
         if current_time > grace_cutoff:
             raise RoundExpiredError("Round expired past grace period")
 
-        # Normalize word
-        phrase = word.strip().upper()
+        # Normalize phrase
+        phrase = phrase.strip().upper()
 
-        # Check if word is one of the three
-        valid_words = {phraseset.original_phrase, phraseset.copy_phrase_1, phraseset.copy_phrase_2}
-        if word not in valid_words:
-            raise ValueError(f"Word must be one of: {', '.join(valid_words)}")
+        # Check if phrase is one of the three
+        valid_phrases = {
+            phraseset.original_phrase,
+            phraseset.copy_phrase_1,
+            phraseset.copy_phrase_2,
+        }
+        if phrase not in valid_phrases:
+            raise ValueError(f"Phrase must be one of: {', '.join(valid_phrases)}")
 
         # Check if already voted (shouldn't happen with round, but double-check)
         existing = await self.db.execute(
@@ -218,7 +222,7 @@ class VoteService:
             raise AlreadyVotedError("Already voted on this phraseset")
 
         # Determine if correct
-        correct = (phrase == phraseset.original_phrase)
+        correct = phrase == phraseset.original_phrase
         payout = settings.vote_payout_correct if correct else 0
 
         # Create vote
@@ -264,7 +268,7 @@ class VoteService:
 
         logger.info(
             f"Vote submitted: phraseset={phraseset.phraseset_id}, player={player.player_id}, "
-            f"word={word}, correct={correct}, payout=${payout}"
+            f"phrase={phrase}, correct={correct}, payout=${payout}"
         )
         return vote
 
@@ -273,14 +277,14 @@ class VoteService:
         # Mark 3rd vote timestamp
         if phraseset.vote_count == 3 and not phraseset.third_vote_at:
             phraseset.third_vote_at = datetime.now(UTC)
-            logger.info(f"Wordset {phraseset.phraseset_id} reached 3rd vote, 10min window starts")
+            logger.info(f"Phraseset {phraseset.phraseset_id} reached 3rd vote, 10min window starts")
 
         # Mark 5th vote timestamp and change status to closing
         if phraseset.vote_count == 5 and not phraseset.fifth_vote_at:
             phraseset.fifth_vote_at = datetime.now(UTC)
             phraseset.status = "closing"
             phraseset.closes_at = datetime.now(UTC) + timedelta(seconds=60)
-            logger.info(f"Wordset {phraseset.phraseset_id} reached 5th vote, 60sec closing window")
+            logger.info(f"Phraseset {phraseset.phraseset_id} reached 5th vote, 60sec closing window")
 
         await self.db.commit()
 
@@ -303,7 +307,7 @@ class VoteService:
         # Max votes reached
         if phraseset.vote_count >= 20:
             should_finalize = True
-            logger.info(f"Wordset {phraseset.phraseset_id} reached max votes (20)")
+            logger.info(f"Phraseset {phraseset.phraseset_id} reached max votes (20)")
 
         # 5+ votes and 60 seconds elapsed
         elif phraseset.vote_count >= 5 and phraseset.fifth_vote_at:
@@ -315,7 +319,7 @@ class VoteService:
             elapsed = (current_time - fifth_vote_at).total_seconds()
             if elapsed >= 60:
                 should_finalize = True
-                logger.info(f"Wordset {phraseset.phraseset_id} closing window expired (60s)")
+                logger.info(f"Phraseset {phraseset.phraseset_id} closing window expired (60s)")
 
         # 3 votes and 10 minutes elapsed (no 5th vote)
         elif phraseset.vote_count >= 3 and phraseset.third_vote_at and not phraseset.fifth_vote_at:
@@ -327,7 +331,7 @@ class VoteService:
             elapsed = (current_time - third_vote_at).total_seconds()
             if elapsed >= 600:  # 10 minutes
                 should_finalize = True
-                logger.info(f"Wordset {phraseset.phraseset_id} 10min window expired")
+                logger.info(f"Phraseset {phraseset.phraseset_id} 10min window expired")
 
         if should_finalize:
             await self._finalize_wordset(phraseset, transaction_service)
@@ -372,7 +376,7 @@ class VoteService:
             f"copy2=${payouts['copy2']['payout']}"
         )
 
-    async def get_wordset_results(
+    async def get_phraseset_results(
         self,
         wordset_id: UUID,
         player_id: UUID,
@@ -385,10 +389,10 @@ class VoteService:
         """
         phraseset = await self.db.get(PhraseSet, wordset_id)
         if not phraseset:
-            raise ValueError("Wordset not found")
+            raise ValueError("Phraseset not found")
 
         if phraseset.status != "finalized":
-            raise ValueError("Wordset not yet finalized")
+            raise ValueError("Phraseset not yet finalized")
 
         # Check if player was a contributor
         prompt_round = await self.db.get(Round, phraseset.prompt_round_id)
@@ -473,7 +477,7 @@ class VoteService:
         return {
             "prompt_text": phraseset.prompt_text,
             "votes": votes_display,
-            "your_word": phrase,
+            "your_phrase": phrase,
             "your_role": role,
             "your_points": points,
             "your_payout": result_view.payout_amount,
@@ -482,3 +486,12 @@ class VoteService:
             "already_collected": result_view.payout_collected,
             "finalized_at": phraseset.finalized_at,
         }
+
+    async def get_wordset_results(
+        self,
+        wordset_id: UUID,
+        player_id: UUID,
+        transaction_service: TransactionService,
+    ) -> dict:
+        """Backward-compatible alias for phrase-based results."""
+        return await self.get_phraseset_results(wordset_id, player_id, transaction_service)

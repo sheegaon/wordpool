@@ -9,10 +9,12 @@ import type { PromptState } from '../api/types';
 export const PromptRound: React.FC = () => {
   const { activeRound, refreshCurrentRound, refreshBalance } = useGame();
   const navigate = useNavigate();
-  const [phrase, setWord] = useState('');
+  const [phrase, setPhrase] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roundData, setRoundData] = useState<PromptState | null>(null);
+  const [feedbackType, setFeedbackType] = useState<'like' | 'dislike' | null>(null);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const hasInitialized = useRef(false);
 
   const { isExpired } = useTimer(roundData?.expires_at || null);
@@ -25,10 +27,20 @@ export const PromptRound: React.FC = () => {
     const initRound = async () => {
       // Check if we have an active prompt round
       if (activeRound?.round_type === 'prompt' && activeRound.state) {
-        setRoundData(activeRound.state as PromptState);
+        const promptState = activeRound.state as PromptState;
+        setRoundData(promptState);
+
+        // Load existing feedback
+        try {
+          const feedbackResponse = await apiClient.getPromptFeedback(promptState.round_id);
+          setFeedbackType(feedbackResponse.feedback_type);
+        } catch (err) {
+          // Feedback not found is ok, just leave as null
+          console.log('No existing feedback found');
+        }
 
         // If already submitted, redirect to dashboard
-        if ((activeRound.state as PromptState).status === 'submitted') {
+        if (promptState.status === 'submitted') {
           navigate('/dashboard');
         }
       } else {
@@ -52,6 +64,31 @@ export const PromptRound: React.FC = () => {
 
     initRound();
   }, [activeRound, navigate, refreshCurrentRound]);
+
+  const handleFeedback = async (type: 'like' | 'dislike') => {
+    if (!roundData || isSubmittingFeedback) return;
+
+    // Toggle off if clicking the same feedback type
+    const newFeedbackType = feedbackType === type ? null : type;
+
+    try {
+      setIsSubmittingFeedback(true);
+
+      if (newFeedbackType === null) {
+        // For now, we just keep the last feedback since backend doesn't support deletion
+        // In a future version, we could add a DELETE endpoint
+        return;
+      }
+
+      await apiClient.submitPromptFeedback(roundData.round_id, newFeedbackType);
+      setFeedbackType(newFeedbackType);
+    } catch (err) {
+      console.error('Failed to submit feedback:', err);
+      // Don't show error to user, feedback is optional
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,10 +130,40 @@ export const PromptRound: React.FC = () => {
         </div>
 
         {/* Prompt */}
-        <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-6 mb-6">
+        <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-6 mb-6 relative">
           <p className="text-2xl text-center font-semibold text-purple-900">
             {roundData.prompt_text}
           </p>
+
+          {/* Feedback Icons */}
+          <div className="absolute top-4 right-4 flex gap-2">
+            <button
+              onClick={() => handleFeedback('like')}
+              disabled={isSubmittingFeedback || roundData.status === 'submitted'}
+              className={`text-2xl transition-all ${
+                feedbackType === 'like'
+                  ? 'opacity-100 scale-110'
+                  : 'opacity-40 hover:opacity-70 hover:scale-105'
+              } disabled:opacity-30 disabled:cursor-not-allowed`}
+              title="I like this prompt"
+              aria-label="Like this prompt"
+            >
+              👍
+            </button>
+            <button
+              onClick={() => handleFeedback('dislike')}
+              disabled={isSubmittingFeedback || roundData.status === 'submitted'}
+              className={`text-2xl transition-all ${
+                feedbackType === 'dislike'
+                  ? 'opacity-100 scale-110'
+                  : 'opacity-40 hover:opacity-70 hover:scale-105'
+              } disabled:opacity-30 disabled:cursor-not-allowed`}
+              title="I dislike this prompt"
+              aria-label="Dislike this prompt"
+            >
+              👎
+            </button>
+          </div>
         </div>
 
         {/* Error Message */}
@@ -143,7 +210,7 @@ export const PromptRound: React.FC = () => {
         {/* Info */}
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-600">
-            <strong>Cost:</strong> ${roundData.cost} (deducted immediately, $90 refunded if you don't submit)
+            <strong>Cost:</strong> ${roundData.cost} ($95 refunded if you don't submit in time)
           </p>
         </div>
       </div>

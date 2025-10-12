@@ -5,6 +5,10 @@ from backend.config import get_settings
 import logging
 import os
 from pathlib import Path
+from contextlib import asynccontextmanager
+
+from backend.services.phrase_validator import get_phrase_validator
+from backend.services.prompt_seeder import auto_seed_prompts_if_empty
 
 # Create logs directory if it doesn't exist
 logs_dir = Path("logs")
@@ -26,11 +30,42 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application startup and shutdown tasks."""
+    logger.info("=" * 60)
+    logger.info("WordPool API Starting")
+    logger.info(f"Environment: {settings.environment}")
+    logger.info(
+        f"Database: {settings.database_url.split('@')[-1] if '@' in settings.database_url else 'SQLite'}"
+    )
+    logger.info(f"Redis: {'Enabled' if settings.redis_url else 'In-Memory Fallback'}")
+    logger.info("=" * 60)
+
+    # Initialize phrase validator
+    try:
+        validator = get_phrase_validator()
+        logger.info(f"Phrase validator initialized with {len(validator.dictionary)} words")
+    except Exception as e:
+        logger.error(f"Failed to initialize phrase validator: {e}")
+        logger.error("Run: python3 scripts/download_dictionary.py")
+
+    # Auto-seed prompts if database is empty
+    await auto_seed_prompts_if_empty()
+
+    try:
+        yield
+    finally:
+        logger.info("WordPool API Shutting Down")
+
+
 # Create FastAPI app
 app = FastAPI(
     title="WordPool API",
     description="Phase 1 MVP - Word association game backend",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS middleware with environment-based origins
@@ -53,11 +88,12 @@ app.add_middleware(
 )
 
 # Import and register routers
-from backend.routers import health, player, rounds, phrasesets
+from backend.routers import health, player, rounds, phrasesets, prompt_feedback
 
 app.include_router(health.router, tags=["health"])
 app.include_router(player.router, prefix="/player", tags=["player"])
 app.include_router(rounds.router, prefix="/rounds", tags=["rounds"])
+app.include_router(prompt_feedback.router, prefix="/rounds", tags=["prompt_feedback"])
 app.include_router(phrasesets.router, prefix="/phrasesets", tags=["phrasesets"])
 
 
@@ -71,32 +107,3 @@ async def root():
         "docs": "/docs",
     }
 
-
-@app.on_event("startup")
-async def startup_event():
-    """Run on application startup."""
-    logger.info("=" * 60)
-    logger.info("WordPool API Starting")
-    logger.info(f"Environment: {settings.environment}")
-    logger.info(f"Database: {settings.database_url.split('@')[-1] if '@' in settings.database_url else 'SQLite'}")
-    logger.info(f"Redis: {'Enabled' if settings.redis_url else 'In-Memory Fallback'}")
-    logger.info("=" * 60)
-
-    # Initialize phrase validator
-    from backend.services.phrase_validator import get_phrase_validator
-    try:
-        validator = get_phrase_validator()
-        logger.info(f"Phrase validator initialized with {len(validator.dictionary)} words")
-    except Exception as e:
-        logger.error(f"Failed to initialize phrase validator: {e}")
-        logger.error("Run: python3 scripts/download_dictionary.py")
-
-    # Auto-seed prompts if database is empty
-    from backend.services.prompt_seeder import auto_seed_prompts_if_empty
-    await auto_seed_prompts_if_empty()
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Run on application shutdown."""
-    logger.info("WordPool API Shutting Down")

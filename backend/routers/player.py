@@ -222,7 +222,7 @@ async def get_current_round(
         })
     elif round.round_type == "copy":
         state.update({
-            "original_word": round.original_phrase,
+            "original_phrase": round.original_phrase,
             "prompt_round_id": str(round.prompt_round_id),
         })
     elif round.round_type == "vote":
@@ -231,12 +231,12 @@ async def get_current_round(
         if phraseset:
             # Randomize word order per-voter
             import random
-            words = [phraseset.original_phrase, phraseset.copy_word_1, phraseset.copy_word_2]
+            phrases = [phraseset.original_phrase, phraseset.copy_phrase_1, phraseset.copy_phrase_2]
             random.shuffle(phrases)
             state.update({
                 "phraseset_id": str(phraseset.phraseset_id),
                 "prompt_text": phraseset.prompt_text,
-                "words": words,
+                "phrases": phrases,
             })
 
     return CurrentRoundResponse(

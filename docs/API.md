@@ -55,12 +55,12 @@ Use the `POST /player` endpoint to create a new player account and receive an AP
 - `insufficient_balance` - Not enough balance for operation
 - `already_in_round` - Player already has active round
 - `expired` - Round expired past grace period
-- `already_voted` - Already voted on this wordset
+- `already_voted` - Already voted on this phraseset
 - `already_claimed_today` - Daily bonus already claimed
 - `invalid_word` - Word validation failed
 - `no_prompts_available` - No prompts available for copy
-- `no_wordsets_available` - No wordsets available for voting
-- `max_outstanding_prompts` - Player has 10 open/closing wordsets
+- `no_phrasesets_available` - No phrasesets available for voting
+- `max_outstanding_prompts` - Player has 10 open/closing phrasesets
 
 ---
 
@@ -204,7 +204,7 @@ Get currently active round.
     "status": "active",
     "expires_at": "2025-01-06T12:34:56",
     "cost": 90,
-    "original_word": "FAMOUS",
+    "original_phrase": "FAMOUS",
     "discount_active": true
   },
   "expires_at": "2025-01-06T12:34:56"
@@ -220,9 +220,9 @@ Get currently active round.
     "round_id": "uuid",
     "status": "active",
     "expires_at": "2025-01-06T12:34:56",
-    "wordset_id": "uuid",
+    "phraseset_id": "uuid",
     "prompt_text": "the secret to happiness is (a/an)",
-    "words": ["LOVE", "MONEY", "CONTENTMENT"]
+    "phrases": ["LOVE", "MONEY", "CONTENTMENT"]
   },
   "expires_at": "2025-01-06T12:34:56"
 }
@@ -244,14 +244,14 @@ Get currently active round.
 - Frontend should poll this endpoint or check after each action
 
 #### `GET /player/pending-results`
-Get list of finalized wordsets awaiting result viewing.
+Get list of finalized phrasesets awaiting result viewing.
 
 **Response:**
 ```json
 {
   "pending": [
     {
-      "wordset_id": "uuid",
+      "phraseset_id": "uuid",
       "prompt_text": "the meaning of life is",
       "completed_at": "2025-01-06T12:00:00",
       "role": "prompt",
@@ -286,7 +286,7 @@ Start a prompt round (-\$100).
 **Errors:**
 - `already_in_round` - Player already in active round
 - `insufficient_balance` - Balance < \$100
-- `max_outstanding_prompts` - Player has 10 open/closing wordsets
+- `max_outstanding_prompts` - Player has 10 open/closing phrasesets
 
 #### `POST /rounds/copy`
 Start a copy round (-\$100 or -\$90).
@@ -295,7 +295,7 @@ Start a copy round (-\$100 or -\$90).
 ```json
 {
   "round_id": "uuid",
-  "original_word": "FAMOUS",
+  "original_phrase": "FAMOUS",
   "prompt_round_id": "uuid",
   "expires_at": "2025-01-06T12:36:00",
   "cost": 90,
@@ -315,25 +315,25 @@ Start a vote round (-\$1).
 ```json
 {
   "round_id": "uuid",
-  "wordset_id": "uuid",
+  "phraseset_id": "uuid",
   "prompt_text": "the secret to happiness is (a/an)",
-  "words": ["LOVE", "MONEY", "CONTENTMENT"],  // Randomized order
+  "phrases": ["LOVE", "MONEY", "CONTENTMENT"],  // Randomized order
   "expires_at": "2025-01-06T12:30:15"
 }
 ```
 
 **Errors:**
-- `no_wordsets_available` - No wordsets in queue
+- `no_phrasesets_available` - No phrasesets in queue
 - `already_in_round` - Player already in active round
 - `insufficient_balance` - Balance < \$1
 
 #### `POST /rounds/{round_id}/submit`
-Submit word for prompt or copy round.
+Submit phrase for prompt or copy round.
 
 **Request Body:**
 ```json
 {
-  "word": "famous"
+  "phrase": "famous"
 }
 ```
 
@@ -341,12 +341,12 @@ Submit word for prompt or copy round.
 ```json
 {
   "success": true,
-  "word": "FAMOUS"
+  "phrase": "FAMOUS"
 }
 ```
 
 **Errors:**
-- `invalid_word` - Word not in dictionary or invalid format
+- `invalid_phrase` - Word not in dictionary or invalid format
 - `duplicate` - Copy word matches original
 - `expired` - Past grace period
 - `not_found` - Round not found or not owned by player
@@ -361,7 +361,7 @@ Get round availability status.
   "can_copy": true,
   "can_vote": false,
   "prompts_waiting": 12,
-  "wordsets_waiting": 0,
+  "phrasesets_waiting": 0,
   "copy_discount_active": true,
   "copy_cost": 90,
   "current_round_id": null
@@ -379,23 +379,23 @@ Get round details.
   "status": "submitted",
   "expires_at": "2025-01-06T12:35:56",
   "prompt_text": "my deepest desire is to be (a/an)",
-  "original_word": null,
-  "submitted_word": "FAMOUS",
+  "original_phrase": null,
+  "submitted_phrase": "FAMOUS",
   "cost": 100
 }
 ```
 
 ---
 
-### Wordset Endpoints
+### Phraseset Endpoints
 
-#### `POST /wordsets/{wordset_id}/vote`
-Submit vote for wordset.
+#### `POST /phrasesets/{phraseset_id}/vote`
+Submit vote for phraseset.
 
 **Request Body:**
 ```json
 {
-  "word": "LOVE"
+  "phrase": "LOVE"
 }
 ```
 
@@ -404,29 +404,29 @@ Submit vote for wordset.
 {
   "correct": true,
   "payout": 5,
-  "original_word": "LOVE",
+  "original_phrase": "LOVE",
   "your_choice": "LOVE"
 }
 ```
 
 **Errors:**
 - `expired` - Past grace period
-- `already_voted` - Already voted on this wordset
+- `already_voted` - Already voted on this phraseset
 - `player_not_in_round` - Not in active vote round
 
-#### `GET /wordsets/{wordset_id}/results`
-Get wordset results (collects prize on first view).
+#### `GET /phrasesets/{phraseset_id}/results`
+Get phraseset results (collects prize on first view).
 
 **Response:**
 ```json
 {
   "prompt_text": "my deepest desire is to be (a/an)",
   "votes": [
-    {"word": "FAMOUS", "vote_count": 4, "is_original": true},
-    {"word": "POPULAR", "vote_count": 3, "is_original": false},
-    {"word": "WEALTHY", "vote_count": 3, "is_original": false}
+    {"phrase": "FAMOUS", "vote_count": 4, "is_original": true},
+    {"phrase": "POPULAR", "vote_count": 3, "is_original": false},
+    {"phrase": "WEALTHY", "vote_count": 3, "is_original": false}
   ],
-  "your_word": "FAMOUS",
+  "your_phrase": "FAMOUS",
   "your_role": "prompt",
   "your_points": 4,
   "your_payout": 62,
@@ -438,9 +438,9 @@ Get wordset results (collects prize on first view).
 ```
 
 **Errors:**
-- `Wordset not found` - Invalid wordset ID
-- `Wordset not yet finalized` - Still collecting votes
-- `Not a contributor to this wordset` - Player wasn't prompt/copy contributor
+- `Phraseset not found` - Invalid phraseset ID
+- `Phraseset not yet finalized` - Still collecting votes
+- `Not a contributor to this phraseset` - Player wasn't prompt/copy contributor
 
 ---
 
@@ -455,10 +455,10 @@ curl -H "X-API-Key: your-key" http://localhost:8000/player/balance
 # 2. Start prompt round
 curl -X POST -H "X-API-Key: your-key" http://localhost:8000/rounds/prompt
 
-# 3. Submit word
+# 3. Submit phrase
 curl -X POST -H "X-API-Key: your-key" \
   -H "Content-Type: application/json" \
-  -d '{"word":"famous"}' \
+  -d '{"phrase":"famous"}' \
   http://localhost:8000/rounds/{round_id}/submit
 
 # 4. Start copy round (as different player)
@@ -467,7 +467,7 @@ curl -X POST -H "X-API-Key: other-key" http://localhost:8000/rounds/copy
 # 5. Submit copy word
 curl -X POST -H "X-API-Key: other-key" \
   -H "Content-Type: application/json" \
-  -d '{"word":"popular"}' \
+  -d '{"phrase":"popular"}' \
   http://localhost:8000/rounds/{round_id}/submit
 
 # 6. Start vote round (after 2 copies submitted)
@@ -476,11 +476,11 @@ curl -X POST -H "X-API-Key: voter-key" http://localhost:8000/rounds/vote
 # 7. Submit vote
 curl -X POST -H "X-API-Key: voter-key" \
   -H "Content-Type: application/json" \
-  -d '{"word":"FAMOUS"}' \
-  http://localhost:8000/wordsets/{wordset_id}/vote
+  -d '{"phrase":"FAMOUS"}' \
+  http://localhost:8000/phrasesets/{phraseset_id}/vote
 
 # 8. View results (after finalization)
-curl -H "X-API-Key: your-key" http://localhost:8000/wordsets/{wordset_id}/results
+curl -H "X-API-Key: your-key" http://localhost:8000/phrasesets/{phraseset_id}/results
 ```
 
 ---
@@ -511,9 +511,9 @@ Visit `/redoc` for alternative ReDoc documentation.
 ## Game Configuration
 
 ### Timing
-- **Prompt round**: 60 seconds
-- **Copy round**: 60 seconds
-- **Vote round**: 15 seconds
+- **Prompt round**: 3 minutes (180 seconds)
+- **Copy round**: 3 minutes (180 seconds)
+- **Vote round**: 60 seconds
 - **Grace period**: 5 seconds (not shown to users - allows late submissions)
 
 ### Economics
@@ -523,7 +523,7 @@ Visit `/redoc` for alternative ReDoc documentation.
 - **Copy cost**: \$100 normal, \$90 with discount
 - **Vote cost**: \$1
 - **Vote payout (correct)**: \$5
-- **Wordset prize pool**: \$300
+- **Phraseset prize pool**: \$300
 - **Copy discount threshold**: >10 prompts waiting
 - **Max outstanding prompts**: 10 per player
 
@@ -531,7 +531,7 @@ Visit `/redoc` for alternative ReDoc documentation.
 - **Word length**: 2-15 characters
 - **Word format**: Letters A-Z only (case insensitive, stored uppercase)
 - **Dictionary**: NASPA word list
-- **Copy validation**: Must differ from original word
+- **Copy validation**: Must differ from original phrase
 
 ### WordSet Voting Lifecycle
 1. **Open**: 0-2 votes submitted
@@ -615,7 +615,7 @@ interface CopyState {
   status: 'active' | 'submitted'
   expires_at: string
   cost: number
-  original_word: string
+  original_phrase: string
   discount_active: boolean
 }
 
@@ -623,9 +623,9 @@ interface VoteState {
   round_id: string
   status: 'active' | 'submitted'
   expires_at: string
-  wordset_id: string
+  phraseset_id: string
   prompt_text: string
-  words: string[]
+  phrases: string[]
 }
 ```
 
