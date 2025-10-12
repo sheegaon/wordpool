@@ -15,7 +15,7 @@
 10. **Daily login bonus** - UTC date-based, \$100 once per day (excluding creation date)
 11. **Copy discount system** - \$90 when prompts_waiting > 10, system contributes \$10
 12. **Grace period handling** - 5-second backend grace on all submissions
-13. **Outstanding prompts limit** - Max 10 wordsets in 'open' or 'closing' status
+13. **Outstanding prompts limit** - Max 10 phrasesets in 'open' or 'closing' status
 14. **Vote timeline state machine** - 3rd vote (10 min window), 5th vote (60 sec window)
 15. **Copy abandonment** - Return to queue, prevent same player retry (24h cooldown)
 16. **Self-voting prevention** - Filter at assignment time
@@ -215,28 +215,28 @@
 - `status, created_at` (composite, for queue queries)
 - `expires_at` (for timeout cleanup jobs)
 - `prompt_round_id` (for copy rounds, linking to original)
-- `wordset_id` (for vote rounds, linking to assigned wordset)
+- `phraseset_id` (for vote rounds, linking to assigned phraseset)
 
 **Word Sets Table:**
-- `wordset_id` (primary key)
+- `phraseset_id` (primary key)
 - `status, vote_count` (composite, for voting queue)
 - `third_vote_at, fifth_vote_at` (for timeline calculations)
 - `prompt_round_id, copy_round_1_id, copy_round_2_id` (for linking)
 
 **Votes Table:**
 - `vote_id` (primary key)
-- `wordset_id` (for aggregating votes)
-- `player_id, wordset_id` (composite unique, prevent duplicate voting)
+- `phraseset_id` (for aggregating votes)
+- `player_id, phraseset_id` (composite unique, prevent duplicate voting)
 - `created_at` (for vote timeline tracking)
 
 **Transactions Table:**
 - `transaction_id` (primary key)
 - `player_id, created_at` (composite, for transaction history)
 - `type` (for filtering by transaction type)
-- `reference_id` (for linking to rounds/wordsets)
+- `reference_id` (for linking to rounds/phrasesets)
 
 **Result Views Table:**
-- `player_id, wordset_id` (composite unique, for idempotent collection)
+- `player_id, phraseset_id` (composite unique, for idempotent collection)
 - `payout_collected` (for finding pending results)
 
 ---

@@ -245,6 +245,6 @@ async def get_round_details(
         expires_at=ensure_utc(round_object.expires_at),
         prompt_text=round_object.prompt_text,
         original_phrase=round_object.original_phrase,
-        submitted_word=round_object.submitted_word or round_object.copy_word,
+        submitted_phrase=round_object.submitted_phrase or round_object.copy_phrase,
         cost=round_object.cost,
     )

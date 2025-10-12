@@ -22,9 +22,6 @@ pip install -r requirements.txt
 # Run migrations
 alembic upgrade head
 
-# Seed prompts
-python3 scripts/seed_prompts.py
-
 # Start server
 uvicorn backend.main:app --reload
 ```
@@ -61,7 +58,6 @@ Frontend runs at **http://localhost:5173**
 **For Game Design:**
 - **[README.md](README.md)** - This file (complete game rules)
 - **[PLAN.md](docs/PROJECT_PLAN)** - Implementation phases and roadmap
-- **[PROMPT_LIBRARY.md](docs/PROMPT_LIBRARY.md)** - Game prompts collection
 
 ## ⚡ Features
 

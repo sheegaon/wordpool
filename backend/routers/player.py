@@ -222,7 +222,7 @@ async def get_current_round(
         })
     elif round.round_type == "copy":
         state.update({
-            "original_word": round.original_phrase,
+            "original_phrase": round.original_phrase,
             "prompt_round_id": str(round.prompt_round_id),
         })
     elif round.round_type == "vote":

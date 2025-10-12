@@ -113,7 +113,7 @@ This document provides high-level guidance for implementing a WordPool frontend.
    - Running balance column
 
 2. **Improved Round Selection**
-   - Show queue depths (X prompts waiting, Y wordsets waiting)
+   - Show queue depths (X prompts waiting, Y phrasesets waiting)
    - Copy discount badge when active
    - Estimated wait time hints
    - "Coming soon" for unavailable round types
@@ -349,8 +349,8 @@ Create a typed API client using the TypeScript definitions in [API.md](API.md#fr
 - ⏸️ GET /rounds/{round_id} (Phase 2 - for history)
 
 **Voting & Results:**
-- ✅ POST /wordsets/{wordset_id}/vote
-- ✅ GET /wordsets/{wordset_id}/results
+- ✅ POST /phrasesets/{phraseset_id}/vote
+- ✅ GET /phrasesets/{phraseset_id}/results
 
 ---
 
