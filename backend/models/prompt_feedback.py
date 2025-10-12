@@ -27,7 +27,7 @@ class PromptFeedback(Base):
     # Relationships
     player = relationship("Player", backref="prompt_feedbacks")
     prompt = relationship("Prompt", backref="feedbacks")
-    round = relationship("Round", backref="feedback")
+    round = relationship("Round", backref="prompt_feedbacks")
 
     def __repr__(self):
         return f"<PromptFeedback(feedback_id={self.feedback_id}, feedback_type={self.feedback_type})>"

@@ -26,6 +26,12 @@ def upgrade() -> None:
     """Flush existing prompts and reload from prompt_seeder.PROMPTS."""
     conn = op.get_bind()
 
+    # Clear dependent references to avoid FK violations
+    conn.execute(sa.text("UPDATE rounds SET prompt_id = NULL WHERE prompt_id IS NOT NULL"))
+
+    # Remove existing prompt feedback (cascades automatically, but ensures consistency)
+    conn.execute(sa.text("DELETE FROM prompt_feedback"))
+
     # Remove existing prompts
     conn.execute(sa.text("DELETE FROM prompts"))
 
