@@ -16,7 +16,7 @@ class PhraseValidator:
     """Validates phrases against dictionary and similarity constraints."""
 
     # Common connecting words that are allowed even if short or not in dictionary
-    CONNECTING_WORDS = {'A', 'AN', 'THE', 'I'}
+    CONNECTING_WORDS = {'A', 'I'}
 
     def __init__(self):
         self.settings = get_settings()

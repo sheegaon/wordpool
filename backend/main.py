@@ -7,6 +7,9 @@ import os
 from pathlib import Path
 from contextlib import asynccontextmanager
 
+from backend.services.phrase_validator import get_phrase_validator
+from backend.services.prompt_seeder import auto_seed_prompts_if_empty
+
 # Create logs directory if it doesn't exist
 logs_dir = Path("logs")
 logs_dir.mkdir(exist_ok=True)
@@ -41,8 +44,6 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 60)
 
     # Initialize phrase validator
-    from backend.services.phrase_validator import get_phrase_validator
-
     try:
         validator = get_phrase_validator()
         logger.info(f"Phrase validator initialized with {len(validator.dictionary)} words")
@@ -51,8 +52,6 @@ async def lifespan(app: FastAPI):
         logger.error("Run: python3 scripts/download_dictionary.py")
 
     # Auto-seed prompts if database is empty
-    from backend.services.prompt_seeder import auto_seed_prompts_if_empty
-
     await auto_seed_prompts_if_empty()
 
     try:
