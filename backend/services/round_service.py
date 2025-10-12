@@ -138,7 +138,7 @@ class RoundService:
         await self.db.commit()
         await self.db.refresh(round_object)
 
-        logger.info(f"Submitted phrase for copy round {round_id}: {phrase}")
+        logger.info(f"Submitted phrase for prompt round {round_id}: {phrase}")
         return round_object
 
     async def start_copy_round(self, player: Player, transaction_service: TransactionService) -> Round:
@@ -283,7 +283,7 @@ class RoundService:
             raise RoundExpiredError("Round expired past grace period")
 
         # Validate word (including duplicate check)
-        is_valid, error = self.phrase_validator.validate_copy(phrase, round.original_phrase)
+        is_valid, error = self.phrase_validator.validate_copy(phrase, round.original_phrase, other_copy_phrase)
         if not is_valid:
             if "same phrase" in error.lower():
                 raise DuplicatePhraseError(error)

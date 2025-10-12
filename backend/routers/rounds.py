@@ -124,7 +124,7 @@ async def start_vote_round(
         round_object, phraseset = await vote_service.start_vote_round(player, transaction_service)
 
         # Randomize word order per-voter
-        words = [phraseset.original_phrase, phraseset.copy_word_1, phraseset.copy_word_2]
+        phrases = [phraseset.original_phrase, phraseset.copy_word_1, phraseset.copy_word_2]
         random.shuffle(phrases)
 
         return StartVoteRoundResponse(
@@ -171,7 +171,7 @@ async def submit_phrase(
 
         return SubmitPhraseResponse(
             success=True,
-            word=request.word.upper(),
+            phrase=request.phrase.upper(),
         )
     except InvalidWordError as e:
         raise HTTPException(status_code=400, detail={"error": "invalid_word", "message": str(e)})
