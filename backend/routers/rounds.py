@@ -124,7 +124,7 @@ async def start_vote_round(
         round_object, phraseset = await vote_service.start_vote_round(player, transaction_service)
 
         # Randomize word order per-voter
-        words = [phraseset.original_phrase, phraseset.copy_word_1, phraseset.copy_word_2]
+        phrases = [phraseset.original_phrase, phraseset.copy_word_1, phraseset.copy_word_2]
         random.shuffle(phrases)
 
         return StartVoteRoundResponse(
