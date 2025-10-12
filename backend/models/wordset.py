@@ -25,11 +25,11 @@ class WordSet(Base):
     # Vote lifecycle
     status = Column(String(20), nullable=False, default="open")  # open, closing, closed, finalized
     vote_count = Column(Integer, default=0, nullable=False)
-    third_vote_at = Column(DateTime, nullable=True)
-    fifth_vote_at = Column(DateTime, nullable=True, index=True)
-    closes_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
-    finalized_at = Column(DateTime, nullable=True)
+    third_vote_at = Column(DateTime(timezone=True), nullable=True)
+    fifth_vote_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    closes_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    finalized_at = Column(DateTime(timezone=True), nullable=True)
 
     # Prize pool
     total_pool = Column(Integer, default=300, nullable=False)

@@ -16,7 +16,7 @@ class ResultView(Base):
     player_id = get_uuid_column(ForeignKey("players.player_id"), nullable=False, index=True)
     payout_collected = Column(Boolean, default=False, nullable=False, index=True)
     payout_amount = Column(Integer, nullable=False)
-    viewed_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    viewed_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
 
     # Relationships
     wordset = relationship("WordSet", back_populates="result_views")
