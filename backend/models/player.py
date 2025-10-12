@@ -14,7 +14,7 @@ class Player(Base):
     player_id = get_uuid_column(primary_key=True, default=uuid.uuid4)
     api_key = Column(String(36), unique=True, nullable=False, index=True, default=lambda: str(uuid.uuid4()))
     balance = Column(Integer, default=1000, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     last_login_date = Column(Date, nullable=True)
     active_round_id = get_uuid_column(ForeignKey("rounds.round_id", ondelete="SET NULL"), nullable=True)
 

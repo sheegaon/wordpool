@@ -18,7 +18,7 @@ class Transaction(Base):
     # Types: prompt_entry, copy_entry, vote_entry, vote_payout, prize_payout, refund, daily_bonus, system_contribution
     reference_id = get_uuid_column(nullable=True, index=True)  # References round_id, wordset_id, or vote_id
     balance_after = Column(Integer, nullable=False)  # For audit trail
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True)
 
     # Relationships
     player = relationship("Player", back_populates="transactions")

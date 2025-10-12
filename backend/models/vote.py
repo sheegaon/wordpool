@@ -17,7 +17,7 @@ class Vote(Base):
     voted_word = Column(String(15), nullable=False)
     correct = Column(Boolean, nullable=False)
     payout = Column(Integer, nullable=False)  # 5 or 0
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True)
 
     # Relationships
     wordset = relationship("WordSet", back_populates="votes")

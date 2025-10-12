@@ -15,8 +15,8 @@ class Round(Base):
     player_id = get_uuid_column(ForeignKey("players.player_id"), nullable=False, index=True)
     round_type = Column(String(20), nullable=False)  # prompt, copy, vote
     status = Column(String(20), nullable=False)  # active, submitted, expired, abandoned
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False, index=True)
-    expires_at = Column(DateTime, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
     cost = Column(Integer, nullable=False)  # 100, 90, or 1
 
     # Prompt-specific fields (nullable for non-prompt rounds)
@@ -32,7 +32,7 @@ class Round(Base):
 
     # Vote-specific fields (nullable for non-vote rounds)
     wordset_id = get_uuid_column(ForeignKey("wordsets.wordset_id"), nullable=True, index=True)
-    vote_submitted_at = Column(DateTime, nullable=True)
+    vote_submitted_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     player = relationship("Player", back_populates="rounds", foreign_keys=[player_id])
