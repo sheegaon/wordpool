@@ -154,10 +154,11 @@ class VoteService:
                 wordset_id=wordset.wordset_id,
             )
 
-            # Set player's active round
-            player.active_round_id = round.round_id
-
+            # Add round to session BEFORE setting foreign key reference
             self.db.add(round)
+
+            # Set player's active round (after adding round to session)
+            player.active_round_id = round.round_id
 
             # Commit all changes atomically INSIDE the lock
             await self.db.commit()
