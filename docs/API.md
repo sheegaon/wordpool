@@ -511,9 +511,9 @@ Visit `/redoc` for alternative ReDoc documentation.
 ## Game Configuration
 
 ### Timing
-- **Prompt round**: 60 seconds
-- **Copy round**: 60 seconds
-- **Vote round**: 15 seconds
+- **Prompt round**: 3 minutes (180 seconds)
+- **Copy round**: 3 minutes (180 seconds)
+- **Vote round**: 60 seconds
 - **Grace period**: 5 seconds (not shown to users - allows late submissions)
 
 ### Economics
