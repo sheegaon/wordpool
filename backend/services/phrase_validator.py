@@ -17,7 +17,7 @@ class PhraseValidator:
     """Validates phrases against dictionary and similarity constraints."""
 
     # Common connecting words that are allowed even if short or not in dictionary
-    CONNECTING_WORDS = {'A', 'AN', 'THE', 'I'}
+    CONNECTING_WORDS = {'A', 'I'}
 
     # Significant words are those meeting the configured minimum length requirement
     # for overlap/similarity checks (default: 4 characters)

@@ -1,6 +1,6 @@
 """Round service for managing prompt, copy, and vote rounds."""
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from datetime import datetime, UTC, timedelta
 from typing import Optional
 from uuid import UUID
@@ -41,21 +41,21 @@ class RoundService:
         """
         from backend.utils import lock_client
 
-        # Get random enabled prompt (outside lock - read-only)
-        result = await self.db.execute(
-            select(Prompt)
-            .where(Prompt.enabled == True)
-            .order_by(func.random())
-            .limit(1)
-        )
-        prompt = result.scalar_one_or_none()
-
-        if not prompt:
-            raise ValueError("No prompts available in library")
-
         # Acquire lock for the entire transaction
         lock_name = f"start_prompt_round:{player.player_id}"
         with lock_client.lock(lock_name, timeout=10):
+            # Get random enabled prompt (inside lock to keep session consistent)
+            result = await self.db.execute(
+                select(Prompt)
+                .where(Prompt.enabled == True)
+                .order_by(func.random())
+                .limit(1)
+            )
+            prompt = result.scalar_one_or_none()
+
+            if not prompt:
+                raise ValueError("No prompts available in library")
+
             # Create transaction (deduct full amount immediately)
             # Use skip_lock=True since we already have the lock
             # Use auto_commit=False to defer commit until all operations complete
@@ -84,14 +84,28 @@ class RoundService:
             self.db.add(round_object)
             await self.db.flush()
 
-            # Update prompt usage
-            prompt.usage_count += 1
-
             # Set player's active round (after adding round to session)
             player.active_round_id = round_object.round_id
 
+            # Increment usage count while prompt remains attached to this session for atomic commit.
+            # SQLite stores UUID strings inconsistently (with/without hyphens) depending on how the data was seeded,
+            # so match on both representations to keep deployments healthy.
+            prompt_id_hex = prompt.prompt_id.hex
+            prompt_id_str = str(prompt.prompt_id)
+            result = await self.db.execute(
+                text(
+                    "UPDATE prompts "
+                    "SET usage_count = usage_count + 1 "
+                    "WHERE prompt_id IN (:prompt_id_hex, :prompt_id_str)"
+                ),
+                {"prompt_id_hex": prompt_id_hex, "prompt_id_str": prompt_id_str},
+            )
+            if result.rowcount == 0:
+                raise RuntimeError("Failed to update prompt usage count")
+
             # Commit all changes atomically INSIDE the lock
             await self.db.commit()
+
             await self.db.refresh(round_object)
 
         logger.info(f"Started prompt round {round_object.round_id} for player {player.player_id}")
