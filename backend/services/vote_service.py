@@ -156,6 +156,7 @@ class VoteService:
 
             # Add round to session BEFORE setting foreign key reference
             self.db.add(round)
+            await self.db.flush()
 
             # Set player's active round (after adding round to session)
             player.active_round_id = round.round_id
