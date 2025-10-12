@@ -41,10 +41,12 @@ class Settings(BaseSettings):
     phrase_max_length: int = 100
     phrase_min_char_per_word: int = 2
     phrase_max_char_per_word: int = 15
+    significant_word_min_length: int = 4
 
     # Similarity Checking
     similarity_threshold: float = 0.85  # Cosine similarity threshold for rejecting similar phrases
     similarity_model: str = "all-MiniLM-L6-v2"  # Sentence transformer model
+    word_similarity_threshold: float = 0.85  # Minimum ratio for considering words too similar
 
     @model_validator(mode="after")
     def ensure_asyncpg(self):
