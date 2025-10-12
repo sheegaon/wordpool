@@ -41,9 +41,9 @@ export const VoteRound: React.FC = () => {
             round_id: response.round_id,
             status: 'active',
             expires_at: response.expires_at,
-            wordset_id: response.phraseset_id,
+            phraseset_id: response.phraseset_id,
             prompt_text: response.prompt_text,
-            words: response.phrases,
+            phrases: response.phrases,
           });
         } catch (err) {
           setError(extractErrorMessage(err) || 'Failed to start round');
@@ -152,12 +152,12 @@ export const VoteRound: React.FC = () => {
           </p>
           {roundData.phrases.map((phrase) => (
             <button
-              key={word}
+              key={phrase}
               onClick={() => handleVote(phrase)}
               disabled={isExpired || isSubmitting}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-colors text-xl"
             >
-              {word}
+              {phrase}
             </button>
           ))}
         </div>

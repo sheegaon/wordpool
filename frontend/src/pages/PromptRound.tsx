@@ -9,7 +9,7 @@ import type { PromptState } from '../api/types';
 export const PromptRound: React.FC = () => {
   const { activeRound, refreshCurrentRound, refreshBalance } = useGame();
   const navigate = useNavigate();
-  const [phrase, setWord] = useState('');
+  const [phrase, setPhrase] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roundData, setRoundData] = useState<PromptState | null>(null);
