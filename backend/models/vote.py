@@ -1,10 +1,9 @@
 """Vote model."""
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime, UTC
 from backend.database import Base
-from backend.models.base import get_uuid_column
+from backend.models.base import get_uuid_column, get_datetime_column, get_utc_now
 
 
 class Vote(Base):
@@ -19,10 +18,10 @@ class Vote(Base):
     voted_word = Column(String(15), nullable=False)
     
     # Whether their vote was correct (voted for original_word)
-    is_correct = Column("is_correct", Boolean, nullable=False)
+    is_correct = Column(Boolean, nullable=False)
     
     payout = Column(Integer, nullable=False)  # 5 or 0
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True)
+    created_at = get_datetime_column(default=get_utc_now, nullable=False, index=True)
 
     # Relationships
     wordset = relationship("WordSet", back_populates="votes")
@@ -34,4 +33,4 @@ class Vote(Base):
     )
 
     def __repr__(self):
-        return f"<Vote(vote_id={self.vote_id}, correct={self.correct}, payout={self.payout})>"
+        return f"<Vote(vote_id={self.vote_id}, is_correct={self.is_correct}, payout={self.payout})>"

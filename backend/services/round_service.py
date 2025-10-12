@@ -12,6 +12,7 @@ from backend.models.prompt import Prompt
 from backend.models.round import Round
 from backend.models.wordset import WordSet
 from backend.models.player_abandoned_prompt import PlayerAbandonedPrompt
+from backend.models.base import get_utc_now
 from backend.services.transaction_service import TransactionService
 from backend.services.queue_service import QueueService
 from backend.services.word_validator import get_word_validator
@@ -20,6 +21,23 @@ from backend.utils.exceptions import InvalidWordError, DuplicateWordError, Round
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+
+def _normalize_datetime_for_comparison(dt):
+    """Normalize datetime for comparison across SQLite and PostgreSQL."""
+    if dt is None:
+        return None
+    
+    if settings.is_postgres:
+        # PostgreSQL: ensure timezone-aware
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=UTC)
+        return dt
+    else:
+        # SQLite: work with naive datetimes
+        if dt.tzinfo is not None:
+            return dt.replace(tzinfo=None)
+        return dt
 
 
 class RoundService:
@@ -74,7 +92,7 @@ class RoundService:
                 round_type="prompt",
                 status="active",
                 cost=settings.prompt_cost,
-                expires_at=datetime.now(UTC) + timedelta(seconds=settings.prompt_round_seconds),
+                expires_at=get_utc_now() + timedelta(seconds=settings.prompt_round_seconds),
                 # Prompt-specific fields
                 prompt_id=prompt.prompt_id,
                 prompt_text=prompt.text,
@@ -111,11 +129,15 @@ class RoundService:
         if round_object.status != "active":
             raise ValueError("Round is not active")
 
-        # Check grace period
-        # Make grace_cutoff timezone-aware if expires_at is naive (SQLite stores naive)
-        expires_at_aware = round_object.expires_at.replace(tzinfo=UTC) if round_object.expires_at.tzinfo is None else round_object.expires_at
-        grace_cutoff = expires_at_aware + timedelta(seconds=settings.grace_period_seconds)
-        if datetime.now(UTC) > grace_cutoff:
+        # Check grace period using database-agnostic datetime comparison
+        expires_at_normalized = _normalize_datetime_for_comparison(round_object.expires_at)
+        current_time = _normalize_datetime_for_comparison(get_utc_now())
+        
+        if expires_at_normalized is None:
+            raise ValueError("Round has no expiration time")
+            
+        grace_cutoff = expires_at_normalized + timedelta(seconds=settings.grace_period_seconds)
+        if current_time > grace_cutoff:
             raise RoundExpiredError("Round expired past grace period")
 
         # Validate word
@@ -187,7 +209,7 @@ class RoundService:
                 continue
 
             # Check if player abandoned this prompt in last 24h
-            cutoff = datetime.now(UTC) - timedelta(hours=24)
+            cutoff = get_utc_now() - timedelta(hours=24)
             result = await self.db.execute(
                 select(PlayerAbandonedPrompt)
                 .where(PlayerAbandonedPrompt.player_id == player.player_id)
@@ -233,7 +255,7 @@ class RoundService:
                 round_type="copy",
                 status="active",
                 cost=copy_cost,
-                expires_at=datetime.now(UTC) + timedelta(seconds=settings.copy_round_seconds),
+                expires_at=get_utc_now() + timedelta(seconds=settings.copy_round_seconds),
                 # Copy-specific fields
                 prompt_round_id=prompt_round_id,
                 original_word=prompt_round.submitted_word,
@@ -271,11 +293,11 @@ class RoundService:
         if round.status != "active":
             raise ValueError("Round is not active")
 
-        # Check grace period
-        # Make grace_cutoff timezone-aware if expires_at is naive (SQLite stores naive)
-        expires_at_aware = round.expires_at.replace(tzinfo=UTC) if round.expires_at.tzinfo is None else round.expires_at
-        grace_cutoff = expires_at_aware + timedelta(seconds=settings.grace_period_seconds)
-        if datetime.now(UTC) > grace_cutoff:
+        # Check grace period using database-agnostic datetime comparison
+        expires_at_normalized = _normalize_datetime_for_comparison(round.expires_at)
+        current_time = _normalize_datetime_for_comparison(get_utc_now())
+        grace_cutoff = expires_at_normalized + timedelta(seconds=settings.grace_period_seconds)
+        if current_time > grace_cutoff:
             raise RoundExpiredError("Round expired past grace period")
 
         # Validate word (including duplicate check)
@@ -373,18 +395,16 @@ class RoundService:
         if not round:
             return
 
-        expires_at = round.expires_at
-        expires_at_aware = (
-            expires_at.replace(tzinfo=UTC) if expires_at and expires_at.tzinfo is None else expires_at
-        )
+        expires_at_normalized = _normalize_datetime_for_comparison(round.expires_at)
+        current_time = _normalize_datetime_for_comparison(get_utc_now())
         grace_cutoff = (
-            expires_at_aware + timedelta(seconds=settings.grace_period_seconds)
-            if expires_at_aware
+            expires_at_normalized + timedelta(seconds=settings.grace_period_seconds)
+            if expires_at_normalized
             else None
         )
 
         # Respect grace period before cleanup
-        if grace_cutoff and datetime.now(UTC) <= grace_cutoff:
+        if grace_cutoff and current_time <= grace_cutoff:
             return
 
         # If round already resolved, ensure active flag cleared and stop

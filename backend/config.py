@@ -35,6 +35,16 @@ class Settings(BaseSettings):
     vote_round_seconds: int = 15
     grace_period_seconds: int = 5
 
+    @property
+    def is_postgres(self) -> bool:
+        """Check if using PostgreSQL database."""
+        return "postgresql" in self.database_url.lower()
+
+    @property
+    def is_sqlite(self) -> bool:
+        """Check if using SQLite database."""
+        return "sqlite" in self.database_url.lower()
+
     @model_validator(mode="after")
     def ensure_asyncpg(self):
         """Normalize Postgres URLs so SQLAlchemy uses the asyncpg driver."""

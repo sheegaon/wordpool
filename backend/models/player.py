@@ -1,10 +1,10 @@
 """Player model."""
-from sqlalchemy import Column, String, Integer, DateTime, Date, ForeignKey
+from sqlalchemy import Column, String, Integer, Date, ForeignKey
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime, UTC, date
+from datetime import date
 from backend.database import Base
-from backend.models.base import get_uuid_column
+from backend.models.base import get_uuid_column, get_datetime_column, get_utc_now
 
 
 class Player(Base):
@@ -14,7 +14,7 @@ class Player(Base):
     player_id = get_uuid_column(primary_key=True, default=uuid.uuid4)
     api_key = Column(String(36), unique=True, nullable=False, index=True, default=lambda: str(uuid.uuid4()))
     balance = Column(Integer, default=1000, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    created_at = get_datetime_column(default=get_utc_now, nullable=False)
     last_login_date = Column(Date, default=lambda: date.today(), nullable=True)
     active_round_id = get_uuid_column(ForeignKey("rounds.round_id", ondelete="SET NULL"), nullable=True)
 

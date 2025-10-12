@@ -1,7 +1,12 @@
-"""Base utilities for SQLAlchemy models."""
+"""Base model utilities and common column types."""
 from enum import Enum
-from sqlalchemy import Column
+from sqlalchemy import Column, String, DateTime
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.types import TypeDecorator, CHAR
+from sqlalchemy import String as SQLString
+import uuid
+from datetime import datetime, UTC
+from backend.config import get_settings
 
 
 class RoundType(str, Enum):
@@ -27,25 +32,76 @@ class WordSetStatus(str, Enum):
     FINALIZED = "finalized"
 
 
-def get_uuid_column(*args, **kwargs):
-    """Get UUID column type based on database dialect.
-
-    Returns a SQLAlchemy Column configured for UUID storage.
-    Uses PostgreSQL UUID type with as_uuid=True for proper UUID handling.
-
-    Args:
-        *args: Positional arguments to pass to Column (e.g., ForeignKey)
-        **kwargs: Keyword arguments to pass to Column (e.g., primary_key=True)
-
-    Returns:
-        Column: Configured SQLAlchemy Column for UUID storage
-
-    Example:
-        player_id = get_uuid_column(primary_key=True, default=uuid.uuid4)
-        foreign_id = get_uuid_column(ForeignKey("table.id"), nullable=True)
+class GUID(TypeDecorator):
+    """Platform-independent GUID type.
+    
+    Uses PostgreSQL's UUID type when available,
+    otherwise uses CHAR(36) storing as stringified hex values.
     """
-    return Column(
-        PGUUID(as_uuid=True),
-        *args,
-        **kwargs
-    )
+    impl = CHAR
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(PGUUID())
+        else:
+            return dialect.type_descriptor(CHAR(36))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == 'postgresql':
+            return str(value)
+        else:
+            if not isinstance(value, uuid.UUID):
+                return str(uuid.UUID(value))
+            else:
+                return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        else:
+            if not isinstance(value, uuid.UUID):
+                return uuid.UUID(value)
+            return value
+
+
+def get_uuid_column(*args, **kwargs):
+    """Get a UUID column that works across databases."""
+    return Column(GUID(), *args, **kwargs)
+
+
+def get_datetime_column(timezone_aware=True, **kwargs):
+    """Get a DateTime column that works across databases.
+    
+    Args:
+        timezone_aware: Whether to store timezone info (PostgreSQL only)
+        **kwargs: Additional Column arguments
+    
+    Returns:
+        Column configured appropriately for the database type
+    """
+    settings = get_settings()
+    
+    if settings.is_postgres and timezone_aware:
+        # PostgreSQL with timezone support
+        return Column(DateTime(timezone=True), **kwargs)
+    else:
+        # SQLite or PostgreSQL without timezone
+        return Column(DateTime, **kwargs)
+
+
+def get_utc_now():
+    """Get current UTC datetime that works across databases.
+    
+    For PostgreSQL: Returns timezone-aware datetime
+    For SQLite: Returns naive datetime (SQLite doesn't support timezones)
+    """
+    settings = get_settings()
+    
+    if settings.is_postgres:
+        return datetime.now(UTC)
+    else:
+        # SQLite - store as naive UTC datetime
+        return datetime.utcnow()

@@ -1,10 +1,9 @@
 """Player abandoned prompt tracking model."""
-from sqlalchemy import Column, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime, UTC
 from backend.database import Base
-from backend.models.base import get_uuid_column
+from backend.models.base import get_uuid_column, get_datetime_column, get_utc_now
 
 
 class PlayerAbandonedPrompt(Base):
@@ -14,7 +13,7 @@ class PlayerAbandonedPrompt(Base):
     id = get_uuid_column(primary_key=True, default=uuid.uuid4)
     player_id = get_uuid_column(ForeignKey("players.player_id"), nullable=False, index=True)
     prompt_round_id = get_uuid_column(ForeignKey("rounds.round_id"), nullable=False)
-    abandoned_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    abandoned_at = get_datetime_column(default=get_utc_now, nullable=False)
 
     # Relationships
     player = relationship("Player", back_populates="abandoned_prompts")

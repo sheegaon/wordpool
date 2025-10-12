@@ -1,10 +1,9 @@
 """WordSet model for voting phase."""
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Index
+from sqlalchemy import Column, String, Integer, ForeignKey, Index
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime, UTC
 from backend.database import Base
-from backend.models.base import get_uuid_column
+from backend.models.base import get_uuid_column, get_datetime_column, get_utc_now
 
 
 class WordSet(Base):
@@ -29,9 +28,9 @@ class WordSet(Base):
     system_contribution = Column(Integer, default=0, nullable=False)  # Cents
     
     # Timing
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
-    fifth_vote_at = Column(DateTime(timezone=True), nullable=True)  # When 5th vote received
-    closed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = get_datetime_column(default=get_utc_now, nullable=False)
+    fifth_vote_at = get_datetime_column(nullable=True)  # When 5th vote received
+    closed_at = get_datetime_column(nullable=True)
 
     # Relationships
     prompt_round = relationship("Round", foreign_keys=[prompt_round_id])

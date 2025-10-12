@@ -1,10 +1,9 @@
 """Transaction model for financial operations."""
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Index
+from sqlalchemy import Column, String, Integer, ForeignKey, Index
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime, UTC
 from backend.database import Base
-from backend.models.base import get_uuid_column
+from backend.models.base import get_uuid_column, get_datetime_column, get_utc_now
 
 
 class Transaction(Base):
@@ -15,7 +14,7 @@ class Transaction(Base):
     player_id = get_uuid_column(ForeignKey("players.player_id"), nullable=False, index=True)
     amount = Column(Integer, nullable=False)  # Cents, can be negative
     transaction_type = Column(String(20), nullable=False)  # prompt_entry, copy_entry, vote_entry, vote_win, prize, refund, daily_bonus
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True)
+    created_at = get_datetime_column(default=get_utc_now, nullable=False, index=True)
     
     # Optional reference to related round/wordset
     related_round_id = get_uuid_column(ForeignKey("rounds.round_id"), nullable=True)
