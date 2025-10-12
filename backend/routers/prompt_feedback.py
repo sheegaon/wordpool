@@ -86,8 +86,11 @@ async def submit_prompt_feedback(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"Error submitting feedback: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Error submitting feedback")
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred while submitting feedback."
+        )
 
 
 @router.get("/{round_id}/feedback", response_model=GetPromptFeedbackResponse)
