@@ -229,7 +229,7 @@ class RoundService:
             )
 
             # Create round
-            round = Round(
+            round_object = Round(
                 round_id=uuid.uuid4(),
                 player_id=player.player_id,
                 round_type="copy",
@@ -243,21 +243,21 @@ class RoundService:
             )
 
             # Add round to session BEFORE setting foreign key reference
-            self.db.add(round)
+            self.db.add(round_object)
             await self.db.flush()
 
             # Set player's active round (after adding round to session)
-            player.active_round_id = round.round_id
+            player.active_round_id = round_object.round_id
 
             # Commit all changes atomically INSIDE the lock
             await self.db.commit()
-            await self.db.refresh(round)
+            await self.db.refresh(round_object)
 
         logger.info(
-            f"Started copy round {round.round_id} for player {player.player_id}, "
+            f"Started copy round {round_object.round_id} for player {player.player_id}, "
             f"cost=${copy_cost}, discount={is_discounted}"
         )
-        return round
+        return round_object
 
     async def submit_copy_phrase(
         self,
@@ -268,26 +268,26 @@ class RoundService:
     ) -> Round:
         """Submit phrase for copy round."""
         # Get round
-        round = await self.db.get(Round, round_id)
-        if not round or round.player_id != player.player_id:
+        round_object = await self.db.get(Round, round_id)
+        if not round_object or round_object.player_id != player.player_id:
             raise RoundNotFoundError("Round not found")
 
-        if round.status != "active":
+        if round_object.status != "active":
             raise ValueError("Round is not active")
 
         # Check grace period
         # Make grace_cutoff timezone-aware if expires_at is naive (SQLite stores naive)
-        expires_at_aware = round.expires_at.replace(tzinfo=UTC) if round.expires_at.tzinfo is None else round.expires_at
+        expires_at_aware = round_object.expires_at.replace(tzinfo=UTC) if round_object.expires_at.tzinfo is None else round_object.expires_at
         grace_cutoff = expires_at_aware + timedelta(seconds=settings.grace_period_seconds)
         if datetime.now(UTC) > grace_cutoff:
             raise RoundExpiredError("Round expired past grace period")
 
         # Determine if another copy already exists for duplicate/similarity checks
         other_copy_phrase = None
-        if round.prompt_round_id:
+        if round_object.prompt_round_id:
             result = await self.db.execute(
                 select(Round.copy_phrase)
-                .where(Round.prompt_round_id == round.prompt_round_id)
+                .where(Round.prompt_round_id == round_object.prompt_round_id)
                 .where(Round.round_type == "copy")
                 .where(Round.status == "submitted")
                 .where(Round.round_id != round_id)
@@ -297,7 +297,7 @@ class RoundService:
         # Validate phrase (including duplicate check)
         is_valid, error = self.phrase_validator.validate_copy(
             phrase,
-            round.original_phrase,
+            round_object.original_phrase,
             other_copy_phrase,
         )
         if not is_valid:
@@ -306,8 +306,8 @@ class RoundService:
             raise InvalidPhraseError(error)
 
         # Update round
-        round.copy_phrase = phrase.strip().upper()
-        round.status = "submitted"
+        round_object.copy_phrase = phrase.strip().upper()
+        round_object.status = "submitted"
 
         # Clear player's active round
         player.active_round_id = None
@@ -315,14 +315,14 @@ class RoundService:
         await self.db.commit()
 
         # Check if we can create phraseset
-        await self._check_and_create_wordset(round.prompt_round_id)
+        await self._check_and_create_phraseset(round_object.prompt_round_id)
 
-        await self.db.refresh(round)
+        await self.db.refresh(round_object)
 
         logger.info(f"Submitted phrase for copy round {round_id}: {phrase}")
-        return round
+        return round_object
 
-    async def _check_and_create_wordset(self, prompt_round_id: UUID):
+    async def _check_and_create_phraseset(self, prompt_round_id: UUID):
         """Check if we have 2 copies for prompt, create phraseset if so."""
         # Get all submitted copy rounds for this prompt
         result = await self.db.execute(
