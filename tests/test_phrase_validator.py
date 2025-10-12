@@ -1,5 +1,6 @@
 """Tests for phrase validator with similarity checking."""
 import pytest
+pytest.importorskip("sklearn")
 from backend.services.phrase_validator import PhraseValidator, get_phrase_validator
 
 
@@ -191,6 +192,46 @@ class TestCopyValidation:
         )
         assert not is_valid
         assert "same phrase" in error.lower()
+
+    def test_significant_word_overlap_rejected(self, validator):
+        """Test copy phrases cannot reuse significant words from original."""
+        is_valid, error = validator.validate_copy(
+            phrase="flower crown",
+            original_phrase="flower power",
+        )
+        assert not is_valid
+        assert "significant" in error.lower()
+
+    def test_significant_word_similarity_rejected(self, validator):
+        """Test copy phrases cannot use words similar to original words."""
+        is_valid, error = validator.validate_copy(
+            phrase="flowers unite",
+            original_phrase="flower power",
+        )
+        assert not is_valid
+        assert "too similar" in error.lower()
+
+
+class TestPromptValidation:
+    """Test prompt phrase validation against prompt text."""
+
+    def test_prompt_word_overlap_rejected(self, validator):
+        """Ensure prompt submissions cannot reuse significant prompt words."""
+        is_valid, error = validator.validate_prompt_phrase(
+            phrase="grand library",
+            prompt_text="Describe your favorite library",
+        )
+        assert not is_valid
+        assert "significant" in error.lower()
+
+    def test_prompt_word_similarity_rejected(self, validator):
+        """Ensure prompt submissions reject similar significant words."""
+        is_valid, error = validator.validate_prompt_phrase(
+            phrase="bright flowers",
+            prompt_text="Talk about a favorite flower",
+        )
+        assert not is_valid
+        assert "too similar" in error.lower()
 
 
 class TestSimilarityChecking:
