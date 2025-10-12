@@ -138,7 +138,7 @@ class RoundService:
         await self.db.commit()
         await self.db.refresh(round_object)
 
-        logger.info(f"Submitted phrase for copy round {round_id}: {phrase}")
+        logger.info(f"Submitted phrase for prompt round {round_id}: {phrase}")
         return round_object
 
     async def start_copy_round(self, player: Player, transaction_service: TransactionService) -> Round:
