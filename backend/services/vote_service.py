@@ -473,7 +473,7 @@ class VoteService:
         return {
             "prompt_text": phraseset.prompt_text,
             "votes": votes_display,
-            "your_word": phrase,
+            "your_phrase": phrase,
             "your_role": role,
             "your_points": points,
             "your_payout": result_view.payout_amount,
