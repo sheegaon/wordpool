@@ -59,6 +59,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Remove prompts seeded by this migration."""
-    conn = op.get_bind()
-    conn.execute(sa.text("DELETE FROM prompts"))
+    """Downgrade for this data migration is a no-op as it's not safely reversible."""
+    pass
