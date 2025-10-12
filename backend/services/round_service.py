@@ -35,7 +35,7 @@ class RoundService:
 
         - Deduct $100 immediately
         - Randomly assign prompt
-        - Create round with 60s timer
+        - Create round with 3-minute timer
 
         All operations are performed in a single atomic transaction within a distributed lock.
         """

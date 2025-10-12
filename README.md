@@ -181,7 +181,7 @@ python run_localhost_tests.py all
   - Must be in NASPA Word List (~179k words)
   - 2-15 letters
   - Letters A-Z only (case insensitive)
-- **Timing**: 60-second submission window
+- **Timing**: 3-minute (180-second) submission window
 - **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 refunded), prompt removed from queue
 - **Queue**: Prompt enters queue waiting for 2 copy players
   - AI will provide necessary copies after 10 minutes of inactivity (Phase 3+)
@@ -192,14 +192,14 @@ python run_localhost_tests.py all
 - **Process**: Player receives ONLY the word submitted by a prompt player (without the original prompt) and must submit a similar/related word
 - **Word Requirements**: Same as Prompt Round, plus no duplicate of the original word
 - **Duplicate Handling**: If submitted word matches the original, submission is rejected and player must choose a different word (timer continues)
-- **Timing**: 60-second submission window
+- **Timing**: 3-minute (180-second) submission window
 - **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 or \$81 refunded). Associated prompt_round returned to queue for another player to attempt (same player blocked from retry for 24 hours).
 - **Queue**: Once 2 different copy players successfully submit, the word set (1 original + 2 copies) moves to voting queue
 
 ### 3. Vote Round
 - **Cost**: \$1 (deducted immediately)
 - **Process**: Player sees the original prompt and three words (1 original + 2 copies in randomized order per voter) and votes for which they believe is the original
-- **Timing**: 15-second hard limit (frontend enforces, backend has 5-second grace period)
+- **Timing**: 60-second hard limit (frontend enforces, backend has 5-second grace period)
 - **Abandonment**: No vote = forfeit \$1
 - **Voting Pool**:
   - Minimum 3 votes before finalization (AI will provide necessary votes after 10 minutes of inactivity - Phase 3+)
@@ -310,8 +310,8 @@ At any time (if not already in an active round), players can choose to:
 ## Timing Rules
 
 ### Submission Windows
-- **Prompt/Copy submission**: 60 seconds (frontend enforces, backend has 5-second grace period)
-- **Voting**: 15 seconds (frontend enforces, backend has 5-second grace period)
+- **Prompt/Copy submission**: 3 minutes (180 seconds) (frontend enforces, backend has 5-second grace period)
+- **Voting**: 60 seconds (frontend enforces, backend has 5-second grace period)
 
 ### Grace Period Implementation
 - **Frontend**: Disables submit button and shows "Time's up" message when timer reaches 0
@@ -324,7 +324,7 @@ At any time (if not already in an active round), players can choose to:
   - Until 5th vote is received
 - **After 5th vote received**: Accept new voters (POST /rounds/vote) for 60 seconds
 - **Closure**: After 20th vote OR (60 seconds elapsed since 5th vote received + all pending voters submitted)
-- **Grace period**: Voters who called POST /rounds/vote within the 60-second window get their full 15 seconds to vote, even if this extends past 60 seconds
+- **Grace period**: Voters who called POST /rounds/vote within the 60-second window get their full 60 seconds to vote, even if this extends past 60 seconds
 
 ### Abandonment Handling
 - **Prompt abandonment**: Round cancelled, \$10 penalty forfeited (\$90 refunded), prompt removed from queue

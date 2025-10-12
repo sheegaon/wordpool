@@ -26,7 +26,7 @@ This document provides high-level guidance for implementing a WordPool frontend.
 3. **Prompt Round**
    - Display prompt text
    - Text input for word submission
-   - Countdown timer (60 seconds)
+   - Countdown timer (3 minutes / 180 seconds)
    - Submit button (disabled after timeout)
    - Validation feedback
 
@@ -34,13 +34,13 @@ This document provides high-level guidance for implementing a WordPool frontend.
    - Display original word to copy
    - Display cost (\$100 or \$90 if discount)
    - Text input for copy word
-   - Countdown timer (60 seconds)
+   - Countdown timer (3 minutes / 180 seconds)
    - Submit button with duplicate detection feedback
 
 5. **Vote Round**
    - Display prompt text
    - Three word buttons (randomized order)
-   - Countdown timer (15 seconds, visual urgency at <5s)
+   - Countdown timer (60 seconds, visual urgency at <10s)
    - Immediate feedback after vote (correct/incorrect, payout)
 
 6. **Results View**
