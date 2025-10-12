@@ -126,7 +126,7 @@ Calculate scores and payouts → status: "finalized"
 
 When a copy round times out without submission:
 1. Round status set to "abandoned"
-2. Player refunded \$90 (keeps \$10 entry fee as penalty)
+2. Player refunded \$95 (keeps \$5 entry fee as penalty)
 3. Associated prompt_round returned to queue for reassignment
 4. Same player prevented from getting same prompt_round_id again (24h cooldown)
 5. No limit on how many times a prompt can be abandoned by different players

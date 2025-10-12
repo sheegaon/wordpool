@@ -386,14 +386,14 @@ class RoundService:
         """
         Handle timeout for abandoned round.
 
-        - Prompt: Refund $90, keep $10 penalty, remove from queue
-        - Copy: Refund $90, keep $10 penalty, return prompt to queue, track cooldown
+        - Prompt: Refund $95, keep $5 penalty, remove from queue
+        - Copy: Refund $95, keep $5 penalty, return prompt to queue, track cooldown
         """
-        round = await self.db.get(Round, round_id)
-        if not round:
+        round_object = await self.db.get(Round, round_id)
+        if not round_object:
             return
 
-        expires_at = round.expires_at
+        expires_at = round_object.expires_at
         expires_at_aware = (
             expires_at.replace(tzinfo=UTC) if expires_at and expires_at.tzinfo is None else expires_at
         )
@@ -408,61 +408,61 @@ class RoundService:
             return
 
         # If round already resolved, ensure active flag cleared and stop
-        if round.status != "active":
-            player = await self.db.get(Player, round.player_id)
+        if round_object.status != "active":
+            player = await self.db.get(Player, round_object.player_id)
             if player and player.active_round_id == round_id:
                 player.active_round_id = None
                 await self.db.commit()
             return
 
         # Mark as expired/abandoned
-        if round.round_type == "prompt":
-            round.status = "expired"
-            refund_amount = settings.prompt_cost - (settings.prompt_cost // 10)  # Refund $90
+        if round_object.round_type == "prompt":
+            round_object.status = "expired"
+            refund_amount = settings.prompt_cost - (settings.prompt_cost // 20)  # Refund 95% of cost
 
             # Create refund transaction
             await transaction_service.create_transaction(
-                round.player_id,
+                round_object.player_id,
                 refund_amount,
                 "refund",
-                round.round_id,
+                round_object.round_id,
             )
 
             logger.info(f"Prompt round {round_id} expired, refunded ${refund_amount}")
 
-        elif round.round_type == "copy":
-            round.status = "abandoned"
-            refund_amount = round.cost - (round.cost // 10)  # Refund 90% of cost
+        elif round_object.round_type == "copy":
+            round_object.status = "abandoned"
+            refund_amount = round_object.cost - (round_object.cost // 20)  # Refund 95% of cost
 
             # Create refund transaction
             await transaction_service.create_transaction(
-                round.player_id,
+                round_object.player_id,
                 refund_amount,
                 "refund",
-                round.round_id,
+                round_object.round_id,
             )
 
             # Return prompt to queue
-            QueueService.add_prompt_to_queue(round.prompt_round_id)
+            QueueService.add_prompt_to_queue(round_object.prompt_round_id)
 
             # Track abandonment for cooldown
             abandonment = PlayerAbandonedPrompt(
                 id=uuid.uuid4(),
-                player_id=round.player_id,
-                prompt_round_id=round.prompt_round_id,
+                player_id=round_object.player_id,
+                prompt_round_id=round_object.prompt_round_id,
             )
             self.db.add(abandonment)
 
             logger.info(
                 f"Copy round {round_id} abandoned, refunded ${refund_amount}, "
-                f"returned prompt {round.prompt_round_id} to queue"
+                f"returned prompt {round_object.prompt_round_id} to queue"
             )
         else:
-            round.status = "expired"
-            logger.info(f"Round {round_id} of type {round.round_type} expired")
+            round_object.status = "expired"
+            logger.info(f"Round {round_id} of type {round_object.round_type} expired")
 
         # Clear player's active round if still set
-        player = await self.db.get(Player, round.player_id)
+        player = await self.db.get(Player, round_object.player_id)
         if player and player.active_round_id == round_id:
             player.active_round_id = None
 

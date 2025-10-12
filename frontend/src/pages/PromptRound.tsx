@@ -143,7 +143,7 @@ export const PromptRound: React.FC = () => {
         {/* Info */}
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-600">
-            <strong>Cost:</strong> ${roundData.cost} (deducted immediately, $90 refunded if you don't submit)
+            <strong>Cost:</strong> ${roundData.cost} ($95 refunded if you don't submit in time)
           </p>
         </div>
       </div>
