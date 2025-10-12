@@ -25,3 +25,8 @@ faker==22.6.0
 
 # Utilities
 python-dateutil==2.8.2
+
+# Phrase similarity checking
+sentence-transformers==2.7.0
+scikit-learn==1.4.0
+numpy>=1.24.0

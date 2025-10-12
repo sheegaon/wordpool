@@ -34,7 +34,7 @@ class CurrentRoundResponse(BaseSchema):
 
 class PendingResult(BaseSchema):
     """Pending result item."""
-    wordset_id: UUID
+    phraseset_id: UUID
     prompt_text: str
     completed_at: datetime
     role: str  # "prompt" or "copy"

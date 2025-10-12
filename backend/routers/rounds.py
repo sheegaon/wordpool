@@ -9,8 +9,8 @@ from backend.schemas.round import (
     StartPromptRoundResponse,
     StartCopyRoundResponse,
     StartVoteRoundResponse,
-    SubmitWordRequest,
-    SubmitWordResponse,
+    SubmitPhraseRequest,
+    SubmitPhraseResponse,
     RoundAvailability,
     RoundDetails,
 )
@@ -94,7 +94,7 @@ async def start_copy_round(
 
         return StartCopyRoundResponse(
             round_id=round_object.round_id,
-            original_word=round_object.original_word,
+            original_phrase=round_object.original_phrase,
             prompt_round_id=round_object.prompt_round_id,
             expires_at=ensure_utc(round_object.expires_at),
             cost=round_object.cost,
@@ -121,17 +121,17 @@ async def start_vote_round(
         raise HTTPException(status_code=400, detail=error)
 
     try:
-        round_object, wordset = await vote_service.start_vote_round(player, transaction_service)
+        round_object, phraseset = await vote_service.start_vote_round(player, transaction_service)
 
         # Randomize word order per-voter
-        words = [wordset.original_word, wordset.copy_word_1, wordset.copy_word_2]
-        random.shuffle(words)
+        words = [phraseset.original_phrase, phraseset.copy_word_1, phraseset.copy_word_2]
+        random.shuffle(phrases)
 
         return StartVoteRoundResponse(
             round_id=round_object.round_id,
-            wordset_id=wordset.wordset_id,
-            prompt_text=wordset.prompt_text,
-            words=words,
+            phraseset_id=phraseset.phraseset_id,
+            prompt_text=phraseset.prompt_text,
+            phrases=words,
             expires_at=ensure_utc(round_object.expires_at),
         )
     except NoWordsetsAvailableError as e:
@@ -141,10 +141,10 @@ async def start_vote_round(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{round_id}/submit", response_model=SubmitWordResponse)
-async def submit_word(
+@router.post("/{round_id}/submit", response_model=SubmitPhraseResponse)
+async def submit_phrase(
     round_id: UUID = Path(...),
-    request: SubmitWordRequest = ...,
+    request: SubmitPhraseRequest = ...,
     player: Player = Depends(get_current_player),
     db: AsyncSession = Depends(get_db),
 ):
@@ -160,16 +160,16 @@ async def submit_word(
     try:
         if round_object.round_type == "prompt":
             round_object = await round_service.submit_prompt_word(
-                round_id, request.word, player, transaction_service
+                round_id, request.phrase, player, transaction_service
             )
         elif round_object.round_type == "copy":
             round_object = await round_service.submit_copy_word(
-                round_id, request.word, player, transaction_service
+                round_id, request.phrase, player, transaction_service
             )
         else:
             raise HTTPException(status_code=400, detail="Invalid round type for word submission")
 
-        return SubmitWordResponse(
+        return SubmitPhraseResponse(
             success=True,
             word=request.word.upper(),
         )
@@ -180,7 +180,7 @@ async def submit_word(
     except RoundExpiredError as e:
         raise HTTPException(status_code=400, detail={"error": "expired", "message": str(e)})
     except Exception as e:
-        logger.error(f"Error submitting word: {e}")
+        logger.error(f"Error submitting phrase: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -196,22 +196,22 @@ async def get_rounds_available(
 
     # Get prompts waiting count excluding player's own prompts
     prompts_waiting = await round_service.get_available_prompts_count(player.player_id)
-    wordsets_waiting = await vote_service.count_available_wordsets_for_player(player.player_id)
+    phrasesets_waiting = await vote_service.count_available_wordsets_for_player(player.player_id)
 
     can_prompt, _ = await player_service.can_start_prompt_round(player)
     can_copy, _ = await player_service.can_start_copy_round(player)
     can_vote, _ = await player_service.can_start_vote_round(
         player,
         vote_service,
-        available_count=wordsets_waiting,
+        available_count=phrasesets_waiting,
     )
 
     # Override can_copy if no prompts are waiting
     if prompts_waiting == 0:
         can_copy = False
 
-    # Override can_vote if no wordsets are waiting
-    if wordsets_waiting == 0:
+    # Override can_vote if no phrasesets are waiting
+    if phrasesets_waiting == 0:
         can_vote = False
 
     return RoundAvailability(
@@ -219,7 +219,7 @@ async def get_rounds_available(
         can_copy=can_copy,
         can_vote=can_vote,
         prompts_waiting=prompts_waiting,
-        wordsets_waiting=wordsets_waiting,
+        phrasesets_waiting=phrasesets_waiting,
         copy_discount_active=QueueService.is_copy_discount_active(),
         copy_cost=QueueService.get_copy_cost(),
         current_round_id=player.active_round_id,
@@ -244,7 +244,7 @@ async def get_round_details(
         status=round_object.status,
         expires_at=ensure_utc(round_object.expires_at),
         prompt_text=round_object.prompt_text,
-        original_word=round_object.original_word,
+        original_phrase=round_object.original_phrase,
         submitted_word=round_object.submitted_word or round_object.copy_word,
         cost=round_object.cost,
     )

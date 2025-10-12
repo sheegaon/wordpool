@@ -41,9 +41,9 @@ export const VoteRound: React.FC = () => {
             round_id: response.round_id,
             status: 'active',
             expires_at: response.expires_at,
-            wordset_id: response.wordset_id,
+            wordset_id: response.phraseset_id,
             prompt_text: response.prompt_text,
-            words: response.words,
+            words: response.phrases,
           });
         } catch (err) {
           setError(extractErrorMessage(err) || 'Failed to start round');
@@ -55,13 +55,13 @@ export const VoteRound: React.FC = () => {
     initRound();
   }, [activeRound, navigate, refreshCurrentRound]);
 
-  const handleVote = async (word: string) => {
+  const handleVote = async (phrase: string) => {
     if (!roundData || isSubmitting) return;
 
     try {
       setIsSubmitting(true);
       setError(null);
-      const result = await apiClient.submitVote(roundData.wordset_id, word);
+      const result = await apiClient.submitVote(roundData.phraseset_id, phrase);
       setVoteResult(result);
       await refreshCurrentRound();
       await refreshBalance();
@@ -98,7 +98,7 @@ export const VoteRound: React.FC = () => {
             {voteResult.correct ? 'Correct!' : 'Incorrect'}
           </h2>
           <p className="text-xl text-gray-700 mb-2">
-            The original word was: <strong>{voteResult.original_word}</strong>
+            The original word was: <strong>{voteResult.original_phrase}</strong>
           </p>
           <p className="text-xl text-gray-700 mb-4">
             You chose: <strong>{voteResult.your_choice}</strong>
@@ -150,10 +150,10 @@ export const VoteRound: React.FC = () => {
           <p className="text-center text-gray-700 font-semibold mb-4">
             Which word is the original?
           </p>
-          {roundData.words.map((word) => (
+          {roundData.phrases.map((phrase) => (
             <button
               key={word}
-              onClick={() => handleVote(word)}
+              onClick={() => handleVote(phrase)}
               disabled={isExpired || isSubmitting}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-colors text-xl"
             >

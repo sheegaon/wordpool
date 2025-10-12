@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import get_db
 from backend.dependencies import get_current_player
 from backend.models.player import Player
-from backend.models.wordset import WordSet
+from backend.models.phraseset import PhraseSet
 from backend.models.round import Round
 from backend.schemas.player import (
     PlayerBalance,
@@ -222,20 +222,20 @@ async def get_current_round(
         })
     elif round.round_type == "copy":
         state.update({
-            "original_word": round.original_word,
+            "original_word": round.original_phrase,
             "prompt_round_id": str(round.prompt_round_id),
         })
     elif round.round_type == "vote":
-        # Get wordset for voting
-        wordset = await db.get(WordSet, round.wordset_id)
-        if wordset:
+        # Get phraseset for voting
+        phraseset = await db.get(PhraseSet, round.phraseset_id)
+        if phraseset:
             # Randomize word order per-voter
             import random
-            words = [wordset.original_word, wordset.copy_word_1, wordset.copy_word_2]
-            random.shuffle(words)
+            words = [phraseset.original_phrase, phraseset.copy_word_1, phraseset.copy_word_2]
+            random.shuffle(phrases)
             state.update({
-                "wordset_id": str(wordset.wordset_id),
-                "prompt_text": wordset.prompt_text,
+                "phraseset_id": str(phraseset.phraseset_id),
+                "prompt_text": phraseset.prompt_text,
                 "words": words,
             })
 
@@ -252,27 +252,27 @@ async def get_pending_results(
     player: Player = Depends(get_current_player),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get list of finalized wordsets where player was contributor."""
-    # Find wordsets where player was prompt contributor
+    """Get list of finalized phrasesets where player was contributor."""
+    # Find phrasesets where player was prompt contributor
     prompt_wordsets = await db.execute(
-        select(WordSet)
-        .join(Round, WordSet.prompt_round_id == Round.round_id)
+        select(PhraseSet)
+        .join(Round, PhraseSet.prompt_round_id == Round.round_id)
         .where(Round.player_id == player.player_id)
-        .where(WordSet.status == "finalized")
+        .where(PhraseSet.status == "finalized")
     )
 
-    # Find wordsets where player was copy contributor
+    # Find phrasesets where player was copy contributor
     copy_wordsets = await db.execute(
-        select(WordSet)
+        select(PhraseSet)
         .where(
-            (WordSet.copy_round_1_id.in_(
+            (PhraseSet.copy_round_1_id.in_(
                 select(Round.round_id).where(Round.player_id == player.player_id)
             )) |
-            (WordSet.copy_round_2_id.in_(
+            (PhraseSet.copy_round_2_id.in_(
                 select(Round.round_id).where(Round.player_id == player.player_id)
             ))
         )
-        .where(WordSet.status == "finalized")
+        .where(PhraseSet.status == "finalized")
     )
 
     all_wordsets = set(prompt_wordsets.scalars().all()) | set(copy_wordsets.scalars().all())
@@ -288,14 +288,14 @@ async def get_pending_results(
         from backend.models.result_view import ResultView
         result_view_query = await db.execute(
             select(ResultView)
-            .where(ResultView.wordset_id == ws.wordset_id)
+            .where(ResultView.phraseset_id == ws.phraseset_id)
             .where(ResultView.player_id == player.player_id)
         )
         result_view = result_view_query.scalar_one_or_none()
 
         pending.append(
             PendingResult(
-                wordset_id=ws.wordset_id,
+                phraseset_id=ws.phraseset_id,
                 prompt_text=ws.prompt_text,
                 completed_at=ensure_utc(ws.finalized_at),
                 role=role,

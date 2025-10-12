@@ -1,4 +1,4 @@
 """API routers."""
-from backend.routers import health, player, rounds, wordsets
+from backend.routers import health, player, rounds, phrasesets
 
-__all__ = ["health", "player", "rounds", "wordsets"]
+__all__ = ["health", "player", "rounds", "phrasesets"]

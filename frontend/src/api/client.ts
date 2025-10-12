@@ -9,9 +9,9 @@ import type {
   StartPromptResponse,
   StartCopyResponse,
   StartVoteResponse,
-  SubmitWordResponse,
+  SubmitPhraseResponse,
   VoteResponse,
-  WordsetResults,
+  PhrasesetResults,
   HealthResponse,
   ApiError,
   UsernameLoginResponse,
@@ -237,19 +237,19 @@ export const apiClient = {
     return data;
   },
 
-  async submitWord(roundId: string, word: string, signal?: AbortSignal): Promise<SubmitWordResponse> {
-    const { data } = await api.post(`/rounds/${roundId}/submit`, { word }, { signal });
+  async submitPhrase(roundId: string, phrase: string, signal?: AbortSignal): Promise<SubmitPhraseResponse> {
+    const { data } = await api.post(`/rounds/${roundId}/submit`, { phrase }, { signal });
     return data;
   },
 
-  // Wordset endpoints
-  async submitVote(wordsetId: string, word: string, signal?: AbortSignal): Promise<VoteResponse> {
-    const { data } = await api.post(`/wordsets/${wordsetId}/vote`, { word }, { signal });
+  // Phraseset endpoints
+  async submitVote(phrasesetId: string, phrase: string, signal?: AbortSignal): Promise<VoteResponse> {
+    const { data } = await api.post(`/phrasesets/${phrasesetId}/vote`, { phrase }, { signal });
     return data;
   },
 
-  async getWordsetResults(wordsetId: string, signal?: AbortSignal): Promise<WordsetResults> {
-    const { data } = await api.get(`/wordsets/${wordsetId}/results`, { signal });
+  async getPhrasesetResults(phrasesetId: string, signal?: AbortSignal): Promise<PhrasesetResults> {
+    const { data } = await api.get(`/phrasesets/${phrasesetId}/results`, { signal });
     return data;
   },
 };

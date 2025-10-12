@@ -22,22 +22,22 @@ class Round(Base):
     # Prompt-specific fields (nullable for non-prompt rounds)
     prompt_id = get_uuid_column(ForeignKey("prompts.prompt_id"), nullable=True)
     prompt_text = Column(String(500), nullable=True)  # Denormalized
-    submitted_word = Column(String(15), nullable=True)  # Prompt player's word
+    submitted_phrase = Column(String(100), nullable=True)  # Prompt player's phrase
 
     # Copy-specific fields (nullable for non-copy rounds)
     prompt_round_id = get_uuid_column(ForeignKey("rounds.round_id"), nullable=True, index=True)
-    original_word = Column(String(15), nullable=True)  # Word to copy
-    copy_word = Column(String(15), nullable=True)  # Copy player's submitted word
+    original_phrase = Column(String(100), nullable=True)  # Phrase to copy
+    copy_phrase = Column(String(100), nullable=True)  # Copy player's submitted phrase
     system_contribution = Column(Integer, default=0, nullable=False)  # 0 or 10
 
     # Vote-specific fields (nullable for non-vote rounds)
-    wordset_id = get_uuid_column(ForeignKey("wordsets.wordset_id"), nullable=True, index=True)
+    phraseset_id = get_uuid_column(ForeignKey("phrasesets.phraseset_id"), nullable=True, index=True)
     vote_submitted_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     player = relationship("Player", back_populates="rounds", foreign_keys=[player_id])
     prompt = relationship("Prompt", back_populates="rounds")
-    wordset = relationship("WordSet", back_populates="vote_rounds", foreign_keys=[wordset_id])
+    phraseset = relationship("PhraseSet", back_populates="vote_rounds", foreign_keys=[phraseset_id])
 
     # Self-referential for copy rounds
     prompt_round = relationship("Round", remote_side=[round_id], foreign_keys=[prompt_round_id])

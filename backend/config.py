@@ -35,6 +35,17 @@ class Settings(BaseSettings):
     vote_round_seconds: int = 15
     grace_period_seconds: int = 5
 
+    # Phrase Validation
+    phrase_min_words: int = 1
+    phrase_max_words: int = 5
+    phrase_max_length: int = 100
+    phrase_min_char_per_word: int = 2
+    phrase_max_char_per_word: int = 15
+
+    # Similarity Checking
+    similarity_threshold: float = 0.85  # Cosine similarity threshold for rejecting similar phrases
+    similarity_model: str = "all-MiniLM-L6-v2"  # Sentence transformer model
+
     @model_validator(mode="after")
     def ensure_asyncpg(self):
         """Normalize Postgres URLs so SQLAlchemy uses the asyncpg driver."""

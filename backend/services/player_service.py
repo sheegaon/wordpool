@@ -9,7 +9,7 @@ import logging
 
 from backend.models.player import Player
 from backend.models.daily_bonus import DailyBonus
-from backend.models.wordset import WordSet
+from backend.models.phraseset import PhraseSet
 from backend.models.round import Round
 from backend.config import get_settings
 from backend.utils.exceptions import DailyBonusNotAvailableError
@@ -130,7 +130,7 @@ class PlayerService:
         return settings.daily_bonus_amount
 
     async def get_outstanding_prompts_count(self, player_id: UUID) -> int:
-        """Count wordsets player created that are still open/closing."""
+        """Count phrasesets player created that are still open/closing."""
         # Find all rounds where player was the prompt player
         prompt_rounds_subq = (
             select(Round.round_id)
@@ -140,11 +140,11 @@ class PlayerService:
             .subquery()
         )
 
-        # Count wordsets linked to those rounds that are open/closing
+        # Count phrasesets linked to those rounds that are open/closing
         result = await self.db.execute(
-            select(func.count(WordSet.wordset_id))
-            .where(WordSet.prompt_round_id.in_(select(prompt_rounds_subq)))
-            .where(WordSet.status.in_(["open", "closing"]))
+            select(func.count(PhraseSet.phraseset_id))
+            .where(PhraseSet.prompt_round_id.in_(select(prompt_rounds_subq)))
+            .where(PhraseSet.status.in_(["open", "closing"]))
         )
         count = result.scalar() or 0
         logger.debug(f"Player {player_id} has {count} outstanding prompts")
@@ -208,7 +208,7 @@ class PlayerService:
         if player.active_round_id is not None:
             return False, "already_in_round"
 
-        # Check wordsets available
+        # Check phrasesets available
         if vote_service:
             if available_count is None:
                 available_count = await vote_service.count_available_wordsets_for_player(player.player_id)

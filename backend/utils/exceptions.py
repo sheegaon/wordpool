@@ -31,8 +31,23 @@ class InvalidWordError(WordPoolException):
     pass
 
 
+class InvalidPhraseError(WordPoolException):
+    """Phrase is invalid (format, length, word count, etc.)."""
+    pass
+
+
 class DuplicateWordError(WordPoolException):
     """Copy word matches original word."""
+    pass
+
+
+class DuplicatePhraseError(WordPoolException):
+    """Copy phrase matches original phrase."""
+    pass
+
+
+class PhraseTooSimilarError(WordPoolException):
+    """Copy phrase is too similar to original or other copy phrase."""
     pass
 
 

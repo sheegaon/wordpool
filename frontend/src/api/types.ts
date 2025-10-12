@@ -38,7 +38,7 @@ export interface CopyState {
   status: 'active' | 'submitted';
   expires_at: string;
   cost: number;
-  original_word: string;
+  original_phrase: string;
   discount_active: boolean;
 }
 
@@ -46,9 +46,9 @@ export interface VoteState {
   round_id: string;
   status: 'active' | 'submitted';
   expires_at: string;
-  wordset_id: string;
+  phraseset_id: string;
   prompt_text: string;
-  words: string[];
+  phrases: string[];
 }
 
 export interface ActiveRound {
@@ -59,7 +59,7 @@ export interface ActiveRound {
 }
 
 export interface PendingResult {
-  wordset_id: string;
+  phraseset_id: string;
   prompt_text: string;
   completed_at: string;
   role: string;
@@ -81,7 +81,7 @@ export interface RoundAvailability {
   can_copy: boolean;
   can_vote: boolean;
   prompts_waiting: number;
-  wordsets_waiting: number;
+  phrasesets_waiting: number;
   copy_discount_active: boolean;
   copy_cost: number;
   current_round_id: string | null;
@@ -96,7 +96,7 @@ export interface StartPromptResponse {
 
 export interface StartCopyResponse {
   round_id: string;
-  original_word: string;
+  original_phrase: string;
   prompt_round_id: string;
   expires_at: string;
   cost: number;
@@ -105,34 +105,34 @@ export interface StartCopyResponse {
 
 export interface StartVoteResponse {
   round_id: string;
-  wordset_id: string;
+  phraseset_id: string;
   prompt_text: string;
-  words: string[];
+  phrases: string[];
   expires_at: string;
 }
 
-export interface SubmitWordResponse {
+export interface SubmitPhraseResponse {
   success: boolean;
-  word: string;
+  phrase: string;
 }
 
 export interface VoteResponse {
   correct: boolean;
   payout: number;
-  original_word: string;
+  original_phrase: string;
   your_choice: string;
 }
 
 export interface VoteResult {
-  word: string;
+  phrase: string;
   vote_count: number;
   is_original: boolean;
 }
 
-export interface WordsetResults {
+export interface PhrasesetResults {
   prompt_text: string;
   votes: VoteResult[];
-  your_word: string;
+  your_phrase: string;
   your_role: string;
   your_points: number;
   your_payout: number;

@@ -10,16 +10,16 @@ from backend.schemas.round import (
     StartPromptRoundResponse,
     StartCopyRoundResponse,
     StartVoteRoundResponse,
-    SubmitWordRequest,
-    SubmitWordResponse,
+    SubmitPhraseRequest,
+    SubmitPhraseResponse,
     RoundAvailability,
     RoundDetails,
 )
-from backend.schemas.wordset import (
+from backend.schemas.phraseset import (
     VoteRequest,
     VoteResponse,
-    WordVoteCount,
-    WordSetResults,
+    PhraseVoteCount,
+    PhraseSetResults,
 )
 from backend.schemas.vote import VoteDetail
 
@@ -32,13 +32,13 @@ __all__ = [
     "StartPromptRoundResponse",
     "StartCopyRoundResponse",
     "StartVoteRoundResponse",
-    "SubmitWordRequest",
-    "SubmitWordResponse",
+    "SubmitPhraseRequest",
+    "SubmitPhraseResponse",
     "RoundAvailability",
     "RoundDetails",
     "VoteRequest",
     "VoteResponse",
-    "WordVoteCount",
-    "WordSetResults",
+    "PhraseVoteCount",
+    "PhraseSetResults",
     "VoteDetail",
 ]
