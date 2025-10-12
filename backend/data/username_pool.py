@@ -111,7 +111,6 @@ BASE_USERNAMES = [
     "Prompt Curator",
     "Copy Conjurer",
     "Voting Virtuoso",
-    "Prompt Pathfinder",
     "Echo Voyager Prime",
     "Meaning Cartographer",
     "Clue Voyager",
@@ -269,4 +268,3 @@ def _build_username_pool() -> list[str]:
 
 
 USERNAME_POOL = _build_username_pool()
-
