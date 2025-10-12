@@ -106,9 +106,9 @@ export const Landing: React.FC = () => {
 
         <div className="mt-8 text-center text-sm text-gray-600">
           <p className="font-semibold mb-2">How to Play:</p>
-          <p>1. Submit phrases for prompts ($100)</p>
-          <p>2. Copy others' phrases without seeing the prompt ($100)</p>
-          <p>3. Vote to identify the original phrase ($1)</p>
+          <p>1. Submit phrases for prompts</p>
+          <p>2. Copy others' phrases without seeing the prompt</p>
+          <p>3. Vote to identify the original phrase</p>
         </div>
       </div>
     </div>
