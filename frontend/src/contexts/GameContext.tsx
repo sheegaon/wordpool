@@ -5,6 +5,7 @@ import type { Player, ActiveRound, PendingResult, RoundAvailability } from '../a
 interface GameContextType {
   // State
   apiKey: string | null;
+  username: string | null;
   player: Player | null;
   activeRound: ActiveRound | null;
   pendingResults: PendingResult[];
@@ -13,7 +14,7 @@ interface GameContextType {
   error: string | null;
 
   // Actions
-  setApiKey: (key: string) => void;
+  setApiKey: (key: string, username?: string) => void;
   logout: () => void;
   refreshBalance: () => Promise<void>;
   refreshCurrentRound: () => Promise<void>;
@@ -29,6 +30,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [apiKey, setApiKeyState] = useState<string | null>(() =>
     localStorage.getItem('wordpool_api_key')
   );
+  const [username, setUsername] = useState<string | null>(() =>
+    localStorage.getItem('wordpool_username')
+  );
   const [player, setPlayer] = useState<Player | null>(null);
   const [activeRound, setActiveRound] = useState<ActiveRound | null>(null);
   const [pendingResults, setPendingResults] = useState<PendingResult[]>([]);
@@ -36,14 +40,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const setApiKey = useCallback((key: string) => {
+  const setApiKey = useCallback((key: string, nextUsername?: string) => {
     localStorage.setItem('wordpool_api_key', key);
     setApiKeyState(key);
+    if (nextUsername) {
+      localStorage.setItem('wordpool_username', nextUsername);
+      setUsername(nextUsername);
+    }
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('wordpool_api_key');
+    localStorage.removeItem('wordpool_username');
     setApiKeyState(null);
+    setUsername(null);
     setPlayer(null);
     setActiveRound(null);
     setPendingResults([]);
@@ -59,6 +69,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const data = await apiClient.getBalance(signal);
       setPlayer(data);
+      if (data.username && data.username !== username) {
+        localStorage.setItem('wordpool_username', data.username);
+        setUsername(data.username);
+      }
       setError(null);
     } catch (err) {
       // Ignore aborted requests
@@ -69,7 +83,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout();
       }
     }
-  }, [apiKey, logout]);
+  }, [apiKey, logout, username]);
 
   const refreshCurrentRound = useCallback(async (signal?: AbortSignal) => {
     if (!apiKey) return;
@@ -193,6 +207,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: GameContextType = {
     apiKey,
+    username,
     player,
     activeRound,
     pendingResults,

@@ -1,6 +1,7 @@
 // API Response Types based on backend documentation
 
 export interface Player {
+  username: string;
   balance: number;
   starting_balance: number;
   daily_bonus_available: boolean;
@@ -11,8 +12,16 @@ export interface Player {
 
 export interface CreatePlayerResponse {
   player_id: string;
+  username: string;
   api_key: string;
   balance: number;
+  message: string;
+}
+
+export interface UsernameLoginResponse {
+  player_id: string;
+  username: string;
+  api_key: string;
   message: string;
 }
 

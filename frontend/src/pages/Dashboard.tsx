@@ -5,6 +5,7 @@ import { Timer } from '../components/Timer';
 
 export const Dashboard: React.FC = () => {
   const {
+    username,
     player,
     activeRound,
     pendingResults,
@@ -129,7 +130,12 @@ export const Dashboard: React.FC = () => {
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">WordPool</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">WordPool</h1>
+            <p className="text-sm text-gray-600">
+              Signed in as <span className="font-semibold">{player.username || username}</span>
+            </p>
+          </div>
           <button
             onClick={logout}
             className="text-sm text-gray-600 hover:text-gray-800"

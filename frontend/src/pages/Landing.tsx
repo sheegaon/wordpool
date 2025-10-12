@@ -6,7 +6,9 @@ import apiClient, { extractErrorMessage } from '../api/client';
 export const Landing: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [existingKey, setExistingKey] = useState('');
+  const [returningUsername, setReturningUsername] = useState(
+    () => localStorage.getItem('wordpool_username') ?? ''
+  );
   const { setApiKey } = useGame();
   const navigate = useNavigate();
 
@@ -15,7 +17,7 @@ export const Landing: React.FC = () => {
       setIsLoading(true);
       setError(null);
       const response = await apiClient.createPlayer();
-      setApiKey(response.api_key);
+      setApiKey(response.api_key, response.username);
       navigate('/dashboard');
     } catch (err) {
       setError(extractErrorMessage(err) || 'Failed to create player');
@@ -26,38 +28,19 @@ export const Landing: React.FC = () => {
 
   const handleExistingPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!existingKey.trim()) {
-      setError('Please enter your API key');
+    if (!returningUsername.trim()) {
+      setError('Please enter your username');
       return;
     }
-
-    // Store original key for restoration if test fails
-    const originalKey = localStorage.getItem('wordpool_api_key');
 
     try {
       setIsLoading(true);
       setError(null);
-      
-      // Set the new key to test it
-      localStorage.setItem('wordpool_api_key', existingKey.trim());
-      
-      // Test the API key by fetching balance
-      await apiClient.getBalance();
-      
-      // If we get here, the API key is valid
-      setApiKey(existingKey.trim());
+      const response = await apiClient.loginWithUsername(returningUsername.trim());
+      setApiKey(response.api_key, response.username);
       navigate('/dashboard');
-      
     } catch (err) {
-      // API key test failed - restore original key and show error
-      if (originalKey && originalKey !== existingKey.trim()) {
-        localStorage.setItem('wordpool_api_key', originalKey);
-      } else {
-        localStorage.removeItem('wordpool_api_key');
-      }
-      
-      setError(extractErrorMessage(err) || 'Invalid API key');
-      // Don't call setApiKey here since the key is invalid
+      setError(extractErrorMessage(err) || 'We could not find that username');
     } finally {
       setIsLoading(false);
     }
@@ -101,9 +84,9 @@ export const Landing: React.FC = () => {
             <form onSubmit={handleExistingPlayer}>
               <input
                 type="text"
-                value={existingKey}
-                onChange={(e) => setExistingKey(e.target.value)}
-                placeholder="Enter your API key"
+                value={returningUsername}
+                onChange={(e) => setReturningUsername(e.target.value)}
+                placeholder="Enter your username"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isLoading}
               />
@@ -116,7 +99,7 @@ export const Landing: React.FC = () => {
               </button>
             </form>
             <p className="text-sm text-gray-600 mt-2">
-              Enter your saved API key to continue
+              Enter the username shown on your dashboard to continue
             </p>
           </div>
         </div>

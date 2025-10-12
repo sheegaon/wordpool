@@ -14,6 +14,7 @@ import type {
   WordsetResults,
   HealthResponse,
   ApiError,
+  UsernameLoginResponse,
 } from './types';
 
 // Base URL - configure based on environment
@@ -182,6 +183,11 @@ export const apiClient = {
   // Player endpoints
   async createPlayer(signal?: AbortSignal): Promise<CreatePlayerResponse> {
     const { data } = await api.post('/player', {}, { signal });
+    return data;
+  },
+
+  async loginWithUsername(username: string, signal?: AbortSignal): Promise<UsernameLoginResponse> {
+    const { data } = await api.post('/player/login', { username }, { signal });
     return data;
   },
 

@@ -1,0 +1,272 @@
+"""Curated username pool for pseudonymous players."""
+
+from __future__ import annotations
+
+# Base names include the provided set plus additional on-theme ideas.
+BASE_USERNAMES = [
+    # Provided names
+    "Word Whisperer",
+    "Prompt Pirate",
+    "Copy Cat",
+    "Synonym Sage",
+    "Vibe Matcher",
+    "Echo Maker",
+    "Original Flavor",
+    "Bluff Master",
+    "Vote Magnet",
+    "Guess Work",
+    "Lexicon Legend",
+    "Hidden Twin",
+    "Meaning Seeker",
+    "Quiet Ruse",
+    "Clever Copy",
+    "Prompt Muse",
+    "Echo Hunter",
+    "Secret Original",
+    "Wordsmith Wanderer",
+    "Thesaurus Thief",
+    "Silent Signal",
+    "Subtle Twin",
+    "Fluent Faker",
+    "Prompt Pilot",
+    "Copy Chameleon",
+    "Voting Brain",
+    "Nuance Ninja",
+    "Close Cousin",
+    "True Source",
+    "Masked Meaning",
+    "Honest Guess",
+    "Deft Decoy",
+    "Prompt Prophet",
+    "Word Diver",
+    "Semantic Sleuth",
+    "Shade Match",
+    "Sound Alike",
+    "Idea Echo",
+    "Native Tongue",
+    "Tight Paraphrase",
+    "Vote Whisper",
+    "Clue Follower",
+    "Prompt Whisper",
+    "Signal Finder",
+    "Sense Maker",
+    "Secret Synonym",
+    "Copy Whisperer",
+    "Word Pooler",
+    "Original Signal",
+    "Guess Maestro",
+    "Prompt Puzzler",
+    "Near Neighbor",
+    "Meaning Matcher",
+    "Vote Reader",
+    "Quiet Paraphrase",
+    "True Word",
+    "Bluff Detector",
+    "Mirror Meaning",
+    "Prompt Voyage",
+    # Additional curated names
+    "Echo Voyager",
+    "Story Signal",
+    "Riddle Reader",
+    "Cipher Chaser",
+    "Prompt Pathfinder",
+    "Lexicon Lurker",
+    "Shadow Scribe",
+    "Word Wanderer",
+    "Prompt Seeker",
+    "Whisper Watcher",
+    "Phrase Phantom",
+    "Idea Illusion",
+    "Vote Voyager",
+    "Clue Captain",
+    "Subtext Sleuth",
+    "Hint Hunter",
+    "Context Captain",
+    "Lexicon Lookout",
+    "Echo Envoy",
+    "Whisper Weaver",
+    "Word Warden",
+    "Syntax Spy",
+    "Echo Explorer",
+    "Prompt Pilgrim",
+    "Signal Sailor",
+    "Meaning Mapper",
+    "Prompt Pioneer",
+    "Echo Cartographer",
+    "Prompt Trailblazer",
+    "Word Wayfinder",
+    "Clue Cartographer",
+    "Syntax Sleuth",
+    "Signal Sleuth",
+    "Prompt Vanguard",
+    "Echo Sentinel",
+    "Lexicon Scout",
+    "Meaning Voyager",
+    "Context Navigator",
+    "Word Sentinel",
+    "Prompt Guardian",
+    "Echo Herald",
+    "Signal Oracle",
+    "Nuance Navigator",
+    "Prompt Curator",
+    "Copy Conjurer",
+    "Voting Virtuoso",
+    "Prompt Pathfinder",
+    "Echo Voyager Prime",
+    "Meaning Cartographer",
+    "Clue Voyager",
+    "Idea Pathfinder",
+    "Prompt Signal",
+    "Whisper Ranger",
+    "Lexicon Cartographer",
+    "Prompt Echo",
+    "Signal Scout",
+    "Shadow Sentinel",
+    "Idea Cartographer",
+    "Context Cartographer",
+    "Vote Pathfinder",
+    "Copy Voyager",
+    "Sense Voyager",
+    "Prompt Navigator",
+    "Semantic Sentinel",
+    "Signal Cartographer",
+    "Echo Vanguard",
+    "Prompt Marshal",
+    "Whisper Sentinel",
+    "Meaning Pilot",
+    "Prompt Surveyor",
+    "Signal Voyager",
+    "Idea Ranger",
+    "Prompt Ranger",
+    "Echo Keeper",
+    "Prompt Keeper",
+    "Meaning Keeper",
+]
+
+# Deterministic generators to expand the pool with themed combinations.
+PREFIXES = [
+    "Word",
+    "Prompt",
+    "Echo",
+    "Vote",
+    "Clue",
+    "Signal",
+    "Meaning",
+    "Lexicon",
+    "Nuance",
+    "Context",
+    "Phrase",
+    "Syntax",
+    "Semantic",
+    "Story",
+    "Copy",
+    "Shadow",
+    "Mirror",
+    "Insight",
+    "Idea",
+    "Riddle",
+    "Puzzle",
+    "Cipher",
+    "Whisper",
+    "Metaphor",
+    "Hint",
+    "Shade",
+    "Voice",
+    "Concept",
+    "Trace",
+    "Origin",
+    "Aura",
+    "Pulse",
+    "Frame",
+]
+
+SUFFIXES = [
+    "Voyager",
+    "Ranger",
+    "Scout",
+    "Pioneer",
+    "Navigator",
+    "Pathfinder",
+    "Seeker",
+    "Watcher",
+    "Keeper",
+    "Tracker",
+    "Sleuth",
+    "Sentinel",
+    "Guardian",
+    "Herald",
+    "Courier",
+    "Pilot",
+    "Captain",
+    "Tracer",
+    "Explorer",
+    "Runner",
+    "Wanderer",
+    "Weaver",
+    "Mapper",
+    "Surveyor",
+    "Cartographer",
+    "Warden",
+    "Marshal",
+    "Oracle",
+    "Harbor",
+    "Harbinger",
+    "Detective",
+    "Agent",
+    "Delegate",
+]
+
+THREE_WORD_SUFFIXES = [
+    "Trail Guide",
+    "Signal Guide",
+    "Echo Guide",
+    "Round Scout",
+    "Word Guide",
+    "Vector Scout",
+    "Pattern Seeker",
+    "Prompt Guide",
+    "Prompt Runner",
+    "Meaning Guide",
+    "Signal Runner",
+    "Idea Scout",
+    "Syntax Runner",
+    "Signal Watch",
+    "Echo Watch",
+    "Whisper Guide",
+    "Clue Guide",
+]
+
+
+def _normalize(name: str) -> str:
+    """Collapse extra whitespace and ensure consistent spacing."""
+    return " ".join(name.split())
+
+
+def _build_username_pool() -> list[str]:
+    """Construct a deterministic list of themed usernames."""
+    seen: set[str] = set()
+    pool: list[str] = []
+
+    def add(name: str) -> None:
+        normalized = _normalize(name)
+        if not normalized or normalized in seen:
+            return
+        seen.add(normalized)
+        pool.append(normalized)
+
+    for name in BASE_USERNAMES:
+        add(name)
+
+    for prefix in PREFIXES:
+        for suffix in SUFFIXES:
+            add(f"{prefix} {suffix}")
+
+    for prefix in PREFIXES:
+        for suffix in THREE_WORD_SUFFIXES:
+            add(f"{prefix} {suffix}")
+
+    return pool
+
+
+USERNAME_POOL = _build_username_pool()
+

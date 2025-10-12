@@ -16,8 +16,11 @@ async def test_create_player():
     data = response.json()
     assert "player_id" in data
     assert "api_key" in data
+    assert "username" in data
     assert data["balance"] == 1000
     assert "message" in data
+    assert data["username"]
+    assert data["username"] in data["message"]
 
 
 @pytest.mark.asyncio
@@ -29,6 +32,7 @@ async def test_rotate_api_key():
         assert create_response.status_code == 201
         create_data = create_response.json()
         old_key = create_data["api_key"]
+        username = create_data["username"]
 
         # Rotate key
         response = await client.post(
@@ -47,6 +51,15 @@ async def test_rotate_api_key():
             headers={"X-API-Key": old_key}
         )
         assert response.status_code == 401
+
+        # Verify username unchanged after rotation
+        balance_response = await client.get(
+            "/player/balance",
+            headers={"X-API-Key": data["new_api_key"]}
+        )
+        assert balance_response.status_code == 200
+        balance_data = balance_response.json()
+        assert balance_data["username"] == username
 
 
 @pytest.mark.asyncio
@@ -67,6 +80,7 @@ async def test_get_balance():
         data = response.json()
         assert data["balance"] == 1000
         assert data["starting_balance"] == 1000
+        assert data["username"] == create_data["username"]
         assert "daily_bonus_available" in data
         assert "outstanding_prompts" in data
 
@@ -85,6 +99,30 @@ async def test_authentication_required():
             headers={"X-API-Key": "invalid-key"}
         )
         assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_login_with_username():
+    """Test logging in via username returns API key."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        create_response = await client.post("/player")
+        assert create_response.status_code == 201
+        created = create_response.json()
+
+        login_response = await client.post("/player/login", json={"username": created["username"]})
+        assert login_response.status_code == 200
+        data = login_response.json()
+        assert data["api_key"] == created["api_key"]
+        assert data["username"] == created["username"]
+        assert data["player_id"] == created["player_id"]
+
+
+@pytest.mark.asyncio
+async def test_login_with_unknown_username_returns_404():
+    """Test logging in with unknown username returns 404."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/player/login", json={"username": "Nonexistent User"})
+        assert response.status_code == 404
 
 
 @pytest.mark.asyncio

@@ -8,6 +8,7 @@ from backend.schemas.base import BaseSchema
 
 class PlayerBalance(BaseSchema):
     """Player balance response."""
+    username: str
     balance: int
     starting_balance: int
     daily_bonus_available: bool
@@ -48,8 +49,22 @@ class PendingResultsResponse(BaseModel):
 class CreatePlayerResponse(BaseModel):
     """Create player response with API key."""
     player_id: UUID
+    username: str
     api_key: str
     balance: int
+    message: str
+
+
+class UsernameLoginRequest(BaseModel):
+    """Request payload for username login."""
+    username: str
+
+
+class UsernameLoginResponse(BaseModel):
+    """Response payload when logging in with username."""
+    player_id: UUID
+    username: str
+    api_key: str
     message: str
 
 
