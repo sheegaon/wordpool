@@ -20,14 +20,26 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Add prompt_feedback table."""
+    bind = op.get_bind()
+    dialect_name = bind.dialect.name
+    if dialect_name == "postgresql":
+        uuid = sa.UUID()
+    else:
+        uuid = sa.String(length=36)
+
     # Create prompt_feedback table
     op.create_table('prompt_feedback',
-        sa.Column('feedback_id', sa.String(length=36), nullable=False),
-        sa.Column('player_id', sa.String(length=36), nullable=False),
-        sa.Column('prompt_id', sa.String(length=36), nullable=False),
-        sa.Column('round_id', sa.String(length=36), nullable=False),
+        sa.Column('feedback_id', uuid, nullable=False),
+        sa.Column('player_id', uuid, nullable=False),
+        sa.Column('prompt_id', uuid, nullable=False),
+        sa.Column('round_id', uuid, nullable=False),
         sa.Column('feedback_type', sa.String(length=10), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            'last_updated_at',
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
         sa.ForeignKeyConstraint(['player_id'], ['players.player_id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['prompt_id'], ['prompts.prompt_id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['round_id'], ['rounds.round_id'], ondelete='CASCADE'),
