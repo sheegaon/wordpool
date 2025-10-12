@@ -26,4 +26,4 @@ class GetPromptFeedbackResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     feedback_type: Literal['like', 'dislike'] | None
     feedback_id: UUID | None = None
-    created_at: datetime | None = None
+    last_updated_at: datetime | None = None

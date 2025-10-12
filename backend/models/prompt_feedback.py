@@ -16,7 +16,12 @@ class PromptFeedback(Base):
     prompt_id = get_uuid_column(ForeignKey("prompts.prompt_id", ondelete="CASCADE"), nullable=False, index=True)
     round_id = get_uuid_column(ForeignKey("rounds.round_id", ondelete="CASCADE"), nullable=False, index=True)
     feedback_type = Column(String(10), nullable=False)  # 'like' or 'dislike'
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    last_updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
     # Unique constraint: one feedback per player per round
     __table_args__ = (

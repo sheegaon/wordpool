@@ -87,17 +87,11 @@ class RoundService:
             # Set player's active round (after adding round to session)
             player.active_round_id = round_object.round_id
 
+            # Increment usage count while prompt remains attached to this session for atomic commit
+            prompt.usage_count += 1
+
             # Commit all changes atomically INSIDE the lock
             await self.db.commit()
-
-            # Update prompt usage count after commit (in separate transaction to avoid session issues)
-            result = await self.db.execute(
-                select(Prompt).where(Prompt.prompt_id == prompt.prompt_id)
-            )
-            prompt_obj = result.scalar_one_or_none()
-            if prompt_obj:
-                prompt_obj.usage_count += 1
-                await self.db.commit()
 
             await self.db.refresh(round_object)
 

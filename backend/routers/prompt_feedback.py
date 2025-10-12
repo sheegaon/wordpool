@@ -61,7 +61,7 @@ async def submit_prompt_feedback(
         if existing_feedback:
             # Update existing feedback
             existing_feedback.feedback_type = request.feedback_type
-            existing_feedback.created_at = datetime.now(UTC)
+            existing_feedback.last_updated_at = datetime.now(UTC)
             await db.commit()
             logger.info(f"Updated feedback for player {player.player_id}, round {round_id}: {request.feedback_type}")
         else:
@@ -72,7 +72,7 @@ async def submit_prompt_feedback(
                 prompt_id=round_object.prompt_id,
                 round_id=round_id,
                 feedback_type=request.feedback_type,
-                created_at=datetime.now(UTC),
+                last_updated_at=datetime.now(UTC),
             )
             db.add(feedback)
             await db.commit()
@@ -124,11 +124,11 @@ async def get_prompt_feedback(
         return GetPromptFeedbackResponse(
             feedback_type=feedback.feedback_type,
             feedback_id=feedback.feedback_id,
-            created_at=feedback.created_at
+            last_updated_at=feedback.last_updated_at
         )
     else:
         return GetPromptFeedbackResponse(
             feedback_type=None,
             feedback_id=None,
-            created_at=None
+            last_updated_at=None
         )
