@@ -283,7 +283,7 @@ class RoundService:
             raise RoundExpiredError("Round expired past grace period")
 
         # Validate word (including duplicate check)
-        is_valid, error = self.phrase_validator.validate_copy(phrase, round.original_phrase)
+        is_valid, error = self.phrase_validator.validate_copy(phrase, round.original_phrase, other_copy_phrase)
         if not is_valid:
             if "same phrase" in error.lower():
                 raise DuplicatePhraseError(error)
