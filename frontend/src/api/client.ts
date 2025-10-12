@@ -15,6 +15,8 @@ import type {
   HealthResponse,
   ApiError,
   UsernameLoginResponse,
+  PromptFeedbackResponse,
+  GetPromptFeedbackResponse,
 } from './types';
 
 // Base URL - configure based on environment
@@ -250,6 +252,17 @@ export const apiClient = {
 
   async getPhrasesetResults(phrasesetId: string, signal?: AbortSignal): Promise<PhrasesetResults> {
     const { data } = await api.get(`/phrasesets/${phrasesetId}/results`, { signal });
+    return data;
+  },
+
+  // Prompt feedback endpoints
+  async submitPromptFeedback(roundId: string, feedbackType: 'like' | 'dislike', signal?: AbortSignal): Promise<PromptFeedbackResponse> {
+    const { data } = await api.post(`/rounds/${roundId}/feedback`, { feedback_type: feedbackType }, { signal });
+    return data;
+  },
+
+  async getPromptFeedback(roundId: string, signal?: AbortSignal): Promise<GetPromptFeedbackResponse> {
+    const { data } = await api.get(`/rounds/${roundId}/feedback`, { signal });
     return data;
   },
 };

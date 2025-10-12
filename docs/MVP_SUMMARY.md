@@ -208,10 +208,10 @@ curl http://localhost:8000/health
 # Should return: {"status":"ok","database":"connected","redis":"memory"}
 ```
 
-### Test Word Validator
+### Test Phrase Validator
 ```python
-from backend.services import get_word_validator
-validator = get_word_validator()
+from backend.services import get_phrase_validator
+validator = get_phrase_validator()
 print(validator.validate("HELLO"))  # (True, "")
 print(validator.validate("XYZQPW"))  # (False, "Word not in dictionary")
 ```
