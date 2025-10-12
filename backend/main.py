@@ -91,6 +91,10 @@ async def startup_event():
         logger.error(f"Failed to initialize word validator: {e}")
         logger.error("Run: python3 scripts/download_dictionary.py")
 
+    # Auto-seed prompts if database is empty
+    from backend.services.prompt_seeder import auto_seed_prompts_if_empty
+    await auto_seed_prompts_if_empty()
+
 
 @app.on_event("shutdown")
 async def shutdown_event():

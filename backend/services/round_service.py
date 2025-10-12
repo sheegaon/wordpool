@@ -80,13 +80,14 @@ class RoundService:
                 prompt_text=prompt.text,
             )
 
+            # Add round to session BEFORE setting foreign key reference
+            self.db.add(round_object)
+
             # Update prompt usage
             prompt.usage_count += 1
 
-            # Set player's active round
+            # Set player's active round (after adding round to session)
             player.active_round_id = round_object.round_id
-
-            self.db.add(round_object)
 
             # Commit all changes atomically INSIDE the lock
             await self.db.commit()
@@ -240,10 +241,11 @@ class RoundService:
                 system_contribution=system_contribution,
             )
 
-            # Set player's active round
-            player.active_round_id = round.round_id
-
+            # Add round to session BEFORE setting foreign key reference
             self.db.add(round)
+
+            # Set player's active round (after adding round to session)
+            player.active_round_id = round.round_id
 
             # Commit all changes atomically INSIDE the lock
             await self.db.commit()
