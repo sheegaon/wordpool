@@ -1,5 +1,5 @@
 """Prompt feedback model."""
-from sqlalchemy import Column, String, DateTime, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import Column, String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime, UTC
@@ -26,7 +26,6 @@ class PromptFeedback(Base):
     # Unique constraint: one feedback per player per round
     __table_args__ = (
         UniqueConstraint("player_id", "round_id", name="uq_prompt_feedback_player_round"),
-        Index("ix_prompt_feedback_prompt_id", "prompt_id"),
     )
 
     # Relationships
