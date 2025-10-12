@@ -85,7 +85,7 @@ export const CopyRound: React.FC = () => {
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Copy Round</h1>
-          <p className="text-gray-600">Submit a similar word</p>
+          <p className="text-gray-600">Submit a similar phrase</p>
         </div>
 
         {/* Timer */}
@@ -93,9 +93,9 @@ export const CopyRound: React.FC = () => {
           <Timer expiresAt={roundData.expires_at} />
         </div>
 
-        {/* Original Word */}
+        {/* Original Phrase */}
         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 mb-6">
-          <p className="text-sm text-green-700 mb-2 text-center">Original Word:</p>
+          <p className="text-sm text-green-700 mb-2 text-center">Original Phrase:</p>
           <p className="text-3xl text-center font-bold text-green-900">
             {roundData.original_phrase}
           </p>

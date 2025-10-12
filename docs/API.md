@@ -531,7 +531,7 @@ Visit `/redoc` for alternative ReDoc documentation.
 - **Word length**: 2-15 characters
 - **Word format**: Letters A-Z only (case insensitive, stored uppercase)
 - **Dictionary**: NASPA word list
-- **Copy validation**: Must differ from original word
+- **Copy validation**: Must differ from original phrase
 
 ### WordSet Voting Lifecycle
 1. **Open**: 0-2 votes submitted

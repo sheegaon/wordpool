@@ -79,7 +79,7 @@ const extractErrorMessage = (error: any): string => {
       }
     }
 
-    // Handle backend error objects like {"error": "invalid_word", "message": "..."}
+    // Handle backend error objects like {"error": "invalid_phrase", "message": "..."}
     if (error.error && error.message) {
       return error.message;
     }

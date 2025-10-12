@@ -98,7 +98,7 @@ export const VoteRound: React.FC = () => {
             {voteResult.correct ? 'Correct!' : 'Incorrect'}
           </h2>
           <p className="text-xl text-gray-700 mb-2">
-            The original word was: <strong>{voteResult.original_phrase}</strong>
+            The original phrase was: <strong>{voteResult.original_phrase}</strong>
           </p>
           <p className="text-xl text-gray-700 mb-4">
             You chose: <strong>{voteResult.your_choice}</strong>
@@ -122,7 +122,7 @@ export const VoteRound: React.FC = () => {
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Vote Round</h1>
-          <p className="text-gray-600">Identify the original word</p>
+          <p className="text-gray-600">Identify the original phrase</p>
         </div>
 
         {/* Timer */}
@@ -145,10 +145,10 @@ export const VoteRound: React.FC = () => {
           </div>
         )}
 
-        {/* Word Choices */}
+        {/* Phrase Choices */}
         <div className="space-y-4 mb-6">
           <p className="text-center text-gray-700 font-semibold mb-4">
-            Which word is the original?
+            Which phrase is the original?
           </p>
           {roundData.phrases.map((phrase) => (
             <button

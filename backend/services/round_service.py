@@ -266,7 +266,7 @@ class RoundService:
         player: Player,
         transaction_service: TransactionService,
     ) -> Round:
-        """Submit word for copy round."""
+        """Submit phrase for copy round."""
         # Get round
         round = await self.db.get(Round, round_id)
         if not round or round.player_id != player.player_id:
@@ -282,8 +282,24 @@ class RoundService:
         if datetime.now(UTC) > grace_cutoff:
             raise RoundExpiredError("Round expired past grace period")
 
-        # Validate word (including duplicate check)
-        is_valid, error = self.phrase_validator.validate_copy(phrase, round.original_phrase, other_copy_phrase)
+        # Determine if another copy already exists for duplicate/similarity checks
+        other_copy_phrase = None
+        if round.prompt_round_id:
+            result = await self.db.execute(
+                select(Round.copy_phrase)
+                .where(Round.prompt_round_id == round.prompt_round_id)
+                .where(Round.round_type == "copy")
+                .where(Round.status == "submitted")
+                .where(Round.round_id != round_id)
+            )
+            other_copy_phrase = result.scalars().first()
+
+        # Validate phrase (including duplicate check)
+        is_valid, error = self.phrase_validator.validate_copy(
+            phrase,
+            round.original_phrase,
+            other_copy_phrase,
+        )
         if not is_valid:
             if "same phrase" in error.lower():
                 raise DuplicatePhraseError(error)

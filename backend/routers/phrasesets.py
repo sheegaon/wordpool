@@ -1,4 +1,4 @@
-"""Wordsets API router."""
+"""Phrasesets API router."""
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import get_db
@@ -53,12 +53,12 @@ async def submit_vote(
         raise HTTPException(status_code=400, detail="Not in a vote round")
 
     if round.phraseset_id != phraseset_id:
-        raise HTTPException(status_code=400, detail="Wordset does not match active round")
+        raise HTTPException(status_code=400, detail="Phraseset does not match active round")
 
     # Get phraseset
     phraseset = await db.get(PhraseSet, phraseset_id)
     if not phraseset:
-        raise HTTPException(status_code=404, detail="Wordset not found")
+        raise HTTPException(status_code=404, detail="Phraseset not found")
 
     try:
         vote = await vote_service.submit_vote(
@@ -83,7 +83,7 @@ async def submit_vote(
 
 
 @router.get("/{phraseset_id}/results", response_model=PhraseSetResults)
-async def get_wordset_results(
+async def get_phraseset_results(
     phraseset_id: UUID = Path(...),
     player: Player = Depends(get_current_player),
     db: AsyncSession = Depends(get_db),
@@ -93,7 +93,7 @@ async def get_wordset_results(
     vote_service = VoteService(db)
 
     try:
-        results = await vote_service.get_wordset_results(
+        results = await vote_service.get_phraseset_results(
             phraseset_id, player.player_id, transaction_service
         )
 

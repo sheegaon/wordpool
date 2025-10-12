@@ -50,10 +50,10 @@ export const Landing: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
         <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">
-          WordPool
+          Quip Hunter
         </h1>
         <p className="text-center text-gray-600 mb-8">
-          A multiplayer word association game
+          A multiplayer phrase association game
         </p>
 
         {error && (
@@ -106,9 +106,9 @@ export const Landing: React.FC = () => {
 
         <div className="mt-8 text-center text-sm text-gray-600">
           <p className="font-semibold mb-2">How to Play:</p>
-          <p>1. Submit words for prompts ($100)</p>
-          <p>2. Copy others' words without seeing the prompt ($100)</p>
-          <p>3. Vote to identify the original word ($1)</p>
+          <p>1. Submit phrases for prompts ($100)</p>
+          <p>2. Copy others' phrases without seeing the prompt ($100)</p>
+          <p>3. Vote to identify the original phrase ($1)</p>
         </div>
       </div>
     </div>

@@ -10,13 +10,13 @@ logger = logging.getLogger(__name__)
 # Prompts from PROMPT_LIBRARY.md
 PROMPTS = [
     # Straightforward
-    ("my deepest desire is to be (a/an)", "simple"),
+    ("my deepest desire is to be", "simple"),
     ("success means being", "simple"),
-    ("the secret to happiness is (a/an)", "simple"),
+    ("the secret to happiness is", "simple"),
     ("every day I", "simple"),
     ("I feel most alive when I'm", "simple"),
     ("the world needs more", "simple"),
-    ("my favorite way to relax is with (a/an)", "simple"),
+    ("my favorite way to relax is with", "simple"),
     ("a perfect day starts with", "simple"),
 
     # Deep
@@ -30,29 +30,29 @@ PROMPTS = [
     ("happiness is ultimately", "deep"),
 
     # Silly
-    ("the best superpower would be to turn into (a/an)", "silly"),
+    ("the best superpower would be to turn into", "silly"),
     ("if animals could talk, a cat would say", "silly"),
-    ("the weirdest invention ever is (a/an)", "silly"),
-    ("my spirit animal is (a/an)", "silly"),
+    ("the weirdest invention ever is", "silly"),
+    ("my spirit animal is", "silly"),
     ("a zombie's favorite food is", "silly"),
     ("if I were a superhero, my weakness would be", "silly"),
     ("the secret ingredient in magic potions is", "silly"),
     ("aliens probably think humans are", "silly"),
 
     # Fun/Action
-    ("a spy's best gadget is (a/an)", "fun"),
+    ("a spy's best gadget is", "fun"),
     ("the ultimate adventure involves", "fun"),
-    ("in a fairy tale, the hero always finds (a/an)", "fun"),
-    ("my dream job would be (a/an)", "fun"),
+    ("in a fairy tale, the hero always finds", "fun"),
+    ("my dream job would be", "fun"),
     ("the key to winning a game is", "fun"),
     ("a robot's daily routine includes", "fun"),
     ("if I could time travel, I'd visit the", "fun"),
 
     # Abstract
-    ("time feels like (a/an)", "abstract"),
+    ("time feels like", "abstract"),
     ("dreams are made of", "abstract"),
     ("silence can be", "abstract"),
-    ("innovation starts with (a/an)", "abstract"),
+    ("innovation starts with", "abstract"),
     ("the color of joy is", "abstract"),
     ("echoes remind me of", "abstract"),
 ]

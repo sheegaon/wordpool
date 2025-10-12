@@ -1,13 +1,13 @@
 # WordPool
 
-A multiplayer word association game with monetary stakes. Players create word associations, copy them, and vote to identify originals.
+A multiplayer phrase association game with monetary stakes. Players respond to prompts with brief phrases, copy them, and vote to identify originals.
 
 ## 🎮 Game Overview
 
 WordPool is a three-phase game where players:
-1. **Prompt** - Submit a word for a creative prompt (\$100)
-2. **Copy** - Submit a similar word without seeing the prompt (\$100 or \$90)
-3. **Vote** - Identify the original word from three options (\$1)
+1. **Prompt** - Submit a phrase for a creative prompt (\$100)
+2. **Copy** - Submit a similar phrase without seeing the prompt (\$100 or \$90)
+3. **Vote** - Identify the original phrase from three options (\$1)
 
 Winners split a prize pool based on vote performance. See full game rules below.
 
@@ -128,7 +128,7 @@ Frontend runs at **http://localhost:5173**
 ### Unit Tests (Backend Logic)
 ```bash
 # Run backend unit tests
-pytest tests/test_game_flow.py tests/test_api_player.py tests/test_word_validator.py -v
+pytest tests/test_game_flow.py tests/test_api_player.py tests/test_phrase_validator.py -v
 
 # Current status: 15/17 passing (88%)
 # Known issues: 2 tests debugging timezone edge cases
@@ -176,11 +176,11 @@ python run_localhost_tests.py all
 
 ### 1. Prompt Round
 - **Cost**: \$100 (full amount deducted immediately, \$90 refunded on timeout)
-- **Process**: Player receives a randomly-assigned prompt (e.g., "my deepest desire is to be (a)") and submits a single word
-- **Word Requirements**:
-  - Must be in NASPA Word List (~179k words)
-  - 2-15 letters
-  - Letters A-Z only (case insensitive)
+- **Process**: Player receives a randomly-assigned prompt (e.g., "my deepest desire is to be (a)") and submits a short phrase
+- **Phrase Requirements**:
+  - 1-5 words (2-100 characters total)
+  - Letters A-Z and spaces only (case insensitive)
+  - Each word must exist in the NASPA dictionary (except common connectors like “a”, “an”, “the”, “I”)
 - **Timing**: 3-minute (180-second) submission window
 - **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 refunded), prompt removed from queue
 - **Queue**: Prompt enters queue waiting for 2 copy players
@@ -188,26 +188,26 @@ python run_localhost_tests.py all
 
 ### 2. Copy Round
 - **Cost**: \$100 or \$90 (full amount deducted immediately, \$90 refunded on timeout)
-- **Dynamic Pricing**: When prompts waiting for copies exceeds 10, copy rounds cost \$90 total (system contributes \$10 to maintain \$300 prize pool per wordset)
-- **Process**: Player receives ONLY the word submitted by a prompt player (without the original prompt) and must submit a similar/related word
-- **Word Requirements**: Same as Prompt Round, plus no duplicate of the original word
-- **Duplicate Handling**: If submitted word matches the original, submission is rejected and player must choose a different word (timer continues)
+- **Dynamic Pricing**: When prompts waiting for copies exceeds 10, copy rounds cost \$90 total (system contributes \$10 to maintain \$300 prize pool per phraseset)
+- **Process**: Player receives ONLY the phrase submitted by a prompt player (without the original prompt) and must submit a similar/related phrase
+- **Phrase Requirements**: Same as Prompt Round, plus no duplicate of the original phrase
+- **Duplicate Handling**: If submitted phrase matches the original, submission is rejected and the player must choose a different phrase (timer continues)
 - **Timing**: 3-minute (180-second) submission window
 - **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 or \$81 refunded). Associated prompt_round returned to queue for another player to attempt (same player blocked from retry for 24 hours).
-- **Queue**: Once 2 different copy players successfully submit, the word set (1 original + 2 copies) moves to voting queue
+- **Queue**: Once 2 different copy players successfully submit, the phrase set (1 original + 2 copies) moves to voting queue
 
 ### 3. Vote Round
 - **Cost**: \$1 (deducted immediately)
-- **Process**: Player sees the original prompt and three words (1 original + 2 copies in randomized order per voter) and votes for which they believe is the original
+- **Process**: Player sees the original prompt and three phrases (1 original + 2 copies in randomized order per voter) and votes for which they believe is the original
 - **Timing**: 60-second hard limit (frontend enforces, backend has 5-second grace period)
 - **Abandonment**: No vote = forfeit \$1
 - **Voting Pool**:
   - Minimum 3 votes before finalization (AI will provide necessary votes after 10 minutes of inactivity - Phase 3+)
-  - Maximum 20 votes per word set
-  - After 3rd vote received: word set remains open for 10 minutes OR until 5th vote received, whichever comes first
+  - Maximum 20 votes per phrase set
+  - After 3rd vote received: phrase set remains open for 10 minutes OR until 5th vote received, whichever comes first
   - After 5th vote received: accept additional voters for 60 seconds only
-  - After 20th vote OR (5+ votes AND 60 seconds elapsed since 5th vote), word set closes
-- **Restrictions**: The 3 contributors (1 prompt + 2 copy players) cannot vote on their own word set (filtered at assignment). Voters can vote once per word set.
+  - After 20th vote OR (5+ votes AND 60 seconds elapsed since 5th vote), phrase set closes
+- **Restrictions**: The 3 contributors (1 prompt + 2 copy players) cannot vote on their own phrase set (filtered at assignment). Voters can vote once per phrase set.
 
 ---
 
@@ -220,7 +220,7 @@ python run_localhost_tests.py all
 - This prevents exploitation and reduces UI complexity
 
 ### Ten Outstanding Prompts
-- A player can have up to 10 outstanding prompts where the associated wordsets have not been finalized (status 'open' or 'closing')
+- A player can have up to 10 outstanding prompts where the associated phrasesets have not been finalized (status 'open' or 'closing')
 - Viewing results does not affect this count
 - Enforced when calling POST /rounds/prompt
 
@@ -283,25 +283,25 @@ python run_localhost_tests.py all
 
 ### Player Choice
 At any time (if not already in an active round), players can choose to:
-1. **Start Prompt Round** - Only if player has enough balance and fewer than 10 outstanding prompts (wordsets in 'open' or 'closing' status)
+1. **Start Prompt Round** - Only if player has enough balance and fewer than 10 outstanding prompts (phrasesets in 'open' or 'closing' status)
 2. **Start Copy Round** - Only if prompts are waiting for copies in queue
-3. **Start Vote Round** - Only if complete word sets (1 original + 2 copies) are waiting for votes (excluding own wordsets)
+3. **Start Vote Round** - Only if complete phrase sets (1 original + 2 copies) are waiting for votes (excluding own phrasesets)
 
 ### Queue System
 - **Prompt Queue**: Submitted prompts waiting for copy players (FIFO)
 - **Copy Assignment**: FIFO from prompt queue when player calls POST /rounds/copy
-- **Copy Queue Discount**: When prompts_waiting > 10, copy rounds cost \$90 (system contributes \$10 per wordset)
-- **Vote Queue**: Complete word sets waiting for voters
+- **Copy Queue Discount**: When prompts_waiting > 10, copy rounds cost \$90 (system contributes \$10 per phraseset)
+- **Vote Queue**: Complete phrase sets waiting for voters
 - **Vote Assignment Priority**:
-  1. Wordsets with ≥5 votes (FIFO by 5th vote time)
-  2. Wordsets with 3-4 votes (FIFO by 3rd vote time)
-  3. Wordsets with <3 votes (random selection)
+  1. Phrasesets with ≥5 votes (FIFO by 5th vote time)
+  2. Phrasesets with 3-4 votes (FIFO by 3rd vote time)
+  3. Phrasesets with <3 votes (random selection)
 
 ### Anti-Gaming Measures
-- Contributors cannot vote on their own word sets (filtered at assignment)
-- Word order randomized per-voter in voting display (not stored)
-- Rate limit: Maximum 10 outstanding prompts per player (wordsets in 'open'/'closing' status)
-- One vote per word set per player (enforced via unique composite index), no vote changes allowed
+- Contributors cannot vote on their own phrase sets (filtered at assignment)
+- Phrase order randomized per voter in the voting display (not stored)
+- Rate limit: Maximum 10 outstanding prompts per player (phrasesets in 'open'/'closing' status)
+- One vote per phrase set per player (enforced via unique composite index), no vote changes allowed
 - Grace period: 5 seconds past timer expiry (backend only, not shown to users)
 - API rate limiting: Prevent abuse/brute force attempts
 

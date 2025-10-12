@@ -32,7 +32,7 @@ API key authentication with UUID v4 keys issued on player creation. See [API.md]
   - For voters: Correct answer revealed immediately after vote submission, \$5 credited if correct. Show voters vote tally thus far and add to status area so players can check back to see final vote tally.
 
 ### Result Timing
-- **For Voters**: Immediate feedback after vote submission (correct/incorrect, original word revealed, \$5 gross/\$4 net if correct)
+- **For Voters**: Immediate feedback after vote submission (correct/incorrect, original phrase revealed, \$5 gross/\$4 net if correct)
 - **For Contributors**: Results available immediately after voting period closes
 - **Prize Collection**: Requires viewing results screen to credit account
 
@@ -88,7 +88,7 @@ See [API.md](API.md) for complete REST API documentation including:
 - Dictionary: NASPA word list (~191,000 words)
 - Length: 2-15 characters
 - Format: Letters A-Z only (case-insensitive, stored uppercase)
-- Copy validation: Must differ from original word
+- Copy validation: Must differ from original phrase
 - See [API.md](API.md#game-configuration) for complete validation rules
 
 ### Word Randomization

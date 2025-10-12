@@ -144,9 +144,9 @@ The `GameContext` manages global state:
 - API key persistence
 
 ### Round Pages
-- **PromptRound** - Submit word for creative prompt
-- **CopyRound** - Submit similar word without seeing prompt
-- **VoteRound** - Identify original word from three options
+- **PromptRound** - Submit phrase for creative prompt
+- **CopyRound** - Submit similar phrase without seeing prompt
+- **VoteRound** - Identify original phrase from three options
 - **Results** - View vote breakdown and payouts
 
 ## Error Handling

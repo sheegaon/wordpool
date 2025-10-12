@@ -7,26 +7,26 @@ import type { PhrasesetResults } from '../api/types';
 export const Results: React.FC = () => {
   const { pendingResults, refreshPendingResults, refreshBalance } = useGame();
   const navigate = useNavigate();
-  const [selectedWordsetId, setSelectedWordsetId] = useState<string | null>(null);
+  const [selectedPhrasesetId, setSelectedPhrasesetId] = useState<string | null>(null);
   const [results, setResults] = useState<PhrasesetResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Auto-select first pending result if available
-    if (pendingResults.length > 0 && !selectedWordsetId) {
-      setSelectedWordsetId(pendingResults[0].phraseset_id);
+    if (pendingResults.length > 0 && !selectedPhrasesetId) {
+      setSelectedPhrasesetId(pendingResults[0].phraseset_id);
     }
-  }, [pendingResults, selectedWordsetId]);
+  }, [pendingResults, selectedPhrasesetId]);
 
   useEffect(() => {
     const fetchResults = async () => {
-      if (!selectedWordsetId) return;
+      if (!selectedPhrasesetId) return;
 
       try {
         setLoading(true);
         setError(null);
-        const data = await apiClient.getPhrasesetResults(selectedWordsetId);
+        const data = await apiClient.getPhrasesetResults(selectedPhrasesetId);
         setResults(data);
         // Refresh pending results and balance (in case payout was collected)
         await refreshPendingResults();
@@ -39,10 +39,10 @@ export const Results: React.FC = () => {
     };
 
     fetchResults();
-  }, [selectedWordsetId]);
+  }, [selectedPhrasesetId]);
 
-  const handleSelectWordset = (wordsetId: string) => {
-    setSelectedWordsetId(wordsetId);
+  const handleSelectPhraseset = (phrasesetId: string) => {
+    setSelectedPhrasesetId(phrasesetId);
   };
 
   if (pendingResults.length === 0) {
@@ -52,7 +52,7 @@ export const Results: React.FC = () => {
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <h1 className="text-2xl font-bold text-gray-800 mb-4">No Results Available</h1>
             <p className="text-gray-600 mb-6">
-              You don't have any finalized wordsets yet. Complete some rounds and check back!
+              You don't have any finalized phrasesets yet. Complete some rounds and check back!
             </p>
             <button
               onClick={() => navigate('/dashboard')}
@@ -88,9 +88,9 @@ export const Results: React.FC = () => {
                 {pendingResults.map((result) => (
                   <button
                     key={result.phraseset_id}
-                    onClick={() => handleSelectWordset(result.phraseset_id)}
+                    onClick={() => handleSelectPhraseset(result.phraseset_id)}
                     className={`w-full text-left p-3 rounded-lg transition-colors ${
-                      selectedWordsetId === result.phraseset_id
+                      selectedPhrasesetId === result.phraseset_id
                         ? 'bg-blue-100 border-2 border-blue-500'
                         : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
                     }`}
@@ -136,7 +136,7 @@ export const Results: React.FC = () => {
                   <h3 className="font-bold text-lg text-green-900 mb-3">Your Performance</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-green-700">Your Word:</p>
+                      <p className="text-sm text-green-700">Your Phrase:</p>
                       <p className="text-xl font-bold text-green-900">{results.your_phrase}</p>
                     </div>
                     <div>

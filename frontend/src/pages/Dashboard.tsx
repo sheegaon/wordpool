@@ -257,7 +257,7 @@ export const Dashboard: React.FC = () => {
                 </span>
               </div>
               <p className="text-sm text-gray-600 mb-1">
-                Submit a similar word without seeing the prompt
+                Submit a similar phrase without seeing the prompt
               </p>
               {roundAvailability && roundAvailability.prompts_waiting > 0 && (
                 <p className="text-xs text-blue-600 mb-3">
@@ -283,11 +283,11 @@ export const Dashboard: React.FC = () => {
                 <span className="text-red-600 font-bold">-$1</span>
               </div>
               <p className="text-sm text-gray-600 mb-1">
-                Identify the original word from three options
+                Identify the original phrase from three options
               </p>
               {roundAvailability && roundAvailability.phrasesets_waiting > 0 && (
                 <p className="text-xs text-blue-600 mb-3">
-                  {roundAvailability.phrasesets_waiting} wordset{roundAvailability.phrasesets_waiting > 1 ? 's' : ''} waiting
+                  {roundAvailability.phrasesets_waiting} phraseset{roundAvailability.phrasesets_waiting > 1 ? 's' : ''} waiting
                 </p>
               )}
               <button
@@ -296,7 +296,7 @@ export const Dashboard: React.FC = () => {
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
               >
                 {roundAvailability?.can_vote ? 'Start Vote Round' :
-                  roundAvailability?.phrasesets_waiting === 0 ? 'No Wordsets Available' :
+                  roundAvailability?.phrasesets_waiting === 0 ? 'No Phrasesets Available' :
                   player.balance < 1 ? 'Insufficient Balance' :
                   'Not Available'}
               </button>
