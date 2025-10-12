@@ -2,6 +2,7 @@
 import os
 import re
 import logging
+from difflib import SequenceMatcher
 from typing import Set
 
 from sklearn.metrics.pairwise import cosine_similarity
@@ -17,6 +18,9 @@ class PhraseValidator:
 
     # Common connecting words that are allowed even if short or not in dictionary
     CONNECTING_WORDS = {'A', 'I'}
+
+    # Significant words are those meeting the configured minimum length requirement
+    # for overlap/similarity checks (default: 4 characters)
 
     def __init__(self):
         self.settings = get_settings()
@@ -155,11 +159,77 @@ class PhraseValidator:
 
         return True, ""
 
+    def _extract_significant_words(self, phrase: str) -> Set[str]:
+        """Extract significant (length-limited) words from a phrase."""
+        if not phrase:
+            return set()
+
+        words = re.findall(r"[a-zA-Z]+", phrase)
+        min_length = self.settings.significant_word_min_length
+        return {word.lower() for word in words if len(word) >= min_length}
+
+    def _are_words_too_similar(self, word1: str, word2: str) -> bool:
+        """Determine if two words are too similar based on sequence matching."""
+        if word1 == word2:
+            return True
+
+        ratio = SequenceMatcher(None, word1, word2).ratio()
+        return ratio >= self.settings.word_similarity_threshold
+
+    def _check_significant_word_conflicts(
+        self,
+        phrase: str,
+        comparisons: dict[str, str | None],
+    ) -> tuple[bool, str]:
+        """Ensure phrase does not reuse or closely match significant words."""
+
+        phrase_words = self._extract_significant_words(phrase)
+        if not phrase_words:
+            return True, ""
+
+        for label, comparison_phrase in comparisons.items():
+            if not comparison_phrase:
+                continue
+
+            comparison_words = self._extract_significant_words(comparison_phrase)
+            if not comparison_words:
+                continue
+
+            overlap = phrase_words & comparison_words
+            if overlap:
+                word = next(iter(overlap)).upper()
+                return False, f"Cannot reuse significant word '{word}' from {label}"
+
+            for phrase_word in phrase_words:
+                for comparison_word in comparison_words:
+                    if self._are_words_too_similar(phrase_word, comparison_word):
+                        return False, (
+                            f"Word '{phrase_word.upper()}' is too similar to "
+                            f"'{comparison_word.upper()}' from {label}"
+                        )
+
+        return True, ""
+
+    def validate_prompt_phrase(self, phrase: str, prompt_text: str | None) -> tuple[bool, str]:
+        """Validate a prompt submission against the originating prompt text."""
+
+        is_valid, error = self.validate(phrase)
+        if not is_valid:
+            return False, error
+
+        comparisons = {"prompt": prompt_text}
+        is_valid, error = self._check_significant_word_conflicts(phrase, comparisons)
+        if not is_valid:
+            return False, error
+
+        return True, ""
+
     def validate_copy(
         self,
         phrase: str,
         original_phrase: str,
-        other_copy_phrase: str | None = None
+        other_copy_phrase: str | None = None,
+        prompt_text: str | None = None,
     ) -> tuple[bool, str]:
         """
         Validate a copy phrase (includes duplicate and similarity checks).
@@ -168,6 +238,7 @@ class PhraseValidator:
             phrase: The copy phrase to validate
             original_phrase: The original prompt phrase
             other_copy_phrase: The other copy phrase (if already submitted)
+            prompt_text: The prompt text associated with the original submission
 
         Returns:
             (is_valid, error_message)
@@ -190,6 +261,17 @@ class PhraseValidator:
             other_copy_normalized = other_copy_phrase.strip().upper()
             if phrase_normalized == other_copy_normalized:
                 return False, "Cannot submit the same phrase as other copy"
+
+        # Ensure no significant word overlap with original, other copies, or prompt text
+        comparisons: dict[str, str | None] = {"original phrase": original_phrase}
+        if other_copy_phrase:
+            comparisons["other copy"] = other_copy_phrase
+        if prompt_text:
+            comparisons["prompt"] = prompt_text
+
+        is_valid, error = self._check_significant_word_conflicts(phrase, comparisons)
+        if not is_valid:
+            return False, error
 
         # Check similarity to original phrase
         try:
