@@ -1,13 +1,12 @@
 # WordPool Frontend
 
-React + TypeScript frontend for the WordPool word association game.
+React + TypeScript frontend for the WordPool phrase association game.
 
 ## Features
 
 ### Phase 1 MVP (Complete)
 
-- ✅ Pseudonymous player login with auto-generated usernames
-- ✅ API key storage & recovery via username login
+- ✅ Player authentication with API key
 - ✅ Dashboard with balance display
 - ✅ Daily bonus claiming
 - ✅ Three round types (Prompt, Copy, Vote)
@@ -17,6 +16,7 @@ React + TypeScript frontend for the WordPool word association game.
 - ✅ Error handling and notifications
 - ✅ Automatic state polling and updates
 - ✅ Robust request cancellation (no memory leaks)
+- ✅ Vercel Analytics integration
 - ✅ React Router v7 future flags enabled (clean console)
 
 ## Tech Stack
@@ -106,7 +106,7 @@ The frontend connects to the backend API using the `apiClient` in `src/api/clien
 
 ### Authentication
 
-Players receive a whimsical username plus an API key. The username is enough to log back in—the API key is re-issued and stored in `localStorage` for authenticated requests.
+API keys are stored in `localStorage` and automatically included in all requests via request interceptors.
 
 ### State Management
 
@@ -125,10 +125,10 @@ The `GameContext` manages global state:
 
 ## User Flow
 
-1. **Landing Page** - Create account (username + API key) or log in with your username
+1. **Landing Page** - Create account or login with existing API key
 2. **Dashboard** - View balance, claim bonus, select round type
 3. **Round Screens** - Complete prompt/copy/vote rounds with timers
-4. **Results** - View finalized wordsets and collect payouts
+4. **Results** - View finalized phrasesets and collect payouts
 
 ## Key Components
 
@@ -144,9 +144,9 @@ The `GameContext` manages global state:
 - API key persistence
 
 ### Round Pages
-- **PromptRound** - Submit word for creative prompt
-- **CopyRound** - Submit similar word without seeing prompt
-- **VoteRound** - Identify original word from three options
+- **PromptRound** - Submit a phrase for a creative prompt
+- **CopyRound** - Submit a similar phrase without seeing the prompt
+- **VoteRound** - Identify the original phrase from three options
 - **Results** - View vote breakdown and payouts
 
 ## Error Handling
@@ -155,7 +155,7 @@ The `GameContext` manages global state:
 - Error notifications auto-dismiss after 5 seconds
 - Invalid API keys trigger automatic logout
 - Network errors prompt retry suggestions
-- **Request cancellation:** AbortController integration prevents memory leaks and React warnings (see [IMPROVEMENTS.md](IMPROVEMENTS.md))
+- **Request cancellation:** AbortController integration prevents memory leaks and React warnings
 
 ## Styling
 
@@ -172,6 +172,7 @@ See [FRONTEND_PLAN.md](../docs/FRONTEND_PLAN.md) for planned features:
 - Transaction history
 - Enhanced statistics
 - Settings/account page
+- Analytics dashboard review
 - Progressive Web App (PWA)
 - Push notifications
 - Dark mode

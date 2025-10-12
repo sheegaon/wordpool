@@ -9,7 +9,7 @@ WordPool is a FastAPI-based backend service with a stateless REST API architectu
 - **Database**: PostgreSQL (production) / SQLite (development)
 - **ORM**: SQLAlchemy (async)
 - **Authentication**: API key-based (UUID v4)
-- **Validation**: Pydantic schemas + NASPA word dictionary
+- **Validation**: Pydantic schemas + NASPA word dictionary + sentence-transformers similarity
 - **Rate Limiting**: Redis-backed (or in-memory fallback)
 
 ### Authentication
@@ -28,11 +28,11 @@ API key authentication with UUID v4 keys issued on player creation. See [API.md]
 - **Visual Cue**: Small notification when results are ready
 - **Deferred Collection**: Prizes not collected until player views results
 - **Results Content**:
-  - For contributors: All votes shown, reveal which word was original, points earned, payout amount
+  - For contributors: All votes shown, reveal which phrase was original, points earned, payout amount
   - For voters: Correct answer revealed immediately after vote submission, \$5 credited if correct. Show voters vote tally thus far and add to status area so players can check back to see final vote tally.
 
 ### Result Timing
-- **For Voters**: Immediate feedback after vote submission (correct/incorrect, original word revealed, \$5 gross/\$4 net if correct)
+- **For Voters**: Immediate feedback after vote submission (correct/incorrect, original phrase revealed, \$5 gross/\$4 net if correct)
 - **For Contributors**: Results available immediately after voting period closes
 - **Prize Collection**: Requires viewing results screen to credit account
 
@@ -53,8 +53,8 @@ API key authentication with UUID v4 keys issued on player creation. See [API.md]
 ### Backend Responsibilities
 - Player accounts and wallet management
 - Daily login bonus tracking and distribution
-- Word validation against NASPA dictionary
-- Duplicate detection (copy vs. original)
+- Phrase validation against NASPA dictionary and semantic similarity
+- Duplicate and similarity detection (copy vs. original, cosine similarity threshold)
 - Queue management (prompt, copy, vote queues)
 - Copy discount activation (when prompts_waiting > 10)
 - Matchmaking logic
@@ -84,15 +84,17 @@ See [API.md](API.md) for complete REST API documentation including:
 
 ## Core Game Logic
 
-### Word Validation
-- Dictionary: NASPA word list (~191,000 words)
-- Length: 2-15 characters
-- Format: Letters A-Z only (case-insensitive, stored uppercase)
-- Copy validation: Must differ from original word
+### Phrase Validation
+- Dictionary: NASPA word list (~191,000 words) for individual word validation
+- Phrase length: 1-5 words (2-100 characters total)
+- Format: Letters A-Z and spaces only (case-insensitive, stored uppercase)
+- Connecting words: A, AN, THE, I always allowed (count toward 5-word limit)
+- Copy validation: Must differ from original and be semantically distinct (cosine similarity < 0.85)
+- Similarity model: all-MiniLM-L6-v2 (sentence-transformers)
 - See [API.md](API.md#game-configuration) for complete validation rules
 
-### Word Randomization
-For voting displays, word order is randomized per-voter (not stored in database) to prevent pattern recognition if players share results.
+### Phrase Randomization
+For voting displays, phrase order is randomized per-voter (not stored in database) to prevent pattern recognition if players share results.
 
 ---
 
@@ -101,7 +103,7 @@ For voting displays, word order is randomized per-voter (not stored in database)
 ### Voting Timeline State Machine
 
 ```
-Word Set Created → status: "open"
+Phrase Set Created → status: "open"
   ↓
 3rd vote received → third_vote_at = now, status: "open"
   ↓
@@ -117,14 +119,14 @@ Word Set Created → status: "open"
 20th vote OR (60s elapsed since 5th vote, all pending voters submitted) → status: "closed"
   ↓
 Calculate scores and payouts → status: "finalized"
-  (Contributors can now view results via GET /wordsets/{id}/results)
+  (Contributors can now view results via GET /phrasesets/{id}/results)
 ```
 
 ### Copy Round Abandonment
 
 When a copy round times out without submission:
 1. Round status set to "abandoned"
-2. Player refunded \$90 (keeps \$10 entry fee as penalty)
+2. Player refunded \$95 (keeps \$5 entry fee as penalty)
 3. Associated prompt_round returned to queue for reassignment
 4. Same player prevented from getting same prompt_round_id again (24h cooldown)
 5. No limit on how many times a prompt can be abandoned by different players
@@ -132,6 +134,6 @@ When a copy round times out without submission:
 ### Outstanding Prompts Limit
 
 Players limited to 10 outstanding prompts where:
-- "Outstanding" = wordsets in status "open" or "closing" (not yet finalized)
+- "Outstanding" = phrasesets in status "open" or "closing" (not yet finalized)
 - Viewing results does not affect count
 - Enforced when calling POST /rounds/prompt

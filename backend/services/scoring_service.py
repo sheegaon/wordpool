@@ -4,7 +4,7 @@ from sqlalchemy import select
 from uuid import UUID
 import logging
 
-from backend.models.wordset import WordSet
+from backend.models.phraseset import PhraseSet
 from backend.models.vote import Vote
 from backend.models.round import Round
 
@@ -17,9 +17,9 @@ class ScoringService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def calculate_payouts(self, wordset: WordSet) -> dict:
+    async def calculate_payouts(self, phraseset: PhraseSet) -> dict:
         """
-        Calculate points and payouts for wordset.
+        Calculate points and payouts for phraseset.
 
         Returns:
             {
@@ -30,14 +30,14 @@ class ScoringService:
         """
         # Get all votes
         result = await self.db.execute(
-            select(Vote).where(Vote.wordset_id == wordset.wordset_id)
+            select(Vote).where(Vote.phraseset_id == phraseset.phraseset_id)
         )
         votes = list(result.scalars().all())
 
         # Count votes per word
-        original_votes = sum(1 for v in votes if v.voted_word == wordset.original_word)
-        copy1_votes = sum(1 for v in votes if v.voted_word == wordset.copy_word_1)
-        copy2_votes = sum(1 for v in votes if v.voted_word == wordset.copy_word_2)
+        original_votes = sum(1 for v in votes if v.voted_phrase == phraseset.original_phrase)
+        copy1_votes = sum(1 for v in votes if v.voted_phrase == phraseset.copy_phrase_1)
+        copy2_votes = sum(1 for v in votes if v.voted_phrase == phraseset.copy_phrase_2)
 
         # Calculate points (1 for original, 2 for copies)
         original_points = original_votes * 1
@@ -47,7 +47,7 @@ class ScoringService:
 
         # Calculate prize pool (total_pool - correct votes * 5)
         correct_votes = original_votes
-        prize_pool = wordset.total_pool - (correct_votes * 5)
+        prize_pool = phraseset.total_pool - (correct_votes * 5)
 
         # Distribute proportionally (rounded down)
         if total_points == 0:
@@ -61,12 +61,12 @@ class ScoringService:
             copy2_payout = (copy2_points * prize_pool) // total_points
 
         # Get player IDs
-        prompt_round = await self.db.get(Round, wordset.prompt_round_id)
-        copy1_round = await self.db.get(Round, wordset.copy_round_1_id)
-        copy2_round = await self.db.get(Round, wordset.copy_round_2_id)
+        prompt_round = await self.db.get(Round, phraseset.prompt_round_id)
+        copy1_round = await self.db.get(Round, phraseset.copy_round_1_id)
+        copy2_round = await self.db.get(Round, phraseset.copy_round_2_id)
 
         logger.info(
-            f"Calculated payouts for wordset {wordset.wordset_id}: "
+            f"Calculated payouts for phraseset {phraseset.phraseset_id}: "
             f"original={original_payout}, copy1={copy1_payout}, copy2={copy2_payout}"
         )
 
@@ -75,18 +75,18 @@ class ScoringService:
                 "points": original_points,
                 "payout": original_payout,
                 "player_id": prompt_round.player_id,
-                "word": wordset.original_word,
+                "phrase": phraseset.original_phrase,
             },
             "copy1": {
                 "points": copy1_points,
                 "payout": copy1_payout,
                 "player_id": copy1_round.player_id,
-                "word": wordset.copy_word_1,
+                "phrase": phraseset.copy_phrase_1,
             },
             "copy2": {
                 "points": copy2_points,
                 "payout": copy2_payout,
                 "player_id": copy2_round.player_id,
-                "word": wordset.copy_word_2,
+                "phrase": phraseset.copy_phrase_2,
             },
         }

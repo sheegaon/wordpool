@@ -12,20 +12,20 @@ class Vote(Base):
     __tablename__ = "votes"
 
     vote_id = get_uuid_column(primary_key=True, default=uuid.uuid4)
-    wordset_id = get_uuid_column(ForeignKey("wordsets.wordset_id"), nullable=False, index=True)
+    phraseset_id = get_uuid_column(ForeignKey("phrasesets.phraseset_id"), nullable=False, index=True)
     player_id = get_uuid_column(ForeignKey("players.player_id"), nullable=False, index=True)
-    voted_word = Column(String(15), nullable=False)
+    voted_phrase = Column(String(100), nullable=False)
     correct = Column(Boolean, nullable=False)
     payout = Column(Integer, nullable=False)  # 5 or 0
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True)
 
     # Relationships
-    wordset = relationship("WordSet", back_populates="votes")
+    phraseset = relationship("PhraseSet", back_populates="votes")
     player = relationship("Player", back_populates="votes")
 
     # Constraints
     __table_args__ = (
-        UniqueConstraint('player_id', 'wordset_id', name='uq_player_wordset_vote'),
+        UniqueConstraint('player_id', 'phraseset_id', name='uq_player_phraseset_vote'),
     )
 
     def __repr__(self):

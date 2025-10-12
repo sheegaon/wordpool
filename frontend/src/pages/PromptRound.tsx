@@ -9,7 +9,7 @@ import type { PromptState } from '../api/types';
 export const PromptRound: React.FC = () => {
   const { activeRound, refreshCurrentRound, refreshBalance } = useGame();
   const navigate = useNavigate();
-  const [word, setWord] = useState('');
+  const [phrase, setPhrase] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roundData, setRoundData] = useState<PromptState | null>(null);
@@ -55,17 +55,17 @@ export const PromptRound: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!word.trim() || !roundData) return;
+    if (!phrase.trim() || !roundData) return;
 
     try {
       setIsSubmitting(true);
       setError(null);
-      await apiClient.submitWord(roundData.round_id, word.trim());
+      await apiClient.submitPhrase(roundData.round_id, phrase.trim());
       await refreshCurrentRound();
       await refreshBalance();
       navigate('/dashboard');
     } catch (err) {
-      setError(extractErrorMessage(err) || 'Failed to submit word');
+      setError(extractErrorMessage(err) || 'Failed to submit phrase');
     } finally {
       setIsSubmitting(false);
     }
@@ -84,7 +84,7 @@ export const PromptRound: React.FC = () => {
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Prompt Round</h1>
-          <p className="text-gray-600">Submit a word for the prompt</p>
+          <p className="text-gray-600">Submit a phrase for the prompt</p>
         </div>
 
         {/* Timer */}
@@ -111,24 +111,24 @@ export const PromptRound: React.FC = () => {
           <div>
             <input
               type="text"
-              value={word}
-              onChange={(e) => setWord(e.target.value)}
-              placeholder="Enter your word"
+              value={phrase}
+              onChange={(e) => setPhrase(e.target.value)}
+              placeholder="Enter your phrase"
               className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               disabled={isExpired || isSubmitting}
-              maxLength={15}
+              maxLength={100}
             />
             <p className="text-sm text-gray-600 mt-1">
-              2-15 letters, A-Z only
+              1-5 words (2-100 characters), A-Z and spaces only
             </p>
           </div>
 
           <button
             type="submit"
-            disabled={isExpired || isSubmitting || !word.trim()}
+            disabled={isExpired || isSubmitting || !phrase.trim()}
             className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg"
           >
-            {isExpired ? "Time's Up" : isSubmitting ? 'Submitting...' : 'Submit Word'}
+            {isExpired ? "Time's Up" : isSubmitting ? 'Submitting...' : 'Submit Phrase'}
           </button>
         </form>
 
@@ -143,7 +143,7 @@ export const PromptRound: React.FC = () => {
         {/* Info */}
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-600">
-            <strong>Cost:</strong> ${roundData.cost} (deducted immediately, $90 refunded if you don't submit)
+            <strong>Cost:</strong> ${roundData.cost} ($95 refunded if you don't submit in time)
           </p>
         </div>
       </div>

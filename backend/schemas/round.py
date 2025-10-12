@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from uuid import UUID
 from backend.schemas.base import BaseSchema
+import re
 
 
 class StartPromptRoundResponse(BaseSchema):
@@ -16,7 +17,7 @@ class StartPromptRoundResponse(BaseSchema):
 class StartCopyRoundResponse(BaseSchema):
     """Start copy round response."""
     round_id: UUID
-    original_word: str
+    original_phrase: str
     prompt_round_id: UUID
     expires_at: datetime
     cost: int
@@ -26,29 +27,31 @@ class StartCopyRoundResponse(BaseSchema):
 class StartVoteRoundResponse(BaseSchema):
     """Start vote round response."""
     round_id: UUID
-    wordset_id: UUID
+    phraseset_id: UUID
     prompt_text: str
-    words: list[str]
+    phrases: list[str]
     expires_at: datetime
 
 
-class SubmitWordRequest(BaseModel):
-    """Submit word request."""
-    word: str = Field(..., min_length=2, max_length=15)
+class SubmitPhraseRequest(BaseModel):
+    """Submit phrase request."""
+    phrase: str = Field(..., min_length=2, max_length=100)
 
-    @field_validator('word')
+    @field_validator('phrase')
     @classmethod
-    def word_must_be_alpha(cls, v: str) -> str:
-        """Validate word contains only letters."""
-        if not v.isalpha():
-            raise ValueError('Word must contain only letters A-Z')
+    def phrase_must_be_valid(cls, v: str) -> str:
+        """Validate phrase contains only letters and spaces."""
+        if not re.match(r'^[a-zA-Z\s]+$', v):
+            raise ValueError('Phrase must contain only letters A-Z and spaces')
+        # Normalize whitespace
+        v = re.sub(r'\s+', ' ', v.strip())
         return v.upper()
 
 
-class SubmitWordResponse(BaseModel):
-    """Submit word response."""
+class SubmitPhraseResponse(BaseModel):
+    """Submit phrase response."""
     success: bool
-    word: str
+    phrase: str
 
 
 class RoundAvailability(BaseModel):
@@ -57,7 +60,7 @@ class RoundAvailability(BaseModel):
     can_copy: bool
     can_vote: bool
     prompts_waiting: int
-    wordsets_waiting: int
+    phrasesets_waiting: int
     copy_discount_active: bool
     copy_cost: int
     current_round_id: UUID | None
@@ -70,6 +73,6 @@ class RoundDetails(BaseSchema):
     status: str
     expires_at: datetime
     prompt_text: str | None = None
-    original_word: str | None = None
-    submitted_word: str | None = None
+    original_phrase: str | None = None
+    submitted_phrase: str | None = None
     cost: int

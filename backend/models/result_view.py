@@ -12,19 +12,19 @@ class ResultView(Base):
     __tablename__ = "result_views"
 
     view_id = get_uuid_column(primary_key=True, default=uuid.uuid4)
-    wordset_id = get_uuid_column(ForeignKey("wordsets.wordset_id"), nullable=False, index=True)
+    phraseset_id = get_uuid_column(ForeignKey("phrasesets.phraseset_id"), nullable=False, index=True)
     player_id = get_uuid_column(ForeignKey("players.player_id"), nullable=False, index=True)
     payout_collected = Column(Boolean, default=False, nullable=False, index=True)
     payout_amount = Column(Integer, nullable=False)
     viewed_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
 
     # Relationships
-    wordset = relationship("WordSet", back_populates="result_views")
+    phraseset = relationship("PhraseSet", back_populates="result_views")
     player = relationship("Player", back_populates="result_views")
 
-    # Constraints - one view per player per wordset
+    # Constraints - one view per player per phraseset
     __table_args__ = (
-        UniqueConstraint('player_id', 'wordset_id', name='uq_player_wordset_result'),
+        UniqueConstraint('player_id', 'phraseset_id', name='uq_player_phraseset_result'),
     )
 
     def __repr__(self):

@@ -1,13 +1,13 @@
 # WordPool
 
-A multiplayer word association game with monetary stakes. Players create word associations, copy them, and vote to identify originals.
+A multiplayer phrase association game with monetary stakes. Players respond to prompts with brief phrases, copy them, and vote to identify originals.
 
 ## 🎮 Game Overview
 
 WordPool is a three-phase game where players:
-1. **Prompt** - Submit a word for a creative prompt (\$100)
-2. **Copy** - Submit a similar word without seeing the prompt (\$100 or \$90)
-3. **Vote** - Identify the original word from three options (\$1)
+1. **Prompt** - Submit a phrase for a creative prompt (\$100)
+2. **Copy** - Submit a similar phrase without seeing the prompt (\$100 or \$90)
+3. **Vote** - Identify the original phrase from three options (\$1)
 
 Winners split a prize pool based on vote performance. See full game rules below.
 
@@ -21,9 +21,6 @@ pip install -r requirements.txt
 
 # Run migrations
 alembic upgrade head
-
-# Seed prompts
-python3 scripts/seed_prompts.py
 
 # Start server
 uvicorn backend.main:app --reload
@@ -49,12 +46,6 @@ npm run dev
 Frontend runs at **http://localhost:5173**
 - See [frontend/README.md](frontend/README.md) for detailed documentation
 
-## 🧑‍🚀 Accounts & Login
-
-- New players click **Create New Account** to receive a themed username and API key.
-- The username is all you need to return later—enter it on the landing page and the backend will re-issue your API key.
-- Keep the API key secret if you plan to call the API directly; the web client handles it automatically.
-
 ## 📚 Documentation
 
 **For Developers:**
@@ -66,16 +57,14 @@ Frontend runs at **http://localhost:5173**
 
 **For Game Design:**
 - **[README.md](README.md)** - This file (complete game rules)
-- **[PROJECT_PLAN.md](docs/PROJECT_PLAN)** - Implementation phases and roadmap
-- **[PROMPT_LIBRARY.md](docs/PROMPT_LIBRARY.md)** - Game prompts collection
+- **[PLAN.md](docs/PROJECT_PLAN)** - Implementation phases and roadmap
 
 ## ⚡ Features
 
 **✅ Phase 1 MVP Complete (100%)**
 
 *Backend:*
-- Pseudonymous player accounts with auto-generated usernames
-- API key authentication (surfaced via username login)
+- Player accounts with API key authentication
 - Three round types (Prompt, Copy, Vote)
 - Queue management with dynamic pricing
 - NASPA dictionary validation (191k words)
@@ -125,46 +114,9 @@ Frontend runs at **http://localhost:5173**
 
 ## 🧪 Testing
 
-### Unit Tests (Backend Logic)
 ```bash
-# Run backend unit tests
-pytest tests/test_game_flow.py tests/test_api_player.py tests/test_word_validator.py -v
-
-# Current status: 15/17 passing (88%)
-# Known issues: 2 tests debugging timezone edge cases
+pytest
 ```
-
-### Integration Tests (Localhost API)
-**NEW:** Comprehensive integration test suite for testing the live API
-
-```bash
-# Start backend server first
-uvicorn backend.main:app --reload
-
-# Run all integration tests
-./run_localhost_tests.sh all
-# OR
-python run_localhost_tests.py all
-
-# Run specific test suites
-./run_localhost_tests.sh integration  # Core API tests
-./run_localhost_tests.sh scenarios    # Game flow scenarios
-./run_localhost_tests.sh stress       # Load & performance tests
-./run_localhost_tests.sh quick        # Fast subset (integration + scenarios)
-```
-
-**Test Coverage:**
-- ✅ Player creation & authentication (API keys, rotation)
-- ✅ Balance tracking & daily bonuses
-- ✅ Prompt/Copy/Vote round lifecycles
-- ✅ Complete game flows (end-to-end)
-- ✅ Queue dynamics & copy discounts
-- ✅ Error handling & validation
-- ✅ Concurrent operations (multi-player)
-- ✅ Load testing (100+ players)
-- ✅ Rate limiting behavior
-
-**Documentation:** See [tests/README_LOCALHOST_TESTS.md](tests/README_LOCALHOST_TESTS.md) for detailed information
 
 ---
 
@@ -176,53 +128,51 @@ python run_localhost_tests.py all
 
 ### 1. Prompt Round
 - **Cost**: \$100 (full amount deducted immediately, \$90 refunded on timeout)
-- **Process**: Player receives a randomly-assigned prompt (e.g., "my deepest desire is to be (a)") and submits a single word
-- **Word Requirements**:
-  - Must be in NASPA Word List (~179k words)
-  - 2-15 letters
-  - Letters A-Z only (case insensitive)
+- **Process**: Player receives a randomly assigned prompt (e.g., “my deepest desire is to be (a)”) and submits a short phrase.
+- **Phrase Requirements**:
+  - 1–5 words (2–100 characters total)
+  - Letters A–Z and spaces only (case insensitive)
+  - Each word must appear in the NASPA dictionary (common connectors like “a”, “an”, “the”, “I” are always allowed)
 - **Timing**: 3-minute (180-second) submission window
-- **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 refunded), prompt removed from queue
-- **Queue**: Prompt enters queue waiting for 2 copy players
-  - AI will provide necessary copies after 10 minutes of inactivity (Phase 3+)
+- **Abandonment**: If the timer expires, the round is cancelled, \$10 is forfeited, and the remaining \$90 is refunded. The prompt is re-queued for other players.
+- **Queue**: Submitted prompts enter the prompt queue until two copy players claim them (future phases will add AI backups after long waits).
 
 ### 2. Copy Round
 - **Cost**: \$100 or \$90 (full amount deducted immediately, \$90 refunded on timeout)
-- **Dynamic Pricing**: When prompts waiting for copies exceeds 10, copy rounds cost \$90 total (system contributes \$10 to maintain \$300 prize pool per wordset)
-- **Process**: Player receives ONLY the word submitted by a prompt player (without the original prompt) and must submit a similar/related word
-- **Word Requirements**: Same as Prompt Round, plus no duplicate of the original word
-- **Duplicate Handling**: If submitted word matches the original, submission is rejected and player must choose a different word (timer continues)
+- **Dynamic Pricing**: When more than 10 prompts are waiting, copy rounds drop to \$90; the system contributes \$10 so the phraseset prize pool remains \$300.
+- **Process**: Player sees only the original player’s phrase (not the prompt) and must submit a similar or related phrase.
+- **Phrase Requirements**: Same as the prompt round, plus the submission cannot match the original phrase.
+- **Duplicate Handling**: Exact duplicates are rejected and the player must submit a different phrase while the timer continues.
 - **Timing**: 3-minute (180-second) submission window
-- **Abandonment**: If expired, round cancelled, forfeit \$10 entry fee (\$90 or \$81 refunded). Associated prompt_round returned to queue for another player to attempt (same player blocked from retry for 24 hours).
-- **Queue**: Once 2 different copy players successfully submit, the word set (1 original + 2 copies) moves to voting queue
+- **Abandonment**: Expiring forfeits \$10 (or \$9 on discounted rounds) and refunds the remainder. The prompt returns to the queue and the player is blocked from retrying that prompt for 24 hours.
+- **Queue**: Once two distinct copy phrases are submitted, the trio forms a phraseset and moves to the voting queue.
 
 ### 3. Vote Round
 - **Cost**: \$1 (deducted immediately)
-- **Process**: Player sees the original prompt and three words (1 original + 2 copies in randomized order per voter) and votes for which they believe is the original
-- **Timing**: 60-second hard limit (frontend enforces, backend has 5-second grace period)
-- **Abandonment**: No vote = forfeit \$1
+- **Process**: Player sees the original prompt and three phrases (1 original + 2 copies in voter-specific random order) and selects the phrase they believe is the original.
+- **Timing**: 60-second hard limit (frontend enforces, backend allows a 5-second grace period)
+- **Abandonment**: No vote = forfeited \$1 entry fee.
 - **Voting Pool**:
-  - Minimum 3 votes before finalization (AI will provide necessary votes after 10 minutes of inactivity - Phase 3+)
-  - Maximum 20 votes per word set
-  - After 3rd vote received: word set remains open for 10 minutes OR until 5th vote received, whichever comes first
-  - After 5th vote received: accept additional voters for 60 seconds only
-  - After 20th vote OR (5+ votes AND 60 seconds elapsed since 5th vote), word set closes
-- **Restrictions**: The 3 contributors (1 prompt + 2 copy players) cannot vote on their own word set (filtered at assignment). Voters can vote once per word set.
+  - Minimum 3 votes required before finalization (future phases will auto-fill with AI if needed).
+  - Maximum 20 votes per phraseset.
+  - After the 3rd vote, the phraseset stays open for up to 10 minutes unless it hits a 5th vote sooner.
+  - After the 5th vote, new voters have a 60-second window to participate.
+  - The phraseset closes at 20 votes or when the 60-second post–5th vote window elapses (whichever comes first).
+- **Restrictions**: Contributors (prompt + both copy players) cannot vote on their own phraseset, and each voter only gets one vote per phraseset.
 
 ---
 
 ## Player Constraints
 
 ### One Round At A Time
-- A player can only have one active round (prompt, copy, or vote) at any given time
-- Must submit or abandon current round before starting a new one
-- Viewing results does not count as an "active" round
-- This prevents exploitation and reduces UI complexity
+- Only one round (prompt, copy, or vote) may be active per player at any time.
+- Players must submit or abandon the current round before starting another.
+- Viewing finalized results does not count as an active round.
 
 ### Ten Outstanding Prompts
-- A player can have up to 10 outstanding prompts where the associated wordsets have not been finalized (status 'open' or 'closing')
-- Viewing results does not affect this count
-- Enforced when calling POST /rounds/prompt
+- A player can hold up to 10 outstanding prompts whose phrasesets are still “open” or “closing”.
+- The limit is enforced when calling `POST /rounds/prompt`.
+- Checking results does not affect the outstanding count.
 
 ---
 
@@ -283,25 +233,25 @@ python run_localhost_tests.py all
 
 ### Player Choice
 At any time (if not already in an active round), players can choose to:
-1. **Start Prompt Round** - Only if player has enough balance and fewer than 10 outstanding prompts (wordsets in 'open' or 'closing' status)
+1. **Start Prompt Round** - Only if the player has sufficient balance and fewer than 10 outstanding prompts (phrasesets in “open” or “closing” status)
 2. **Start Copy Round** - Only if prompts are waiting for copies in queue
-3. **Start Vote Round** - Only if complete word sets (1 original + 2 copies) are waiting for votes (excluding own wordsets)
+3. **Start Vote Round** - Only if complete phrasesets (1 original + 2 copies) are waiting for votes (excluding the player’s own phrasesets)
 
 ### Queue System
 - **Prompt Queue**: Submitted prompts waiting for copy players (FIFO)
 - **Copy Assignment**: FIFO from prompt queue when player calls POST /rounds/copy
-- **Copy Queue Discount**: When prompts_waiting > 10, copy rounds cost \$90 (system contributes \$10 per wordset)
-- **Vote Queue**: Complete word sets waiting for voters
+- **Copy Queue Discount**: When `prompts_waiting > 10`, copy rounds cost \$90 (the system contributes \$10 per phraseset)
+- **Vote Queue**: Complete phrasesets waiting for voters
 - **Vote Assignment Priority**:
-  1. Wordsets with ≥5 votes (FIFO by 5th vote time)
-  2. Wordsets with 3-4 votes (FIFO by 3rd vote time)
-  3. Wordsets with <3 votes (random selection)
+  1. Phrasesets with ≥5 votes (FIFO by 5th vote time)
+  2. Phrasesets with 3–4 votes (FIFO by 3rd vote time)
+  3. Phrasesets with <3 votes (random selection)
 
 ### Anti-Gaming Measures
-- Contributors cannot vote on their own word sets (filtered at assignment)
-- Word order randomized per-voter in voting display (not stored)
-- Rate limit: Maximum 10 outstanding prompts per player (wordsets in 'open'/'closing' status)
-- One vote per word set per player (enforced via unique composite index), no vote changes allowed
+- Contributors cannot vote on their own phrasesets (filtered at assignment).
+- Phrase order is randomized per voter in the voting display (not stored).
+- Rate limit: Maximum 10 outstanding prompts per player (phrasesets in “open”/“closing” status).
+- One vote per phraseset per player (enforced via a unique composite index); votes cannot be changed once submitted.
 - Grace period: 5 seconds past timer expiry (backend only, not shown to users)
 - API rate limiting: Prevent abuse/brute force attempts
 
@@ -310,8 +260,8 @@ At any time (if not already in an active round), players can choose to:
 ## Timing Rules
 
 ### Submission Windows
-- **Prompt/Copy submission**: 3 minutes (180 seconds) (frontend enforces, backend has 5-second grace period)
-- **Voting**: 60 seconds (frontend enforces, backend has 5-second grace period)
+- **Prompt/Copy submission**: 3 minutes (180 seconds) (frontend enforces, backend has a 5-second grace period)
+- **Voting**: 60 seconds (frontend enforces, backend has a 5-second grace period)
 
 ### Grace Period Implementation
 - **Frontend**: Disables submit button and shows "Time's up" message when timer reaches 0
@@ -319,12 +269,12 @@ At any time (if not already in an active round), players can choose to:
 - **Purpose**: Accounts for network latency and ensures fair play
 
 ### Voting Finalization Timeline
-- **After 3rd vote**: Word set remains open for the earlier of:
+- **After 3rd vote**: Phraseset remains open for the earlier of:
   - 10 minutes, OR
   - Until 5th vote is received
 - **After 5th vote received**: Accept new voters (POST /rounds/vote) for 60 seconds
-- **Closure**: After 20th vote OR (60 seconds elapsed since 5th vote received + all pending voters submitted)
-- **Grace period**: Voters who called POST /rounds/vote within the 60-second window get their full 60 seconds to vote, even if this extends past 60 seconds
+- **Closure**: After the 20th vote OR when 60 seconds have elapsed since the 5th vote and all pending voters have submitted
+- **Grace period**: Voters who called POST /rounds/vote within the 60-second window get their full 60 seconds to vote, even if this extends past the window
 
 ### Abandonment Handling
 - **Prompt abandonment**: Round cancelled, \$10 penalty forfeited (\$90 refunded), prompt removed from queue

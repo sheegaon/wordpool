@@ -1,4 +1,4 @@
-"""WordSet model."""
+"""PhraseSet model."""
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 import uuid
@@ -7,20 +7,20 @@ from backend.database import Base
 from backend.models.base import get_uuid_column
 
 
-class WordSet(Base):
-    """WordSet model for voting."""
-    __tablename__ = "wordsets"
+class PhraseSet(Base):
+    """PhraseSet model for voting."""
+    __tablename__ = "phrasesets"
 
-    wordset_id = get_uuid_column(primary_key=True, default=uuid.uuid4)
+    phraseset_id = get_uuid_column(primary_key=True, default=uuid.uuid4)
     prompt_round_id = get_uuid_column(ForeignKey("rounds.round_id"), nullable=False, index=True)
     copy_round_1_id = get_uuid_column(ForeignKey("rounds.round_id"), nullable=False)
     copy_round_2_id = get_uuid_column(ForeignKey("rounds.round_id"), nullable=False)
 
     # Denormalized fields for performance
     prompt_text = Column(String(500), nullable=False)
-    original_word = Column(String(15), nullable=False)  # Prompt player's word
-    copy_word_1 = Column(String(15), nullable=False)
-    copy_word_2 = Column(String(15), nullable=False)
+    original_phrase = Column(String(100), nullable=False)  # Prompt player's phrase
+    copy_phrase_1 = Column(String(100), nullable=False)
+    copy_phrase_2 = Column(String(100), nullable=False)
 
     # Vote lifecycle
     status = Column(String(20), nullable=False, default="open")  # open, closing, closed, finalized
@@ -39,14 +39,14 @@ class WordSet(Base):
     prompt_round = relationship("Round", foreign_keys=[prompt_round_id])
     copy_round_1 = relationship("Round", foreign_keys=[copy_round_1_id])
     copy_round_2 = relationship("Round", foreign_keys=[copy_round_2_id])
-    votes = relationship("Vote", back_populates="wordset")
-    vote_rounds = relationship("Round", back_populates="wordset", foreign_keys="Round.wordset_id")
-    result_views = relationship("ResultView", back_populates="wordset")
+    votes = relationship("Vote", back_populates="phraseset")
+    vote_rounds = relationship("Round", back_populates="phraseset", foreign_keys="Round.phraseset_id")
+    result_views = relationship("ResultView", back_populates="phraseset")
 
     # Indexes
     __table_args__ = (
-        Index('ix_wordsets_status_vote_count', 'status', 'vote_count'),
+        Index('ix_phrasesets_status_vote_count', 'status', 'vote_count'),
     )
 
     def __repr__(self):
-        return f"<WordSet(wordset_id={self.wordset_id}, status={self.status}, vote_count={self.vote_count})>"
+        return f"<PhraseSet(phraseset_id={self.phraseset_id}, status={self.status}, vote_count={self.vote_count})>"

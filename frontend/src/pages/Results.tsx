@@ -2,31 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 import apiClient, { extractErrorMessage } from '../api/client';
-import type { WordsetResults } from '../api/types';
+import type { PhrasesetResults } from '../api/types';
 
 export const Results: React.FC = () => {
   const { pendingResults, refreshPendingResults, refreshBalance } = useGame();
   const navigate = useNavigate();
-  const [selectedWordsetId, setSelectedWordsetId] = useState<string | null>(null);
-  const [results, setResults] = useState<WordsetResults | null>(null);
+  const [selectedPhrasesetId, setSelectedPhrasesetId] = useState<string | null>(null);
+  const [results, setResults] = useState<PhrasesetResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Auto-select first pending result if available
-    if (pendingResults.length > 0 && !selectedWordsetId) {
-      setSelectedWordsetId(pendingResults[0].wordset_id);
+    if (pendingResults.length > 0 && !selectedPhrasesetId) {
+      setSelectedPhrasesetId(pendingResults[0].phraseset_id);
     }
-  }, [pendingResults, selectedWordsetId]);
+  }, [pendingResults, selectedPhrasesetId]);
 
   useEffect(() => {
     const fetchResults = async () => {
-      if (!selectedWordsetId) return;
+      if (!selectedPhrasesetId) return;
 
       try {
         setLoading(true);
         setError(null);
-        const data = await apiClient.getWordsetResults(selectedWordsetId);
+        const data = await apiClient.getPhrasesetResults(selectedPhrasesetId);
         setResults(data);
         // Refresh pending results and balance (in case payout was collected)
         await refreshPendingResults();
@@ -39,10 +39,10 @@ export const Results: React.FC = () => {
     };
 
     fetchResults();
-  }, [selectedWordsetId]);
+  }, [selectedPhrasesetId]);
 
-  const handleSelectWordset = (wordsetId: string) => {
-    setSelectedWordsetId(wordsetId);
+  const handleSelectPhraseset = (phrasesetId: string) => {
+    setSelectedPhrasesetId(phrasesetId);
   };
 
   if (pendingResults.length === 0) {
@@ -52,7 +52,7 @@ export const Results: React.FC = () => {
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <h1 className="text-2xl font-bold text-gray-800 mb-4">No Results Available</h1>
             <p className="text-gray-600 mb-6">
-              You don't have any finalized wordsets yet. Complete some rounds and check back!
+              You don't have any finalized phrasesets yet. Complete some rounds and check back!
             </p>
             <button
               onClick={() => navigate('/dashboard')}
@@ -87,10 +87,10 @@ export const Results: React.FC = () => {
               <div className="space-y-2">
                 {pendingResults.map((result) => (
                   <button
-                    key={result.wordset_id}
-                    onClick={() => handleSelectWordset(result.wordset_id)}
+                    key={result.phraseset_id}
+                    onClick={() => handleSelectPhraseset(result.phraseset_id)}
                     className={`w-full text-left p-3 rounded-lg transition-colors ${
-                      selectedWordsetId === result.wordset_id
+                      selectedPhrasesetId === result.phraseset_id
                         ? 'bg-blue-100 border-2 border-blue-500'
                         : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
                     }`}
@@ -136,8 +136,8 @@ export const Results: React.FC = () => {
                   <h3 className="font-bold text-lg text-green-900 mb-3">Your Performance</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-green-700">Your Word:</p>
-                      <p className="text-xl font-bold text-green-900">{results.your_word}</p>
+                      <p className="text-sm text-green-700">Your Phrase:</p>
+                      <p className="text-xl font-bold text-green-900">{results.your_phrase}</p>
                     </div>
                     <div>
                       <p className="text-sm text-green-700">Your Role:</p>
@@ -167,7 +167,7 @@ export const Results: React.FC = () => {
                       .sort((a, b) => b.vote_count - a.vote_count)
                       .map((vote, index) => (
                         <div
-                          key={vote.word}
+                          key={vote.phrase}
                           className={`p-4 rounded-lg border-2 ${
                             vote.is_original
                               ? 'bg-purple-50 border-purple-500'
@@ -181,7 +181,7 @@ export const Results: React.FC = () => {
                               </span>
                               <div>
                                 <p className="text-xl font-bold text-gray-800">
-                                  {vote.word}
+                                  {vote.phrase}
                                   {vote.is_original && (
                                     <span className="ml-2 text-sm bg-purple-500 text-white px-2 py-1 rounded">
                                       ORIGINAL

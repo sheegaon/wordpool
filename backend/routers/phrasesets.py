@@ -1,15 +1,15 @@
-"""Wordsets API router."""
+"""Phrasesets API router."""
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import get_db
 from backend.dependencies import get_current_player
 from backend.models.player import Player
 from backend.models.round import Round
-from backend.models.wordset import WordSet
-from backend.schemas.wordset import (
+from backend.models.phraseset import PhraseSet
+from backend.schemas.phraseset import (
     VoteRequest,
     VoteResponse,
-    WordSetResults,
+    PhraseSetResults,
 )
 from backend.services.transaction_service import TransactionService
 from backend.services.vote_service import VoteService
@@ -33,14 +33,14 @@ def ensure_utc(dt: datetime) -> datetime:
     return dt
 
 
-@router.post("/{wordset_id}/vote", response_model=VoteResponse)
+@router.post("/{phraseset_id}/vote", response_model=VoteResponse)
 async def submit_vote(
-    wordset_id: UUID = Path(...),
+    phraseset_id: UUID = Path(...),
     request: VoteRequest = ...,
     player: Player = Depends(get_current_player),
     db: AsyncSession = Depends(get_db),
 ):
-    """Submit vote for a wordset."""
+    """Submit vote for a phraseset."""
     transaction_service = TransactionService(db)
     vote_service = VoteService(db)
 
@@ -52,24 +52,24 @@ async def submit_vote(
     if not round or round.round_type != "vote":
         raise HTTPException(status_code=400, detail="Not in a vote round")
 
-    if round.wordset_id != wordset_id:
-        raise HTTPException(status_code=400, detail="Wordset does not match active round")
+    if round.phraseset_id != phraseset_id:
+        raise HTTPException(status_code=400, detail="Phraseset does not match active round")
 
-    # Get wordset
-    wordset = await db.get(WordSet, wordset_id)
-    if not wordset:
-        raise HTTPException(status_code=404, detail="Wordset not found")
+    # Get phraseset
+    phraseset = await db.get(PhraseSet, phraseset_id)
+    if not phraseset:
+        raise HTTPException(status_code=404, detail="Phraseset not found")
 
     try:
         vote = await vote_service.submit_vote(
-            round, wordset, request.word, player, transaction_service
+            round, phraseset, request.phrase, player, transaction_service
         )
 
         return VoteResponse(
             correct=vote.correct,
             payout=vote.payout,
-            original_word=wordset.original_word,
-            your_choice=vote.voted_word,
+            original_phrase=phraseset.original_phrase,
+            your_choice=vote.voted_phrase,
         )
     except RoundExpiredError as e:
         raise HTTPException(status_code=400, detail={"error": "expired", "message": str(e)})
@@ -82,28 +82,28 @@ async def submit_vote(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{wordset_id}/results", response_model=WordSetResults)
-async def get_wordset_results(
-    wordset_id: UUID = Path(...),
+@router.get("/{phraseset_id}/results", response_model=PhraseSetResults)
+async def get_phraseset_results(
+    phraseset_id: UUID = Path(...),
     player: Player = Depends(get_current_player),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get voting results for a wordset (triggers prize collection on first view)."""
+    """Get voting results for a phraseset (triggers prize collection on first view)."""
     transaction_service = TransactionService(db)
     vote_service = VoteService(db)
 
     try:
-        results = await vote_service.get_wordset_results(
-            wordset_id, player.player_id, transaction_service
+        results = await vote_service.get_phraseset_results(
+            phraseset_id, player.player_id, transaction_service
         )
 
         # Ensure finalized_at has UTC timezone
         if 'finalized_at' in results and results['finalized_at']:
             results['finalized_at'] = ensure_utc(results['finalized_at'])
 
-        return WordSetResults(**results)
+        return PhraseSetResults(**results)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error getting wordset results: {e}")
+        logger.error(f"Error getting phraseset results: {e}")
         raise HTTPException(status_code=500, detail=str(e))

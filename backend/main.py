@@ -53,12 +53,12 @@ app.add_middleware(
 )
 
 # Import and register routers
-from backend.routers import health, player, rounds, wordsets
+from backend.routers import health, player, rounds, phrasesets
 
 app.include_router(health.router, tags=["health"])
 app.include_router(player.router, prefix="/player", tags=["player"])
 app.include_router(rounds.router, prefix="/rounds", tags=["rounds"])
-app.include_router(wordsets.router, prefix="/wordsets", tags=["wordsets"])
+app.include_router(phrasesets.router, prefix="/phrasesets", tags=["phrasesets"])
 
 
 @app.get("/")
@@ -82,13 +82,13 @@ async def startup_event():
     logger.info(f"Redis: {'Enabled' if settings.redis_url else 'In-Memory Fallback'}")
     logger.info("=" * 60)
 
-    # Initialize word validator
-    from backend.services import get_word_validator
+    # Initialize phrase validator
+    from backend.services.phrase_validator import get_phrase_validator
     try:
-        validator = get_word_validator()
-        logger.info(f"Word validator initialized with {len(validator.dictionary)} words")
+        validator = get_phrase_validator()
+        logger.info(f"Phrase validator initialized with {len(validator.dictionary)} words")
     except Exception as e:
-        logger.error(f"Failed to initialize word validator: {e}")
+        logger.error(f"Failed to initialize phrase validator: {e}")
         logger.error("Run: python3 scripts/download_dictionary.py")
 
     # Auto-seed prompts if database is empty

@@ -10,13 +10,13 @@ import logging
 from backend.models.player import Player
 from backend.models.prompt import Prompt
 from backend.models.round import Round
-from backend.models.wordset import WordSet
+from backend.models.phraseset import PhraseSet
 from backend.models.player_abandoned_prompt import PlayerAbandonedPrompt
 from backend.services.transaction_service import TransactionService
 from backend.services.queue_service import QueueService
-from backend.services.word_validator import get_word_validator
+from backend.services.phrase_validator import get_phrase_validator
 from backend.config import get_settings
-from backend.utils.exceptions import InvalidWordError, DuplicateWordError, RoundNotFoundError, RoundExpiredError
+from backend.utils.exceptions import InvalidPhraseError, DuplicatePhraseError, RoundNotFoundError, RoundExpiredError
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -27,7 +27,7 @@ class RoundService:
 
     def __init__(self, db: AsyncSession):
         self.db = db
-        self.word_validator = get_word_validator()
+        self.phrase_validator = get_phrase_validator()
 
     async def start_prompt_round(self, player: Player, transaction_service: TransactionService) -> Round:
         """
@@ -97,10 +97,10 @@ class RoundService:
         logger.info(f"Started prompt round {round_object.round_id} for player {player.player_id}")
         return round_object
 
-    async def submit_prompt_word(
+    async def submit_prompt_phrase(
         self,
         round_id: UUID,
-        word: str,
+        phrase: str,
         player: Player,
         transaction_service: TransactionService,
     ) -> Optional[Round]:
@@ -121,12 +121,12 @@ class RoundService:
             raise RoundExpiredError("Round expired past grace period")
 
         # Validate word
-        is_valid, error = self.word_validator.validate(word)
+        is_valid, error = self.phrase_validator.validate(phrase)
         if not is_valid:
-            raise InvalidWordError(error)
+            raise InvalidPhraseError(error)
 
         # Update round
-        round_object.submitted_word = word.upper()
+        round_object.submitted_phrase = phrase.strip().upper()
         round_object.status = "submitted"
 
         # Clear player's active round
@@ -138,7 +138,7 @@ class RoundService:
         await self.db.commit()
         await self.db.refresh(round_object)
 
-        logger.info(f"Submitted word for prompt round {round_id}: {word}")
+        logger.info(f"Submitted phrase for prompt round {round_id}: {phrase}")
         return round_object
 
     async def start_copy_round(self, player: Player, transaction_service: TransactionService) -> Round:
@@ -229,7 +229,7 @@ class RoundService:
             )
 
             # Create round
-            round = Round(
+            round_object = Round(
                 round_id=uuid.uuid4(),
                 player_id=player.player_id,
                 round_type="copy",
@@ -238,76 +238,92 @@ class RoundService:
                 expires_at=datetime.now(UTC) + timedelta(seconds=settings.copy_round_seconds),
                 # Copy-specific fields
                 prompt_round_id=prompt_round_id,
-                original_word=prompt_round.submitted_word,
+                original_phrase=prompt_round.submitted_phrase,
                 system_contribution=system_contribution,
             )
 
             # Add round to session BEFORE setting foreign key reference
-            self.db.add(round)
+            self.db.add(round_object)
             await self.db.flush()
 
             # Set player's active round (after adding round to session)
-            player.active_round_id = round.round_id
+            player.active_round_id = round_object.round_id
 
             # Commit all changes atomically INSIDE the lock
             await self.db.commit()
-            await self.db.refresh(round)
+            await self.db.refresh(round_object)
 
         logger.info(
-            f"Started copy round {round.round_id} for player {player.player_id}, "
+            f"Started copy round {round_object.round_id} for player {player.player_id}, "
             f"cost=${copy_cost}, discount={is_discounted}"
         )
-        return round
+        return round_object
 
-    async def submit_copy_word(
+    async def submit_copy_phrase(
         self,
         round_id: UUID,
-        word: str,
+        phrase: str,
         player: Player,
         transaction_service: TransactionService,
     ) -> Round:
-        """Submit word for copy round."""
+        """Submit phrase for copy round."""
         # Get round
-        round = await self.db.get(Round, round_id)
-        if not round or round.player_id != player.player_id:
+        round_object = await self.db.get(Round, round_id)
+        if not round_object or round_object.player_id != player.player_id:
             raise RoundNotFoundError("Round not found")
 
-        if round.status != "active":
+        if round_object.status != "active":
             raise ValueError("Round is not active")
 
         # Check grace period
         # Make grace_cutoff timezone-aware if expires_at is naive (SQLite stores naive)
-        expires_at_aware = round.expires_at.replace(tzinfo=UTC) if round.expires_at.tzinfo is None else round.expires_at
+        expires_at_aware = round_object.expires_at.replace(tzinfo=UTC) if round_object.expires_at.tzinfo is None else round_object.expires_at
         grace_cutoff = expires_at_aware + timedelta(seconds=settings.grace_period_seconds)
         if datetime.now(UTC) > grace_cutoff:
             raise RoundExpiredError("Round expired past grace period")
 
-        # Validate word (including duplicate check)
-        is_valid, error = self.word_validator.validate_copy(word, round.original_word)
+        # Determine if another copy already exists for duplicate/similarity checks
+        other_copy_phrase = None
+        if round_object.prompt_round_id:
+            result = await self.db.execute(
+                select(Round.copy_phrase)
+                .where(Round.prompt_round_id == round_object.prompt_round_id)
+                .where(Round.round_type == "copy")
+                .where(Round.status == "submitted")
+                .where(Round.round_id != round_id)
+            )
+            other_copy_phrase = result.scalars().first()
+
+        # Validate phrase (including duplicate check)
+        is_valid, error = self.phrase_validator.validate_copy(
+            phrase,
+            round_object.original_phrase,
+            other_copy_phrase,
+        )
         if not is_valid:
-            if "same word" in error.lower():
-                raise DuplicateWordError(error)
-            raise InvalidWordError(error)
+            if "same phrase" in error.lower():
+                raise DuplicatePhraseError(error)
+            raise InvalidPhraseError(error)
 
         # Update round
-        round.copy_word = word.upper()
-        round.status = "submitted"
+        round_object.copy_phrase = phrase.strip().upper()
+        round_object.status = "submitted"
 
         # Clear player's active round
         player.active_round_id = None
 
         await self.db.commit()
 
-        # Check if we can create wordset
-        await self._check_and_create_wordset(round.prompt_round_id)
+        # Check if we can create phraseset
+        await self._check_and_create_phraseset(round_object.prompt_round_id)
 
-        await self.db.refresh(round)
+        await self.db.refresh(round_object)
 
-        logger.info(f"Submitted word for copy round {round_id}: {word}")
-        return round
+        logger.info(f"Submitted phrase for copy round {round_id}: {phrase}")
+        return round_object
 
-    async def _check_and_create_wordset(self, prompt_round_id: UUID):
-        """Check if we have 2 copies for prompt, create wordset if so."""
+    async def _check_and_create_phraseset(self, prompt_round_id: UUID):
+        """Check if we have 2 copies for prompt, create phraseset if so."""
         # Get all submitted copy rounds for this prompt
         result = await self.db.execute(
             select(Round)
@@ -337,30 +353,30 @@ class RoundService:
             total_pool = settings.wordset_prize_pool
             system_contribution = copy1.system_contribution + copy2.system_contribution
 
-            # Create wordset
-            wordset = WordSet(
-                wordset_id=uuid.uuid4(),
+            # Create phraseset
+            phraseset = PhraseSet(
+                phraseset_id=uuid.uuid4(),
                 prompt_round_id=prompt_round_id,
                 copy_round_1_id=copy1.round_id,
                 copy_round_2_id=copy2.round_id,
                 prompt_text=prompt_round.prompt_text,
-                original_word=prompt_round.submitted_word,
-                copy_word_1=copy1.copy_word,
-                copy_word_2=copy2.copy_word,
+                original_phrase=prompt_round.submitted_phrase,
+                copy_phrase_1=copy1.copy_phrase,
+                copy_phrase_2=copy2.copy_phrase,
                 status="open",
                 vote_count=0,
                 total_pool=total_pool,
                 system_contribution=system_contribution,
             )
 
-            self.db.add(wordset)
+            self.db.add(phraseset)
 
             # Add to voting queue
-            QueueService.add_wordset_to_queue(wordset.wordset_id)
+            QueueService.add_wordset_to_queue(phraseset.phraseset_id)
 
             await self.db.commit()
 
-            logger.info(f"Created wordset {wordset.wordset_id} from prompt {prompt_round_id}")
+            logger.info(f"Created phraseset {phraseset.phraseset_id} from prompt {prompt_round_id}")
 
     async def handle_timeout(
         self,
@@ -370,14 +386,14 @@ class RoundService:
         """
         Handle timeout for abandoned round.
 
-        - Prompt: Refund $90, keep $10 penalty, remove from queue
-        - Copy: Refund $90, keep $10 penalty, return prompt to queue, track cooldown
+        - Prompt: Refund $95, keep $5 penalty, remove from queue
+        - Copy: Refund $95, keep $5 penalty, return prompt to queue, track cooldown
         """
-        round = await self.db.get(Round, round_id)
-        if not round:
+        round_object = await self.db.get(Round, round_id)
+        if not round_object:
             return
 
-        expires_at = round.expires_at
+        expires_at = round_object.expires_at
         expires_at_aware = (
             expires_at.replace(tzinfo=UTC) if expires_at and expires_at.tzinfo is None else expires_at
         )
@@ -392,61 +408,61 @@ class RoundService:
             return
 
         # If round already resolved, ensure active flag cleared and stop
-        if round.status != "active":
-            player = await self.db.get(Player, round.player_id)
+        if round_object.status != "active":
+            player = await self.db.get(Player, round_object.player_id)
             if player and player.active_round_id == round_id:
                 player.active_round_id = None
                 await self.db.commit()
             return
 
         # Mark as expired/abandoned
-        if round.round_type == "prompt":
-            round.status = "expired"
-            refund_amount = settings.prompt_cost - (settings.prompt_cost // 10)  # Refund $90
+        if round_object.round_type == "prompt":
+            round_object.status = "expired"
+            refund_amount = settings.prompt_cost - (settings.prompt_cost // 20)  # Refund 95% of cost
 
             # Create refund transaction
             await transaction_service.create_transaction(
-                round.player_id,
+                round_object.player_id,
                 refund_amount,
                 "refund",
-                round.round_id,
+                round_object.round_id,
             )
 
             logger.info(f"Prompt round {round_id} expired, refunded ${refund_amount}")
 
-        elif round.round_type == "copy":
-            round.status = "abandoned"
-            refund_amount = round.cost - (round.cost // 10)  # Refund 90% of cost
+        elif round_object.round_type == "copy":
+            round_object.status = "abandoned"
+            refund_amount = round_object.cost - (round_object.cost // 20)  # Refund 95% of cost
 
             # Create refund transaction
             await transaction_service.create_transaction(
-                round.player_id,
+                round_object.player_id,
                 refund_amount,
                 "refund",
-                round.round_id,
+                round_object.round_id,
             )
 
             # Return prompt to queue
-            QueueService.add_prompt_to_queue(round.prompt_round_id)
+            QueueService.add_prompt_to_queue(round_object.prompt_round_id)
 
             # Track abandonment for cooldown
             abandonment = PlayerAbandonedPrompt(
                 id=uuid.uuid4(),
-                player_id=round.player_id,
-                prompt_round_id=round.prompt_round_id,
+                player_id=round_object.player_id,
+                prompt_round_id=round_object.prompt_round_id,
             )
             self.db.add(abandonment)
 
             logger.info(
                 f"Copy round {round_id} abandoned, refunded ${refund_amount}, "
-                f"returned prompt {round.prompt_round_id} to queue"
+                f"returned prompt {round_object.prompt_round_id} to queue"
             )
         else:
-            round.status = "expired"
-            logger.info(f"Round {round_id} of type {round.round_type} expired")
+            round_object.status = "expired"
+            logger.info(f"Round {round_id} of type {round_object.round_type} expired")
 
         # Clear player's active round if still set
-        player = await self.db.get(Player, round.player_id)
+        player = await self.db.get(Player, round_object.player_id)
         if player and player.active_round_id == round_id:
             player.active_round_id = None
 
@@ -470,15 +486,15 @@ class RoundService:
         # Note: This requires iterating the queue which is not efficient
         # For MVP with in-memory queues, we'll query the database instead
 
-        # Count submitted prompt rounds that belong to this player AND don't have wordsets yet
+        # Count submitted prompt rounds that belong to this player AND don't have phrasesets yet
         # (only count prompts still waiting for copies, not those already processed)
         result = await self.db.execute(
             select(func.count(Round.round_id))
-            .join(WordSet, WordSet.prompt_round_id == Round.round_id, isouter=True)
+            .join(PhraseSet, PhraseSet.prompt_round_id == Round.round_id, isouter=True)
             .where(Round.player_id == player_id)
             .where(Round.round_type == "prompt")
             .where(Round.status == "submitted")
-            .where(WordSet.wordset_id == None)  # Exclude prompts that already have wordsets
+            .where(PhraseSet.phraseset_id == None)  # Exclude prompts that already have phrasesets
         )
         player_prompts_count = result.scalar()
 
@@ -486,14 +502,14 @@ class RoundService:
         result = await self.db.execute(
             select(func.count(Round.round_id))
             .join(
-                WordSet,
-                WordSet.prompt_round_id == Round.prompt_round_id,
+                PhraseSet,
+                PhraseSet.prompt_round_id == Round.prompt_round_id,
                 isouter=True,
             )
             .where(Round.round_type == "copy")
             .where(Round.player_id == player_id)
             .where(Round.status == "submitted")
-            .where(WordSet.wordset_id == None)
+            .where(PhraseSet.phraseset_id == None)
         )
         already_copied_waiting = result.scalar()
 
