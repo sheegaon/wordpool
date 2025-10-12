@@ -1,6 +1,6 @@
 """Round service for managing prompt, copy, and vote rounds."""
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from datetime import datetime, UTC, timedelta
 from typing import Optional
 from uuid import UUID
@@ -87,8 +87,21 @@ class RoundService:
             # Set player's active round (after adding round to session)
             player.active_round_id = round_object.round_id
 
-            # Increment usage count while prompt remains attached to this session for atomic commit
-            prompt.usage_count += 1
+            # Increment usage count while prompt remains attached to this session for atomic commit.
+            # SQLite stores UUID strings inconsistently (with/without hyphens) depending on how the data was seeded,
+            # so match on both representations to keep deployments healthy.
+            prompt_id_hex = prompt.prompt_id.hex
+            prompt_id_str = str(prompt.prompt_id)
+            result = await self.db.execute(
+                text(
+                    "UPDATE prompts "
+                    "SET usage_count = usage_count + 1 "
+                    "WHERE prompt_id IN (:prompt_id_hex, :prompt_id_str)"
+                ),
+                {"prompt_id_hex": prompt_id_hex, "prompt_id_str": prompt_id_str},
+            )
+            if result.rowcount == 0:
+                raise RuntimeError("Failed to update prompt usage count")
 
             # Commit all changes atomically INSIDE the lock
             await self.db.commit()
