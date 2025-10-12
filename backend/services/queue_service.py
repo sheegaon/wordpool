@@ -66,8 +66,8 @@ class QueueService:
     @staticmethod
     def add_wordset_to_queue(phraseset_id: UUID):
         """Add phraseset to voting queue."""
-        queue_client.push(WORDSET_QUEUE, {"wordset_id": str(phraseset_id)})
-        logger.info(f"Added phraseset to queue: {wordset_id}")
+        queue_client.push(WORDSET_QUEUE, {"phraseset_id": str(phraseset_id)})
+        logger.info(f"Added phraseset to queue: {phraseset_id}")
 
     @staticmethod
     def get_wordsets_waiting() -> int:

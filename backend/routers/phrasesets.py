@@ -69,7 +69,7 @@ async def submit_vote(
             correct=vote.correct,
             payout=vote.payout,
             original_phrase=phraseset.original_phrase,
-            your_choice=vote.voted_word,
+            your_choice=vote.voted_phrase,
         )
     except RoundExpiredError as e:
         raise HTTPException(status_code=400, detail={"error": "expired", "message": str(e)})

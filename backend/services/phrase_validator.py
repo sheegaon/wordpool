@@ -1,9 +1,10 @@
 """Phrase validation service with similarity checking."""
 import os
 import re
-from typing import Set
 import logging
-from functools import lru_cache
+from typing import Set
+
+from sklearn.metrics.pairwise import cosine_similarity
 
 from backend.config import get_settings
 from backend.utils.exceptions import InvalidPhraseError, DuplicatePhraseError, PhraseTooSimilarError
@@ -62,8 +63,6 @@ class PhraseValidator:
             Similarity score between 0.0 and 1.0
         """
         try:
-            from sklearn.metrics.pairwise import cosine_similarity
-
             # Normalize phrases
             phrase1 = phrase1.strip().lower()
             phrase2 = phrase2.strip().lower()
