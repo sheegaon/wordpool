@@ -45,13 +45,35 @@ class RoundService:
         lock_name = f"start_prompt_round:{player.player_id}"
         with lock_client.lock(lock_name, timeout=10):
             # Get random enabled prompt (inside lock to keep session consistent)
-            result = await self.db.execute(
+            # Prefer prompts the player has not yet seen to avoid repeats until
+            # all prompts have been exhausted.
+            seen_prompts_subquery = (
+                select(Round.prompt_id)
+                .where(Round.player_id == player.player_id)
+                .where(Round.round_type == "prompt")
+                .where(Round.prompt_id.is_not(None))
+                .distinct()
+            )
+
+            prompt_stmt = (
                 select(Prompt)
                 .where(Prompt.enabled == True)
+                .where(Prompt.prompt_id.not_in(seen_prompts_subquery))
                 .order_by(func.random())
                 .limit(1)
             )
+            result = await self.db.execute(prompt_stmt)
             prompt = result.scalar_one_or_none()
+
+            # If the player has seen every prompt, allow repeats.
+            if not prompt:
+                result = await self.db.execute(
+                    select(Prompt)
+                    .where(Prompt.enabled == True)
+                    .order_by(func.random())
+                    .limit(1)
+                )
+                prompt = result.scalar_one_or_none()
 
             if not prompt:
                 raise ValueError("No prompts available in library")
