@@ -525,7 +525,7 @@ class TestCompleteGameFlow:
                         vote_result = vote_submit.json()
                         assert "correct" in vote_result
                         assert "payout" in vote_result
-                        assert "original_word" in vote_result
+                        assert "original_phrase" in vote_result  # Changed from original_word to original_phrase
 
                 v1.close()
                 voter_client.close()

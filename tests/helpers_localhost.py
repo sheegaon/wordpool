@@ -257,12 +257,15 @@ class AssertionHelper:
         """Assert common round response fields."""
         assert "round_id" in data, "Missing round_id"
         assert "expires_at" in data, "Missing expires_at"
-        assert "cost" in data, "Missing cost"
+
+        # Vote rounds don't include cost in response
+        if round_type != "vote":
+            assert "cost" in data, "Missing cost"
 
         if round_type == "prompt":
             assert "prompt_text" in data, "Missing prompt_text"
         elif round_type == "copy":
-            assert "original_word" in data, "Missing original_word"
+            assert "original_phrase" in data, "Missing original_phrase"  # Changed from original_word
         elif round_type == "vote":
             assert "phraseset_id" in data, "Missing phraseset_id"  # Changed from wordset_id
             assert "phrases" in data, "Missing phrases"  # Changed from words
@@ -291,7 +294,7 @@ class AssertionHelper:
         assert "correct" in data
         assert isinstance(data["correct"], bool)
         assert "payout" in data
-        assert "original_word" in data
+        assert "original_phrase" in data  # Changed from original_word to original_phrase
         assert "your_choice" in data
 
 
