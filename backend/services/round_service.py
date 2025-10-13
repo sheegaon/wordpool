@@ -55,24 +55,16 @@ class RoundService:
                 .distinct()
             )
 
-            prompt_stmt = (
-                select(Prompt)
-                .where(Prompt.enabled == True)
-                .where(Prompt.prompt_id.not_in(seen_prompts_subquery))
-                .order_by(func.random())
-                .limit(1)
-            )
-            result = await self.db.execute(prompt_stmt)
+            base_stmt = select(Prompt).where(Prompt.enabled == True)
+
+            # Try to get an unseen prompt first
+            prompt_stmt = base_stmt.where(Prompt.prompt_id.not_in(seen_prompts_subquery))
+            result = await self.db.execute(prompt_stmt.order_by(func.random()).limit(1))
             prompt = result.scalar_one_or_none()
 
             # If the player has seen every prompt, allow repeats.
             if not prompt:
-                result = await self.db.execute(
-                    select(Prompt)
-                    .where(Prompt.enabled == True)
-                    .order_by(func.random())
-                    .limit(1)
-                )
+                result = await self.db.execute(base_stmt.order_by(func.random()).limit(1))
                 prompt = result.scalar_one_or_none()
 
             if not prompt:
