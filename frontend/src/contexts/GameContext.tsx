@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import apiClient, { extractErrorMessage } from '../api/client';
-import type { Player, ActiveRound, PendingResult, RoundAvailability } from '../api/types';
+import type {
+  Player,
+  ActiveRound,
+  PendingResult,
+  RoundAvailability,
+  PhrasesetDashboardSummary,
+  UnclaimedResult,
+} from '../api/types';
 
 interface GameContextType {
   // State
@@ -9,6 +16,8 @@ interface GameContextType {
   player: Player | null;
   activeRound: ActiveRound | null;
   pendingResults: PendingResult[];
+  phrasesetSummary: PhrasesetDashboardSummary | null;
+  unclaimedResults: UnclaimedResult[];
   roundAvailability: RoundAvailability | null;
   loading: boolean;
   error: string | null;
@@ -19,6 +28,8 @@ interface GameContextType {
   refreshBalance: () => Promise<void>;
   refreshCurrentRound: () => Promise<void>;
   refreshPendingResults: () => Promise<void>;
+  refreshPhrasesetSummary: () => Promise<void>;
+  refreshUnclaimedResults: () => Promise<void>;
   refreshRoundAvailability: () => Promise<void>;
   claimBonus: () => Promise<void>;
   clearError: () => void;
@@ -36,6 +47,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [player, setPlayer] = useState<Player | null>(null);
   const [activeRound, setActiveRound] = useState<ActiveRound | null>(null);
   const [pendingResults, setPendingResults] = useState<PendingResult[]>([]);
+  const [phrasesetSummary, setPhrasesetSummary] = useState<PhrasesetDashboardSummary | null>(null);
+  const [unclaimedResults, setUnclaimedResults] = useState<UnclaimedResult[]>([]);
   const [roundAvailability, setRoundAvailability] = useState<RoundAvailability | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +70,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayer(null);
     setActiveRound(null);
     setPendingResults([]);
+    setPhrasesetSummary(null);
+    setUnclaimedResults([]);
     setRoundAvailability(null);
   }, []);
 
@@ -75,7 +90,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setError(null);
     } catch (err) {
-      // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
       const errorMessage = extractErrorMessage(err);
       setError(errorMessage || 'Failed to fetch balance');
@@ -92,7 +106,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setActiveRound(data);
       setError(null);
     } catch (err) {
-      // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
       setError(extractErrorMessage(err) || 'Failed to fetch current round');
     }
@@ -105,9 +118,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPendingResults(data.pending);
       setError(null);
     } catch (err) {
-      // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
       setError(extractErrorMessage(err) || 'Failed to fetch pending results');
+    }
+  }, [apiKey]);
+
+  const refreshPhrasesetSummary = useCallback(async (signal?: AbortSignal) => {
+    if (!apiKey) return;
+    try {
+      const data = await apiClient.getPhrasesetsSummary(signal);
+      setPhrasesetSummary(data);
+      setError(null);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'CanceledError') return;
+      setError(extractErrorMessage(err) || 'Failed to fetch phraseset summary');
+    }
+  }, [apiKey]);
+
+  const refreshUnclaimedResults = useCallback(async (signal?: AbortSignal) => {
+    if (!apiKey) return;
+    try {
+      const data = await apiClient.getUnclaimedResults(signal);
+      setUnclaimedResults(data.unclaimed);
+      setError(null);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'CanceledError') return;
+      setError(extractErrorMessage(err) || 'Failed to fetch unclaimed results');
     }
   }, [apiKey]);
 
@@ -118,7 +154,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRoundAvailability(data);
       setError(null);
     } catch (err) {
-      // Ignore aborted requests
       if (err instanceof Error && err.name === 'CanceledError') return;
       setError(extractErrorMessage(err) || 'Failed to fetch round availability');
     }
@@ -139,21 +174,28 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [apiKey, refreshBalance]);
 
-  // Initial load when API key is set
+  // Initial load
   useEffect(() => {
     if (!apiKey) return;
 
     const controller = new AbortController();
-
     refreshBalance(controller.signal);
     refreshCurrentRound(controller.signal);
     refreshPendingResults(controller.signal);
+    refreshPhrasesetSummary(controller.signal);
+    refreshUnclaimedResults(controller.signal);
     refreshRoundAvailability(controller.signal);
 
-    return () => {
-      controller.abort();
-    };
-  }, [apiKey, refreshBalance, refreshCurrentRound, refreshPendingResults, refreshRoundAvailability]);
+    return () => controller.abort();
+  }, [
+    apiKey,
+    refreshBalance,
+    refreshCurrentRound,
+    refreshPendingResults,
+    refreshPhrasesetSummary,
+    refreshUnclaimedResults,
+    refreshRoundAvailability,
+  ]);
 
   // Polling intervals
   useEffect(() => {
@@ -161,49 +203,65 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const controllers: AbortController[] = [];
 
-    // Poll balance every 30 seconds
-    const balanceInterval = setInterval(() => {
+    const pushController = () => {
       const controller = new AbortController();
       controllers.push(controller);
+      return controller;
+    };
+
+    const balanceInterval = setInterval(() => {
+      const controller = pushController();
       refreshBalance(controller.signal);
     }, 30000);
 
-    // Poll current round every 5 seconds if there's an active round
     const roundInterval = setInterval(() => {
       if (activeRound?.round_id) {
-        const controller = new AbortController();
-        controllers.push(controller);
+        const controller = pushController();
         refreshCurrentRound(controller.signal);
       }
     }, 5000);
 
-    // Poll pending results every 60 seconds
     const resultsInterval = setInterval(() => {
-      const controller = new AbortController();
-      controllers.push(controller);
+      const controller = pushController();
       refreshPendingResults(controller.signal);
     }, 60000);
 
-    // Poll round availability every 10 seconds when idle
+    const summaryInterval = setInterval(() => {
+      const controller = pushController();
+      refreshPhrasesetSummary(controller.signal);
+    }, 60000);
+
+    const unclaimedInterval = setInterval(() => {
+      const controller = pushController();
+      refreshUnclaimedResults(controller.signal);
+    }, 60000);
+
     const availabilityInterval = setInterval(() => {
       if (!activeRound?.round_id) {
-        const controller = new AbortController();
-        controllers.push(controller);
+        const controller = pushController();
         refreshRoundAvailability(controller.signal);
       }
     }, 10000);
 
     return () => {
-      // Clear intervals
       clearInterval(balanceInterval);
       clearInterval(roundInterval);
       clearInterval(resultsInterval);
+      clearInterval(summaryInterval);
+      clearInterval(unclaimedInterval);
       clearInterval(availabilityInterval);
-
-      // Abort all pending requests
       controllers.forEach(controller => controller.abort());
     };
-  }, [apiKey, activeRound?.round_id, refreshBalance, refreshCurrentRound, refreshPendingResults, refreshRoundAvailability]);
+  }, [
+    apiKey,
+    activeRound?.round_id,
+    refreshBalance,
+    refreshCurrentRound,
+    refreshPendingResults,
+    refreshPhrasesetSummary,
+    refreshUnclaimedResults,
+    refreshRoundAvailability,
+  ]);
 
   const value: GameContextType = {
     apiKey,
@@ -211,6 +269,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     player,
     activeRound,
     pendingResults,
+    phrasesetSummary,
+    unclaimedResults,
     roundAvailability,
     loading,
     error,
@@ -219,6 +279,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshBalance,
     refreshCurrentRound,
     refreshPendingResults,
+    refreshPhrasesetSummary,
+    refreshUnclaimedResults,
     refreshRoundAvailability,
     claimBonus,
     clearError,

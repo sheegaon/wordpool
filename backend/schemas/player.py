@@ -38,7 +38,7 @@ class PendingResult(BaseSchema):
     prompt_text: str
     completed_at: datetime
     role: str  # "prompt" or "copy"
-    payout_collected: bool
+    payout_claimed: bool
 
 
 class PendingResultsResponse(BaseModel):

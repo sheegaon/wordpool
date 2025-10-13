@@ -10,9 +10,12 @@ from backend.schemas.phraseset import (
     VoteRequest,
     VoteResponse,
     PhraseSetResults,
+    PhrasesetDetails,
+    ClaimPrizeResponse,
 )
 from backend.services.transaction_service import TransactionService
 from backend.services.vote_service import VoteService
+from backend.services.phraseset_service import PhrasesetService
 from backend.utils.exceptions import (
     RoundExpiredError,
     AlreadyVotedError,
@@ -82,6 +85,26 @@ async def submit_vote(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/{phraseset_id}/details", response_model=PhrasesetDetails)
+async def get_phraseset_details(
+    phraseset_id: UUID = Path(...),
+    player: Player = Depends(get_current_player),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return full details for a phraseset contribution."""
+    phraseset_service = PhrasesetService(db)
+    try:
+        details = await phraseset_service.get_phraseset_details(phraseset_id, player.player_id)
+        return PhrasesetDetails(**details)
+    except ValueError as exc:
+        message = str(exc)
+        if message == "Phraseset not found":
+            raise HTTPException(status_code=404, detail=message)
+        if message == "Not a contributor to this phraseset":
+            raise HTTPException(status_code=403, detail=message)
+        raise HTTPException(status_code=400, detail=message)
+
+
 @router.get("/{phraseset_id}/results", response_model=PhraseSetResults)
 async def get_phraseset_results(
     phraseset_id: UUID = Path(...),
@@ -107,3 +130,26 @@ async def get_phraseset_results(
     except Exception as e:
         logger.error(f"Error getting phraseset results: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{phraseset_id}/claim", response_model=ClaimPrizeResponse)
+async def claim_phraseset_prize(
+    phraseset_id: UUID = Path(...),
+    player: Player = Depends(get_current_player),
+    db: AsyncSession = Depends(get_db),
+):
+    """Explicitly mark a phraseset prize as claimed."""
+    phraseset_service = PhrasesetService(db)
+    try:
+        result = await phraseset_service.claim_prize(phraseset_id, player.player_id)
+        return ClaimPrizeResponse(**result)
+    except ValueError as exc:
+        message = str(exc)
+        if message == "Phraseset not found":
+            raise HTTPException(status_code=404, detail=message)
+        if message == "Not a contributor to this phraseset":
+            raise HTTPException(status_code=403, detail=message)
+        raise HTTPException(status_code=400, detail=message)
+    except Exception as exc:
+        logger.error("Error claiming prize: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to claim prize")

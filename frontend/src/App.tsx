@@ -8,6 +8,7 @@ import { PromptRound } from './pages/PromptRound';
 import { CopyRound } from './pages/CopyRound';
 import { VoteRound } from './pages/VoteRound';
 import { Results } from './pages/Results';
+import { PhrasesetTracking } from './pages/PhrasesetTracking';
 import { ErrorNotification } from './components/ErrorNotification';
 
 // Protected Route wrapper
@@ -70,6 +71,14 @@ const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute>
               <Results />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/phrasesets"
+          element={
+            <ProtectedRoute>
+              <PhrasesetTracking />
             </ProtectedRoute>
           }
         />
