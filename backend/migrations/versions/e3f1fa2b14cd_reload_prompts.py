@@ -25,6 +25,15 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     """Flush existing prompts and reload from prompt_seeder.PROMPTS."""
     conn = op.get_bind()
+    dialect_name = conn.dialect.name
+    if dialect_name == "postgresql":
+        from sqlalchemy.dialects import postgresql
+
+        uuid_column_type = postgresql.UUID(as_uuid=True)
+        uuid_factory = uuid.uuid4
+    else:
+        uuid_column_type = sa.String(length=36)
+        uuid_factory = lambda: str(uuid.uuid4())
 
     # Clear dependent references to avoid FK violations
     conn.execute(sa.text("UPDATE rounds SET prompt_id = NULL WHERE prompt_id IS NOT NULL"))
@@ -37,7 +46,7 @@ def upgrade() -> None:
 
     prompt_table = sa.table(
         "prompts",
-        sa.column("prompt_id", sa.String()),
+        sa.column("prompt_id", uuid_column_type),
         sa.column("text", sa.String()),
         sa.column("category", sa.String()),
         sa.column("created_at", sa.DateTime(timezone=True)),
@@ -51,7 +60,7 @@ def upgrade() -> None:
         prompt_table,
         [
             {
-                "prompt_id": str(uuid.uuid4()),
+                "prompt_id": uuid_factory(),
                 "text": text,
                 "category": category,
                 "created_at": now,
