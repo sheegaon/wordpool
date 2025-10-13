@@ -208,7 +208,7 @@ class TestQueueStress:
                 word = word_list[i % len(word_list)]
                 auth_client.post(
                     f"/rounds/{round_id}/submit",
-                    json={"word": word}
+                    json={"phrase": word}
                 )
 
             client.close()
@@ -309,10 +309,10 @@ class TestLongRunningOperations:
 
             round_id = round_response.json()["round_id"]
 
-            # Submit word
+            # Submit phrase
             submit_response = auth_client.post(
                 f"/rounds/{round_id}/submit",
-                json={"word": words[i]}
+                json={"phrase": words[i]}
             )
 
             if submit_response.status_code == 200:
@@ -346,24 +346,24 @@ class TestErrorRecovery:
         round_id = round_response.json()["round_id"]
 
         # Try multiple invalid submissions
-        invalid_words = [
+        invalid_phrases = [
             "x",  # too short
-            "verylongwordthatistoobig",  # too long
+            "verylongwordthatistoobig" * 10,  # too long (>100 chars)
             "test123",  # numbers
             "test-word",  # hyphen
         ]
 
-        for word in invalid_words:
+        for phrase in invalid_phrases:
             response = auth_client.post(
                 f"/rounds/{round_id}/submit",
-                json={"word": word}
+                json={"phrase": phrase}
             )
-            assert response.status_code == 400
+            assert response.status_code == 422  # Changed from 400 to 422 for validation errors
 
         # Valid submission should still work
         valid_response = auth_client.post(
             f"/rounds/{round_id}/submit",
-            json={"word": "happy"}
+            json={"phrase": "happy"}
         )
         assert valid_response.status_code == 200
 

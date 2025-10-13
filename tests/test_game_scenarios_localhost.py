@@ -8,7 +8,7 @@ Run with: pytest tests/test_game_scenarios_localhost.py -v
 """
 import pytest
 import time
-from helpers_localhost import (
+from tests.helpers_localhost import (
     PlayerFactory, GameFlowHelper, WordGenerator,
     AssertionHelper, APIClient, cleanup_clients,
     verify_server_is_running
@@ -65,7 +65,7 @@ class TestSinglePlayerJourney:
         round_id, submit_data = GameFlowHelper.complete_prompt_round(client, word)
 
         assert submit_data["success"] is True
-        assert submit_data["word"] == word.upper()
+        assert submit_data["phrase"] == word.upper()  # Changed from "word" to "phrase"
 
         # Check no active round
         current = client.get("/player/current-round").json()
@@ -218,11 +218,11 @@ class TestVotingScenarios:
             vote_data = GameFlowHelper.start_vote_round(client)
             AssertionHelper.assert_round_response(vote_data, "vote")
 
-            # Submit vote for first word
-            wordset_id = vote_data["wordset_id"]
-            chosen_word = vote_data["words"][0]
+            # Submit vote for first phrase
+            phraseset_id = vote_data["phraseset_id"]  # Changed from wordset_id
+            chosen_phrase = vote_data["phrases"][0]  # Changed from words to phrases
 
-            vote_result = GameFlowHelper.submit_vote(client, wordset_id, chosen_word)
+            vote_result = GameFlowHelper.submit_vote(client, phraseset_id, chosen_phrase)
             AssertionHelper.assert_vote_result(vote_result)
 
             # Check payout
@@ -255,10 +255,10 @@ class TestVotingScenarios:
         for player, client in players_clients:
             try:
                 vote_data = GameFlowHelper.start_vote_round(client)
-                wordset_id = vote_data["wordset_id"]
-                chosen_word = vote_data["words"][0]  # All vote for first word
+                phraseset_id = vote_data["phraseset_id"]  # Changed from wordset_id
+                chosen_phrase = vote_data["phrases"][0]  # All vote for first phrase
 
-                GameFlowHelper.submit_vote(client, wordset_id, chosen_word)
+                GameFlowHelper.submit_vote(client, phraseset_id, chosen_phrase)
                 votes_cast += 1
 
             except Exception as e:
@@ -290,12 +290,12 @@ class TestEdgeCasesAndErrors:
         ]
 
         for word in invalid_words:
-            response = client.post(f"/rounds/{round_id}/submit", json={"word": word})
-            assert response.status_code == 400, f"Should reject invalid word: {word}"
+            response = client.post(f"/rounds/{round_id}/submit", json={"phrase": word})
+            assert response.status_code == 422, f"Should reject invalid word: {word}"  # Changed from 400 to 422
 
         # Valid word should still work
         valid_word = WordGenerator.get_word()
-        response = client.post(f"/rounds/{round_id}/submit", json={"word": valid_word})
+        response = client.post(f"/rounds/{round_id}/submit", json={"phrase": valid_word})
         assert response.status_code == 200
 
         client.close()
@@ -330,23 +330,23 @@ class TestEdgeCasesAndErrors:
         try:
             # Cast first vote
             vote_data = GameFlowHelper.start_vote_round(client)
-            wordset_id = vote_data["wordset_id"]
-            chosen_word = vote_data["words"][0]
+            phraseset_id = vote_data["phraseset_id"]  # Changed from wordset_id
+            chosen_phrase = vote_data["phrases"][0]  # Changed from words
 
-            GameFlowHelper.submit_vote(client, wordset_id, chosen_word)
+            GameFlowHelper.submit_vote(client, phraseset_id, chosen_phrase)
 
-            # Try to vote again on same wordset
-            # First need to start another vote round for same wordset
+            # Try to vote again on same phraseset
+            # First need to start another vote round for same phraseset
             vote2_response = client.post("/rounds/vote", json={})
 
             if vote2_response.status_code == 200:
                 vote2_data = vote2_response.json()
 
-                # If we got the same wordset, try to vote again
-                if vote2_data["wordset_id"] == wordset_id:
+                # If we got the same phraseset, try to vote again
+                if vote2_data["phraseset_id"] == phraseset_id:
                     vote_response = client.post(
-                        f"/wordsets/{wordset_id}/vote",
-                        json={"word": vote2_data["words"][0]}
+                        f"/phrasesets/{phraseset_id}/vote",  # Changed endpoint
+                        json={"phrase": vote2_data["phrases"][0]}  # Changed field
                     )
                     # Should fail with conflict or already voted error
                     assert vote_response.status_code in [400, 409]

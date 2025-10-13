@@ -133,7 +133,7 @@ class TestPlayerManagement:
         client = TestClient()  # No API key
         response = client.get("/player/balance")
 
-        assert response.status_code == 401
+        assert response.status_code == 422  # Pydantic validation error for missing auth
         client.close()
 
     def test_rotate_api_key(self, verify_server_running):
@@ -227,7 +227,7 @@ class TestRoundAvailability:
         assert "can_copy" in data
         assert "can_vote" in data
         assert "prompts_waiting" in data
-        assert "wordsets_waiting" in data
+        assert "phrasesets_waiting" in data  # Changed from wordsets_waiting to phrasesets_waiting
         assert "copy_discount_active" in data
         assert "copy_cost" in data
         assert "current_round_id" in data
@@ -275,16 +275,16 @@ class TestPromptRoundFlow:
         prompt_response = auth_client.post("/rounds/prompt", json={})
         round_id = prompt_response.json()["round_id"]
 
-        # Submit word
+        # Submit phrase (changed from "word" to "phrase")
         submit_response = auth_client.post(
             f"/rounds/{round_id}/submit",
-            json={"word": "beautiful"}
+            json={"phrase": "beautiful"}
         )
 
         assert submit_response.status_code == 200
         data = submit_response.json()
         assert data["success"] is True
-        assert data["word"] == "BEAUTIFUL"
+        assert data["phrase"] == "BEAUTIFUL"  # Changed from "word" to "phrase"
 
         # Current round should be cleared
         current_response = auth_client.get("/player/current-round")
@@ -305,13 +305,13 @@ class TestPromptRoundFlow:
         prompt_response = auth_client.post("/rounds/prompt", json={})
         round_id = prompt_response.json()["round_id"]
 
-        # Submit invalid word (not in dictionary or invalid characters)
+        # Submit invalid phrase (contains numbers - validation error)
         submit_response = auth_client.post(
             f"/rounds/{round_id}/submit",
-            json={"word": "zzzzzzzzzzz123"}
+            json={"phrase": "zzzzzzzzzzz123"}
         )
 
-        assert submit_response.status_code == 400
+        assert submit_response.status_code == 422  # Changed from 400 to 422 for validation errors
 
         client.close()
         auth_client.close()
@@ -367,7 +367,7 @@ class TestCopyRoundFlow:
             # Copy round started successfully
             data = response.json()
             assert "round_id" in data
-            assert "original_word" in data
+            assert "original_phrase" in data  # Changed from original_word to original_phrase
             assert "cost" in data
 
         client.close()
@@ -384,10 +384,10 @@ class TestCopyRoundFlow:
         prompt_response = p1_client.post("/rounds/prompt", json={})
         round1_id = prompt_response.json()["round_id"]
 
-        # Submit prompt word
+        # Submit prompt phrase
         p1_client.post(
             f"/rounds/{round1_id}/submit",
-            json={"word": "happy"}
+            json={"phrase": "happy"}
         )
 
         # Create second player for copy round
@@ -410,10 +410,10 @@ class TestCopyRoundFlow:
             original_word = data["original_word"]
             copy_round_id = data["round_id"]
 
-            # Submit different word
+            # Submit different phrase
             submit_response = p2_client.post(
                 f"/rounds/{copy_round_id}/submit",
-                json={"word": "joyful"}
+                json={"phrase": "joyful"}
             )
             assert submit_response.status_code == 200
 
@@ -438,16 +438,16 @@ class TestVoteRoundFlow:
         auth_client = TestClient(api_key)
         response = auth_client.post("/rounds/vote", json={})
 
-        # May fail if no complete wordsets exist
+        # May fail if no complete phrasesets exist
         if response.status_code == 400:
             assert "available" in response.json()["detail"].lower()
         elif response.status_code == 200:
             # Vote round started successfully
             data = response.json()
             assert "round_id" in data
-            assert "wordset_id" in data
-            assert "words" in data
-            assert len(data["words"]) == 3
+            assert "phraseset_id" in data  # Changed from wordset_id to phraseset_id
+            assert "phrases" in data  # Changed from words to phrases
+            assert len(data["phrases"]) == 3
 
         client.close()
         auth_client.close()
@@ -467,7 +467,7 @@ class TestCompleteGameFlow:
         prompt_round = p1.post("/rounds/prompt", json={}).json()
         p1.post(
             f"/rounds/{prompt_round['round_id']}/submit",
-            json={"word": "peaceful"}
+            json={"phrase": "peaceful"}
         )
 
         # Create first copy player
@@ -483,7 +483,7 @@ class TestCompleteGameFlow:
             c1_data = copy1_round.json()
             c1.post(
                 f"/rounds/{c1_data['round_id']}/submit",
-                json={"word": "calm"}
+                json={"phrase": "calm"}
             )
 
             # Create second copy player
@@ -499,7 +499,7 @@ class TestCompleteGameFlow:
                 c2_data = copy2_round.json()
                 c2.post(
                     f"/rounds/{c2_data['round_id']}/submit",
-                    json={"word": "serene"}
+                    json={"phrase": "serene"}
                 )
 
                 # Create voter
@@ -513,12 +513,12 @@ class TestCompleteGameFlow:
                 vote_round = v1.post("/rounds/vote", json={})
                 if vote_round.status_code == 200:
                     vote_data = vote_round.json()
-                    assert len(vote_data["words"]) == 3
+                    assert len(vote_data["phrases"]) == 3  # Changed from words to phrases
 
-                    # Submit vote
+                    # Submit vote (changed endpoint and field names)
                     vote_submit = v1.post(
-                        f"/wordsets/{vote_data['wordset_id']}/vote",
-                        json={"word": vote_data["words"][0]}
+                        f"/phrasesets/{vote_data['phraseset_id']}/vote",
+                        json={"phrase": vote_data["phrases"][0]}
                     )
 
                     if vote_submit.status_code == 200:
@@ -583,10 +583,10 @@ class TestEdgeCases:
         # Player 2 tries to submit to player 1's round
         response = p2.post(
             f"/rounds/{round_id}/submit",
-            json={"word": "test"}
+            json={"phrase": "test"}
         )
 
-        assert response.status_code in [400, 404]
+        assert response.status_code in [404, 422]  # 404 for not found or 422 for validation
 
         # Cleanup
         client1.close()
@@ -607,16 +607,16 @@ class TestEdgeCases:
         # Submit single letter
         submit_response = auth_client.post(
             f"/rounds/{round_id}/submit",
-            json={"word": "a"}
+            json={"phrase": "a"}
         )
 
-        assert submit_response.status_code == 400
+        assert submit_response.status_code == 422  # Changed from 400 to 422 for validation errors
 
         client.close()
         auth_client.close()
 
     def test_word_too_long(self, verify_server_running):
-        """Test submitting word that's too long (>15 chars)."""
+        """Test submitting word that's too long (>100 chars)."""
         client = TestClient()
         create_response = client.post("/player")
         api_key = create_response.json()["api_key"]
@@ -625,13 +625,13 @@ class TestEdgeCases:
         prompt_response = auth_client.post("/rounds/prompt", json={})
         round_id = prompt_response.json()["round_id"]
 
-        # Submit word longer than 15 characters
+        # Submit phrase longer than 100 characters
         submit_response = auth_client.post(
             f"/rounds/{round_id}/submit",
-            json={"word": "verylongwordthatexceedslimit"}
+            json={"phrase": "verylongwordthatexceedslimit" * 5}  # 145 chars
         )
 
-        assert submit_response.status_code == 400
+        assert submit_response.status_code == 422  # Changed from 400 to 422 for validation errors
 
         client.close()
         auth_client.close()
@@ -679,7 +679,7 @@ class TestDataConsistency:
         round_id = prompt_response.json()["round_id"]
         auth_client.post(
             f"/rounds/{round_id}/submit",
-            json={"word": "wonderful"}
+            json={"phrase": "wonderful"}
         )
 
         # Check outstanding prompts increased

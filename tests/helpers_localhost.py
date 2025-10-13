@@ -115,8 +115,8 @@ class GameFlowHelper:
 
     @staticmethod
     def submit_word(client: APIClient, round_id: str, word: str) -> dict:
-        """Submit word to a round."""
-        response = client.post(f"/rounds/{round_id}/submit", json={"word": word})
+        """Submit word/phrase to a round."""
+        response = client.post(f"/rounds/{round_id}/submit", json={"phrase": word})
         if response.status_code != 200:
             raise Exception(f"Failed to submit word: {response.status_code} - {response.text}")
         return response.json()
@@ -165,8 +165,9 @@ class GameFlowHelper:
 
     @staticmethod
     def submit_vote(client: APIClient, wordset_id: str, word: str) -> dict:
-        """Submit vote for a wordset."""
-        response = client.post(f"/wordsets/{wordset_id}/vote", json={"word": word})
+        """Submit vote for a phraseset."""
+        # Changed endpoint from wordsets to phrasesets
+        response = client.post(f"/phrasesets/{wordset_id}/vote", json={"phrase": word})
         if response.status_code != 200:
             raise Exception(f"Failed to vote: {response.status_code} - {response.text}")
         return response.json()
@@ -177,12 +178,12 @@ class GameFlowHelper:
         Start and complete a vote round.
 
         Returns:
-            Tuple of (wordset_id, vote_response)
+            Tuple of (phraseset_id, vote_response)
         """
         vote_data = GameFlowHelper.start_vote_round(client)
-        wordset_id = vote_data["wordset_id"]
-        submit_data = GameFlowHelper.submit_vote(client, wordset_id, word)
-        return wordset_id, submit_data
+        phraseset_id = vote_data["phraseset_id"]  # Changed from wordset_id to phraseset_id
+        submit_data = GameFlowHelper.submit_vote(client, phraseset_id, word)
+        return phraseset_id, submit_data
 
 
 class WordGenerator:
@@ -263,9 +264,9 @@ class AssertionHelper:
         elif round_type == "copy":
             assert "original_word" in data, "Missing original_word"
         elif round_type == "vote":
-            assert "wordset_id" in data, "Missing wordset_id"
-            assert "words" in data, "Missing words"
-            assert len(data["words"]) == 3, "Vote should have 3 words"
+            assert "phraseset_id" in data, "Missing phraseset_id"  # Changed from wordset_id
+            assert "phrases" in data, "Missing phrases"  # Changed from words
+            assert len(data["phrases"]) == 3, "Vote should have 3 phrases"
 
     @staticmethod
     def assert_balance_response(data: dict):
