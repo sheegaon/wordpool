@@ -406,8 +406,8 @@ class TestCopyRoundFlow:
         if copy_response.status_code == 200:
             data = copy_response.json()
             assert "round_id" in data
-            assert "original_word" in data
-            original_word = data["original_word"]
+            assert "original_phrase" in data  # Changed from original_word to original_phrase
+            original_phrase = data["original_phrase"]
             copy_round_id = data["round_id"]
 
             # Submit different phrase
