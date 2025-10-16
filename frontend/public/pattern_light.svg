@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <defs>
+    <!-- Colors -->
+    <!-- Off-white background -->
+    <style>
+      .bg { fill: #FFF6EE; }
+      .teal { fill: #10B4A4; }
+      .deep { fill: #0E6F6A; }
+    </style>
+
+    <!-- Soft drop shadow filter for subtle depth -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feOffset dx="0" dy="1" in="SourceAlpha" result="o"/>
+      <feGaussianBlur in="o" stdDeviation="0.8" result="b"/>
+      <feColorMatrix in="b" type="matrix"
+        values="0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0.12 0" result="s"/>
+      <feMerge>
+        <feMergeNode in="s"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Quote mark glyph -->
+    <symbol id="quote" viewBox="0 0 12 12">
+      <!-- stylized curved quote -->
+      <path d="M3.5 2.5c2 0 3 1.3 3 3.1c0 1.6-1.2 2.9-2.8 2.9c-0.5 0-1-0.1-1.4-0.3c0.3 1.3 1.4 2.3 3.2 2.6l-0.6 1.2c-2.7-0.6-4.3-2.5-4.3-5.1c0-2.5 1.4-4.4 2.9-4.4z"
+            fill="#0B2137" fill-opacity="0.10"/>
+    </symbol>
+
+    <!-- Mini tile (rounded square) -->
+    <symbol id="tile" viewBox="0 0 16 16">
+      <rect x="0" y="0" width="16" height="16" rx="3.2" class="teal" fill-opacity="0.10"/>
+      <!-- inner dot grid -->
+      <g fill="#0E6F6A" fill-opacity="0.10">
+        <circle cx="4" cy="4" r="0.6"/>
+        <circle cx="8" cy="4" r="0.6"/>
+        <circle cx="12" cy="4" r="0.6"/>
+        <circle cx="4" cy="8" r="0.6"/>
+        <circle cx="8" cy="8" r="0.6"/>
+        <circle cx="12" cy="8" r="0.6"/>
+        <circle cx="4" cy="12" r="0.6"/>
+        <circle cx="8" cy="12" r="0.6"/>
+        <circle cx="12" cy="12" r="0.6"/>
+      </g>
+    </symbol>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" x="0" y="0" width="80" height="80"/>
+
+  <!-- Pattern content laid out to seamlessly tile -->
+  <!-- Top-left tile -->
+  <g transform="translate(6,6) rotate(-10 8 8)" filter="url(#softShadow)">
+    <use href="#tile"/>
+  </g>
+
+  <!-- Top-right tile -->
+  <g transform="translate(50,4) rotate(12 8 8)" filter="url(#softShadow)">
+    <use href="#tile"/>
+  </g>
+
+  <!-- Bottom-left tile -->
+  <g transform="translate(2,48) rotate(8 8 8)" filter="url(#softShadow)">
+    <use href="#tile"/>
+  </g>
+
+  <!-- Bottom-right tile -->
+  <g transform="translate(56,56) rotate(-14 8 8)" filter="url(#softShadow)">
+    <use href="#tile"/>
+  </g>
+
+  <!-- Quotes, faint -->
+  <g opacity="0.18">
+    <g transform="translate(28,12) scale(0.85)">
+      <use href="#quote"/>
+      <use href="#quote" transform="translate(10,0) scale(-1,1) translate(-10,0)"/>
+    </g>
+    <g transform="translate(20,50) scale(0.9)">
+      <use href="#quote"/>
+      <use href="#quote" transform="translate(10,0) scale(-1,1) translate(-10,0)"/>
+    </g>
+  </g>
+
+  <!-- Flip arrow hint (very subtle) -->
+  <path d="M46 30c6 0 10 4 10 10" fill="none" stroke="#0B2137" stroke-opacity="0.08" stroke-width="2"
+        stroke-linecap="round"/>
+  <path d="M56 40 l-3 -2 m3 2 l-2 3" fill="none" stroke="#0B2137" stroke-opacity="0.08" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>
