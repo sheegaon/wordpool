@@ -21,15 +21,16 @@
 16. **Self-voting prevention** - Filter at assignment time
 17. **Health check endpoint** - GET /health for monitoring
 18. **Error standardization** - Consistent JSON error format across all endpoints
+19. **API key rotation endpoint** - POST /player/rotate-key (invalidate compromised keys)
+20. **Username-based API key recovery** - POST /player/login to restore lost keys
 
 ### Phase 2 - Polish & Enhancements
 1. **JWT tokens with refresh** - Enhanced authentication beyond API keys
 2. **Transaction history endpoint** - GET /player/transactions with pagination
 3. **Comprehensive player statistics** - Win rates, earnings over time, favorite prompts
-4. **API key rotation** - POST /player/rotate-key endpoint
-5. **Advanced rate limiting** - Per-endpoint, per-player rate limits
-6. **Prompt management** - Track usage_count, avg_copy_quality for rotation
-7. **Admin API endpoints** - Manual injection for testing (AI backup simulation)
+4. **Advanced rate limiting** - Per-endpoint, per-player rate limits
+5. **Prompt management** - Track usage_count, avg_copy_quality for rotation
+6. **Admin API endpoints** - Manual injection for testing (AI backup simulation)
 
 ### Phase 3 - AI & Advanced Features
 1. **AI backup copies/votes** - After 10 minutes inactivity (GPT or embeddings-based)
@@ -85,7 +86,7 @@
 - **HTTPS only**: Enforce in production (Heroku provides this)
 - **Header-based**: `X-API-Key` header required for all authenticated endpoints
 - **Validation**: Check API key on every request, return 401 if invalid/missing
-- **Rate limiting**: Prevent brute force on API keys, limit requests per key
+- **Rate limiting (Planned)**: Prevent brute force on API keys, limit requests per key
 - **No password storage**: MVP has no passwords, just keys (simpler, mobile-friendly)
 - **Future**: Phase 2+ adds JWT with refresh tokens for enhanced security
 
@@ -98,7 +99,7 @@
 
 ### Data Integrity
 - **Atomic transactions**: All balance updates use database transactions
-- **Idempotent prize collection**: ResultView table tracks payout_collected flag
+- **Idempotent prize collection**: ResultView table tracks payout_claimed flag
 - **Transaction ledger**: Every balance change creates Transaction record with balance_after
 - **Optimistic locking**: Prevent race conditions on concurrent operations
 - **Distributed locks**: Use Redis (or fallback) for critical sections (balance updates, queue operations)
@@ -237,7 +238,7 @@
 
 **Result Views Table:**
 - `player_id, phraseset_id` (composite unique, for idempotent collection)
-- `payout_collected` (for finding pending results)
+- `payout_claimed` (for finding pending results)
 
 ---
 
@@ -274,7 +275,7 @@
 - [ ] FAQ page published
 - [ ] Terms of service and privacy policy finalized
 - [ ] Payment processing (if real money) tested and certified
-- [ ] Rate limiting tuned
+- [ ] Rate limiting plan documented (feature pending implementation)
 - [ ] CDN configured for static assets
 - [ ] Logging infrastructure ready
 

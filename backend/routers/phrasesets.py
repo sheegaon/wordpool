@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import get_db
-from backend.dependencies import get_current_player
+from backend.dependencies import get_current_player, enforce_vote_rate_limit
 from backend.models.player import Player
 from backend.models.round import Round
 from backend.models.phraseset import PhraseSet
@@ -40,6 +40,7 @@ def ensure_utc(dt: datetime) -> datetime:
 async def submit_vote(
     phraseset_id: UUID = Path(...),
     request: VoteRequest = ...,
+    _: None = Depends(enforce_vote_rate_limit),
     player: Player = Depends(get_current_player),
     db: AsyncSession = Depends(get_db),
 ):

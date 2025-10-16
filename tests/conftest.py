@@ -1,7 +1,11 @@
 """Pytest configuration and fixtures."""
+import os
 import pytest
 import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
+
 from backend.database import Base
 from backend.config import get_settings
 # Import all models to ensure they're registered
