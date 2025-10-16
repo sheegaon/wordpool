@@ -2,8 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+@layer base {
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Inter, Manrope, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #FFF6EE;
+    color: #0B2137;
+  }
+
+  /* Add perspective for 3D flip animations */
+  * {
+    perspective: 1000px;
+  }
+}
+
+@layer components {
+  /* Pattern background utility */
+  .bg-pattern {
+    background-image: url('/pattern_light.svg');
+    background-size: 80px 80px;
+    background-repeat: repeat;
+  }
+
+  /* Tile card styling */
+  .tile-card {
+    @apply rounded-tile shadow-tile bg-white transition-all duration-300;
+    transform-style: preserve-3d;
+  }
+
+  .tile-card:hover {
+    @apply shadow-tile-sm;
+    transform: translateY(-2px);
+  }
+
+  /* Flip animation trigger */
+  .flip-enter {
+    animation: flip 0.6s ease-in-out;
+  }
+
+  /* Shuffle animation trigger */
+  .shuffle-enter {
+    animation: shuffle 0.4s ease-out;
+  }
+
+  /* Slide up animation trigger */
+  .slide-up-enter {
+    animation: slideUp 0.3s ease-out;
+  }
+}
+
+@layer utilities {
+  /* Text gradient for special headings */
+  .text-gradient-quip {
+    @apply bg-gradient-to-r from-quip-turquoise to-quip-orange bg-clip-text text-transparent;
+  }
+
+  /* Success message styling */
+  .success-message {
+    @apply text-quip-turquoise font-semibold animate-slide-up;
+  }
 }

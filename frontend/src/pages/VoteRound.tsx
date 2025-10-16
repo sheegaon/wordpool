@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 import apiClient, { extractErrorMessage } from '../api/client';
 import { Timer } from '../components/Timer';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useTimer } from '../hooks/useTimer';
+import { getRandomMessage, loadingMessages } from '../utils/brandedMessages';
 import type { VoteState, VoteResponse } from '../api/types';
 
 export const VoteRound: React.FC = () => {
@@ -80,49 +82,53 @@ export const VoteRound: React.FC = () => {
 
   if (!roundData) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-xl">Loading round...</div>
+      <div className="min-h-screen bg-quip-cream bg-pattern flex items-center justify-center">
+        <LoadingSpinner message={loadingMessages.starting} />
       </div>
     );
   }
 
   // Show vote result
   if (voteResult) {
+    const successMsg = voteResult.correct ? getRandomMessage('voteSubmitted') : 'Better luck next time!';
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full bg-white rounded-lg shadow-xl p-8 text-center">
-          <div className={`text-6xl mb-4 ${voteResult.correct ? 'text-green-500' : 'text-red-500'}`}>
-            {voteResult.correct ? '✓' : '✗'}
+      <div className="min-h-screen bg-quip-cream bg-pattern flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full tile-card p-8 text-center flip-enter">
+          <div className={`text-6xl mb-4`}>
+            {voteResult.correct ? '🎯' : '😅'}
           </div>
-          <h2 className={`text-3xl font-bold mb-4 ${voteResult.correct ? 'text-green-600' : 'text-red-600'}`}>
-            {voteResult.correct ? 'Correct!' : 'Incorrect'}
+          <h2 className={`text-3xl font-display font-bold mb-4 ${voteResult.correct ? 'text-quip-turquoise' : 'text-quip-orange'}`}>
+            {voteResult.correct ? successMsg : 'Incorrect'}
           </h2>
-          <p className="text-xl text-gray-700 mb-2">
-            The original phrase was: <strong>{voteResult.original_phrase}</strong>
+          <p className="text-lg text-quip-navy mb-2">
+            The original phrase was: <strong className="text-quip-turquoise">{voteResult.original_phrase}</strong>
           </p>
-          <p className="text-xl text-gray-700 mb-4">
+          <p className="text-lg text-quip-teal mb-4">
             You chose: <strong>{voteResult.your_choice}</strong>
           </p>
           {voteResult.correct && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-2xl font-bold text-green-600">
+            <div className="bg-quip-turquoise bg-opacity-10 border-2 border-quip-turquoise rounded-tile p-4">
+              <p className="text-2xl font-display font-bold text-quip-turquoise">
                 +${voteResult.payout}
               </p>
-              <p className="text-sm text-green-700">Nice job!</p>
+              <p className="text-sm text-quip-teal">Added to your Quip Bank!</p>
             </div>
           )}
-          <p className="text-sm text-gray-500 mt-6">Redirecting to dashboard...</p>
+          <p className="text-sm text-quip-teal mt-6">Returning to dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white rounded-lg shadow-xl p-8">
+    <div className="min-h-screen bg-gradient-to-br from-quip-orange to-quip-orange-deep flex items-center justify-center p-4 bg-pattern">
+      <div className="max-w-2xl w-full tile-card p-8 slide-up-enter">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Vote Round</h1>
-          <p className="text-gray-600">Identify the original phrase</p>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <span className="text-3xl">🎯</span>
+            <h1 className="text-3xl font-display font-bold text-quip-navy">Vote Round</h1>
+          </div>
+          <p className="text-quip-teal">Identify the original phrase</p>
         </div>
 
         {/* Timer */}
@@ -131,9 +137,9 @@ export const VoteRound: React.FC = () => {
         </div>
 
         {/* Prompt */}
-        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6">
-          <p className="text-sm text-blue-700 mb-2 text-center">Prompt:</p>
-          <p className="text-2xl text-center font-semibold text-blue-900">
+        <div className="bg-quip-orange bg-opacity-5 border-2 border-quip-orange rounded-tile p-6 mb-6">
+          <p className="text-sm text-quip-teal mb-2 text-center font-medium">Prompt:</p>
+          <p className="text-2xl text-center font-display font-semibold text-quip-orange-deep">
             {roundData.prompt_text}
           </p>
         </div>
@@ -147,15 +153,16 @@ export const VoteRound: React.FC = () => {
 
         {/* Phrase Choices */}
         <div className="space-y-4 mb-6">
-          <p className="text-center text-gray-700 font-semibold mb-4">
+          <p className="text-center text-quip-navy font-display font-semibold mb-4 text-lg">
             Which phrase is the original?
           </p>
-          {roundData.phrases.map((phrase) => (
+          {roundData.phrases.map((phrase, idx) => (
             <button
               key={phrase}
               onClick={() => handleVote(phrase)}
               disabled={isExpired || isSubmitting}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-colors text-xl"
+              className="w-full bg-quip-orange hover:bg-quip-orange-deep disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-tile transition-all hover:shadow-tile-sm text-xl shuffle-enter"
+              style={{ animationDelay: `${idx * 0.1}s` }}
             >
               {phrase}
             </button>
@@ -163,23 +170,27 @@ export const VoteRound: React.FC = () => {
         </div>
 
         {isExpired && (
-          <div className="text-center text-red-600 font-semibold">
+          <div className="text-center text-quip-orange-deep font-semibold">
             Time's up! You forfeited $1
           </div>
         )}
 
-        {/* Cancel Button */}
+        {/* Home Button */}
         <button
           onClick={() => navigate('/dashboard')}
-          className="w-full mt-4 text-gray-600 hover:text-gray-800 py-2"
+          className="w-full mt-4 flex items-center justify-center gap-2 text-quip-teal hover:text-quip-turquoise py-2 font-medium transition-colors"
+          title="Back to Dashboard"
         >
-          Back to Dashboard
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span>Back to Dashboard</span>
         </button>
 
         {/* Info */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600">
-            <strong>Cost:</strong> $1 • <strong>Correct answer:</strong> +$5 (+$4 net)
+        <div className="mt-6 p-4 bg-quip-orange bg-opacity-5 rounded-tile">
+          <p className="text-sm text-quip-teal">
+            <strong className="text-quip-navy">Cost:</strong> $1 • <strong className="text-quip-navy">Correct answer:</strong> +$5 (+$4 net)
           </p>
         </div>
       </div>

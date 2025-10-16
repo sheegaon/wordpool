@@ -29,6 +29,9 @@ const statusOptions: { value: StatusFilter; label: string }[] = [
 export const PhrasesetTracking: React.FC = () => {
   const navigate = useNavigate();
   const {
+    player,
+    username,
+    logout,
     refreshBalance,
     refreshPhrasesetSummary,
     refreshUnclaimedResults,
@@ -142,54 +145,112 @@ export const PhrasesetTracking: React.FC = () => {
 
   const totalTracked = useMemo(() => phrasesets.length, [phrasesets.length]);
 
+  if (!player) {
+    return (
+      <div className="min-h-screen bg-quip-cream bg-pattern flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-quip-cream bg-pattern">
+      {/* Header - Same as Dashboard */}
+      <div className="bg-white shadow-tile-sm">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            {/* Left: Logo and branding */}
+            <div className="flex items-center gap-4">
+              <img
+                src="/large_icon.png"
+                alt="Quipflip"
+                className="h-12 w-12"
+              />
+              <div>
+                <h1 className="text-xl font-display font-bold text-quip-navy">Quipflip</h1>
+                <p className="text-xs text-quip-teal italic">
+                  Can you flip their quip?
+                </p>
+              </div>
+            </div>
+
+            {/* Center: Username */}
+            <div className="flex-1 text-center">
+              <p className="text-sm text-quip-navy font-semibold">{player.username || username}</p>
+            </div>
+
+            {/* Right: Quip Bank + Logout */}
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-xs text-quip-teal font-medium">Quip Bank</p>
+                <p className="text-2xl font-display font-bold text-quip-turquoise">${player.balance}</p>
+              </div>
+
+              {/* Logout Icon */}
+              <button
+                onClick={logout}
+                className="text-quip-teal hover:text-quip-turquoise transition-colors p-2 hover:bg-quip-cream rounded-lg"
+                title="Logout"
+                aria-label="Logout"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Past Round Tracking</h1>
-            <p className="text-sm text-gray-600">
-              Monitor your prompts and copies throughout the game lifecycle.
+            <h2 className="text-2xl font-display font-bold text-quip-navy">Past Round Tracking</h2>
+            <p className="text-sm text-quip-teal">
+              Monitor your quips throughout the game lifecycle.
             </p>
           </div>
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-gray-600 hover:text-gray-800 text-sm"
+            className="text-quip-teal hover:text-quip-turquoise text-sm font-medium inline-flex items-center gap-2 transition-colors"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
             Back to Dashboard
           </button>
         </div>
 
         {phrasesetSummary && (
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-xs uppercase text-gray-500">In Progress</p>
-              <p className="text-lg font-semibold text-gray-800">
+            <div className="tile-card p-4">
+              <p className="text-xs uppercase text-quip-teal font-medium">In Progress</p>
+              <p className="text-lg font-display font-semibold text-quip-navy">
                 {phrasesetSummary.in_progress.prompts} prompt
                 {phrasesetSummary.in_progress.prompts === 1 ? '' : 's'} &nbsp;•&nbsp;
                 {phrasesetSummary.in_progress.copies} cop
                 {phrasesetSummary.in_progress.copies === 1 ? 'y' : 'ies'}
               </p>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-xs uppercase text-gray-500">Finalized</p>
-              <p className="text-lg font-semibold text-gray-800">
+            <div className="tile-card p-4">
+              <p className="text-xs uppercase text-quip-teal font-medium">Finalized</p>
+              <p className="text-lg font-display font-semibold text-quip-navy">
                 {phrasesetSummary.finalized.prompts} prompt
                 {phrasesetSummary.finalized.prompts === 1 ? '' : 's'} &nbsp;•&nbsp;
                 {phrasesetSummary.finalized.copies} cop
                 {phrasesetSummary.finalized.copies === 1 ? 'y' : 'ies'}
               </p>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-xs uppercase text-gray-500">Unclaimed</p>
-              <p className="text-lg font-semibold text-green-700">
+            <div className="tile-card p-4 bg-quip-turquoise bg-opacity-10">
+              <p className="text-xs uppercase text-quip-teal font-medium">Unclaimed</p>
+              <p className="text-lg font-display font-semibold text-quip-turquoise">
                 ${phrasesetSummary.total_unclaimed_amount}
               </p>
             </div>
           </div>
         )}
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="tile-card p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-3">
               <label className="text-sm text-gray-700 flex items-center gap-2">

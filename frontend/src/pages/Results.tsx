@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import apiClient, { extractErrorMessage } from '../api/client';
+import { loadingMessages } from '../utils/brandedMessages';
 import type { PhrasesetResults } from '../api/types';
 
 export const Results: React.FC = () => {
@@ -47,17 +49,21 @@ export const Results: React.FC = () => {
 
   if (pendingResults.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-quip-cream bg-pattern">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">No Results Available</h1>
-            <p className="text-gray-600 mb-6">
-              You don't have any finalized phrasesets yet. Complete some rounds and check back!
+          <div className="tile-card p-8 text-center">
+            <div className="text-6xl mb-4">📊</div>
+            <h1 className="text-2xl font-display font-bold text-quip-navy mb-4">No Results Available</h1>
+            <p className="text-quip-teal mb-6">
+              You don't have any finalized quipsets yet. Complete some rounds and check back!
             </p>
             <button
               onClick={() => navigate('/dashboard')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg"
+              className="bg-quip-turquoise hover:bg-quip-teal text-white font-bold py-2 px-6 rounded-tile transition-all hover:shadow-tile-sm inline-flex items-center gap-2"
             >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
               Back to Dashboard
             </button>
           </div>
@@ -67,14 +73,17 @@ export const Results: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-quip-cream bg-pattern">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-800">Results</h1>
+          <h1 className="text-3xl font-display font-bold text-quip-navy">Results</h1>
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-gray-600 hover:text-gray-800"
+            className="text-quip-teal hover:text-quip-turquoise font-medium inline-flex items-center gap-2 transition-colors"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
             Back to Dashboard
           </button>
         </div>
@@ -82,24 +91,24 @@ export const Results: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Pending Results List */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-4">
-              <h2 className="font-bold text-lg mb-4">Pending Results</h2>
+            <div className="tile-card p-4">
+              <h2 className="font-display font-bold text-lg mb-4 text-quip-navy">Pending Results</h2>
               <div className="space-y-2">
                 {pendingResults.map((result) => (
                   <button
                     key={result.phraseset_id}
                     onClick={() => handleSelectPhraseset(result.phraseset_id)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                    className={`w-full text-left p-3 rounded-tile transition-all ${
                       selectedPhrasesetId === result.phraseset_id
-                        ? 'bg-blue-100 border-2 border-blue-500'
-                        : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                        ? 'bg-quip-turquoise bg-opacity-10 border-2 border-quip-turquoise'
+                        : 'bg-quip-cream hover:bg-quip-turquoise hover:bg-opacity-5 border-2 border-transparent'
                     }`}
                   >
-                    <p className="text-sm font-semibold text-gray-800 truncate">
+                    <p className="text-sm font-semibold text-quip-navy truncate">
                       {result.prompt_text}
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Role: {result.role} • {result.payout_claimed ? 'Claimed' : 'New!'}
+                    <p className="text-xs text-quip-teal mt-1">
+                      Role: {result.role} • {result.payout_claimed ? 'Claimed' : '✨ New!'}
                     </p>
                   </button>
                 ))}
@@ -110,8 +119,8 @@ export const Results: React.FC = () => {
           {/* Results Details */}
           <div className="lg:col-span-2">
             {loading && (
-              <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-                <p className="text-xl">Loading results...</p>
+              <div className="tile-card p-8 flex justify-center">
+                <LoadingSpinner message={loadingMessages.loading} />
               </div>
             )}
 
@@ -124,36 +133,36 @@ export const Results: React.FC = () => {
             )}
 
             {results && !loading && (
-              <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="tile-card p-6 slide-up-enter">
                 {/* Prompt */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <p className="text-sm text-blue-700 mb-1">Prompt:</p>
-                  <p className="text-xl font-semibold text-blue-900">{results.prompt_text}</p>
+                <div className="bg-quip-navy bg-opacity-5 border-2 border-quip-navy rounded-tile p-4 mb-6">
+                  <p className="text-sm text-quip-teal mb-1 font-medium">Prompt:</p>
+                  <p className="text-xl font-display font-semibold text-quip-navy">{results.prompt_text}</p>
                 </div>
 
                 {/* Your Performance */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                  <h3 className="font-bold text-lg text-green-900 mb-3">Your Performance</h3>
+                <div className="bg-quip-turquoise bg-opacity-10 border-2 border-quip-turquoise rounded-tile p-4 mb-6">
+                  <h3 className="font-display font-bold text-lg text-quip-turquoise mb-3">Your Performance</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-green-700">Your Phrase:</p>
-                      <p className="text-xl font-bold text-green-900">{results.your_phrase}</p>
+                      <p className="text-sm text-quip-teal">Your Phrase:</p>
+                      <p className="text-xl font-bold text-quip-navy">{results.your_phrase}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-green-700">Your Role:</p>
-                      <p className="text-xl font-bold text-green-900 capitalize">{results.your_role}</p>
+                      <p className="text-sm text-quip-teal">Your Role:</p>
+                      <p className="text-xl font-bold text-quip-navy capitalize">{results.your_role}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-green-700">Points Earned:</p>
-                      <p className="text-xl font-bold text-green-900">{results.your_points}</p>
+                      <p className="text-sm text-quip-teal">Points Earned:</p>
+                      <p className="text-xl font-bold text-quip-navy">{results.your_points}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-green-700">Payout:</p>
-                      <p className="text-2xl font-bold text-green-600">${results.your_payout}</p>
+                      <p className="text-sm text-quip-teal">Payout:</p>
+                      <p className="text-2xl font-display font-bold text-quip-turquoise">${results.your_payout}</p>
                     </div>
                   </div>
                   {results.already_collected && (
-                    <p className="text-sm text-green-700 mt-3 italic">
+                    <p className="text-sm text-quip-teal mt-3 italic">
                       ✓ Payout already collected
                     </p>
                   )}
@@ -161,29 +170,29 @@ export const Results: React.FC = () => {
 
                 {/* Vote Results */}
                 <div className="mb-6">
-                  <h3 className="font-bold text-lg text-gray-800 mb-3">Vote Results</h3>
+                  <h3 className="font-display font-bold text-lg text-quip-navy mb-3">Vote Results</h3>
                   <div className="space-y-2">
                     {results.votes
                       .sort((a, b) => b.vote_count - a.vote_count)
                       .map((vote, index) => (
                         <div
                           key={vote.phrase}
-                          className={`p-4 rounded-lg border-2 ${
+                          className={`p-4 rounded-tile border-2 ${
                             vote.is_original
-                              ? 'bg-purple-50 border-purple-500'
-                              : 'bg-gray-50 border-gray-300'
+                              ? 'bg-quip-orange bg-opacity-10 border-quip-orange'
+                              : 'bg-quip-cream border-quip-teal border-opacity-30'
                           }`}
                         >
                           <div className="flex justify-between items-center">
                             <div className="flex items-center gap-3">
-                              <span className="text-2xl font-bold text-gray-400">
+                              <span className="text-2xl font-display font-bold text-quip-teal text-opacity-50">
                                 #{index + 1}
                               </span>
                               <div>
-                                <p className="text-xl font-bold text-gray-800">
+                                <p className="text-xl font-bold text-quip-navy">
                                   {vote.phrase}
                                   {vote.is_original && (
-                                    <span className="ml-2 text-sm bg-purple-500 text-white px-2 py-1 rounded">
+                                    <span className="ml-2 text-sm bg-quip-orange text-white px-2 py-1 rounded-lg font-medium">
                                       ORIGINAL
                                     </span>
                                   )}
@@ -191,17 +200,17 @@ export const Results: React.FC = () => {
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-2xl font-bold text-blue-600">
+                              <p className="text-2xl font-display font-bold text-quip-turquoise">
                                 {vote.vote_count}
                               </p>
-                              <p className="text-sm text-gray-600">votes</p>
+                              <p className="text-sm text-quip-teal">votes</p>
                             </div>
                           </div>
                           {/* Vote bar */}
-                          <div className="mt-2 bg-gray-200 rounded-full h-2">
+                          <div className="mt-2 bg-quip-navy bg-opacity-10 rounded-full h-2">
                             <div
                               className={`h-2 rounded-full ${
-                                vote.is_original ? 'bg-purple-500' : 'bg-blue-500'
+                                vote.is_original ? 'bg-quip-orange' : 'bg-quip-turquoise'
                               }`}
                               style={{
                                 width: `${(vote.vote_count / results.total_votes) * 100}%`,
@@ -214,19 +223,19 @@ export const Results: React.FC = () => {
                 </div>
 
                 {/* Summary */}
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-quip-navy bg-opacity-5 rounded-tile p-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-gray-600">Total Votes:</p>
-                      <p className="font-bold text-gray-800">{results.total_votes}</p>
+                      <p className="text-quip-teal">Total Votes:</p>
+                      <p className="font-bold text-quip-navy">{results.total_votes}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600">Prize Pool:</p>
-                      <p className="font-bold text-gray-800">${results.total_pool}</p>
+                      <p className="text-quip-teal">Prize Pool:</p>
+                      <p className="font-bold text-quip-navy">${results.total_pool}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-gray-600">Finalized At:</p>
-                      <p className="font-bold text-gray-800">
+                      <p className="text-quip-teal">Finalized At:</p>
+                      <p className="font-bold text-quip-navy">
                         {new Date(results.finalized_at).toLocaleString()}
                       </p>
                     </div>

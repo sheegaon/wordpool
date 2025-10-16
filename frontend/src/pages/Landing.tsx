@@ -47,12 +47,30 @@ export const Landing: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
-        <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">
-          Quipflip
-        </h1>
-        <p className="text-center text-gray-600 mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-quip-orange to-quip-turquoise flex items-center justify-center p-4 bg-pattern">
+      <div className="max-w-md w-full tile-card p-8 animate-slide-up">
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <img
+            src="/logo_horiz_light.svg"
+            alt="Quipflip"
+            className="h-20 w-auto"
+          />
+        </div>
+
+        {/* Hero Image */}
+        <div className="flex justify-center mb-6">
+          <img
+            src="/landing_hero_mobile.png"
+            alt="Quipflip Game"
+            className="w-48 h-auto shuffle-enter"
+          />
+        </div>
+
+        <p className="text-center text-quip-navy mb-2 font-display text-lg font-semibold">
+          Can you flip their quip?
+        </p>
+        <p className="text-center text-quip-teal mb-8 text-sm">
           A multiplayer phrase association game
         </p>
 
@@ -69,12 +87,12 @@ export const Landing: React.FC = () => {
             <button
               onClick={handleCreatePlayer}
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+              className="w-full bg-quip-turquoise hover:bg-quip-teal disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm transform hover:-translate-y-0.5"
             >
               {isLoading ? 'Creating Account...' : 'Create New Account'}
             </button>
-            <p className="text-sm text-gray-600 mt-2">
-              Start with $1,000 balance
+            <p className="text-sm text-quip-teal mt-2">
+              Start with $1,000 in your Quip Bank
             </p>
           </div>
 
@@ -87,13 +105,13 @@ export const Landing: React.FC = () => {
                 value={returningUsername}
                 onChange={(e) => setReturningUsername(e.target.value)}
                 placeholder="Enter your username"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-tile mb-3 focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                className="w-full bg-quip-orange hover:bg-quip-orange-deep disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm transform hover:-translate-y-0.5"
               >
                 {isLoading ? 'Logging in...' : 'Login'}
               </button>
@@ -104,11 +122,11 @@ export const Landing: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-8 text-center text-sm text-gray-600">
-          <p className="font-semibold mb-2">How to Play:</p>
-          <p>1. Submit phrases for prompts</p>
-          <p>2. Copy others' phrases without seeing the prompt</p>
-          <p>3. Vote to identify the original phrase</p>
+        <div className="mt-8 text-center text-sm text-quip-navy">
+          <p className="font-display font-semibold mb-2">How to Play:</p>
+          <p className="text-quip-teal">1. Submit phrases for prompts</p>
+          <p className="text-quip-teal">2. Copy others' phrases without seeing the prompt</p>
+          <p className="text-quip-teal">3. Vote to identify the original phrase</p>
         </div>
       </div>
     </div>
