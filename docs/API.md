@@ -1,4 +1,4 @@
-# WordPool API Documentation
+# Quipflip API Documentation
 
 ## Base URL
 
@@ -74,7 +74,7 @@ Get API information.
 **Response:**
 ```json
 {
-  "message": "WordPool API - Phase 1 MVP",
+  "message": "Quipflip API - Phase 1 MVP",
   "version": "1.0.0",
   "environment": "development",
   "docs": "/docs"

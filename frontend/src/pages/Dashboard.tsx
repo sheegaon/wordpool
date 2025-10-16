@@ -160,7 +160,7 @@ export const Dashboard: React.FC = () => {
       <div className="bg-white shadow">
         <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Quip Hunter</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Quipflip</h1>
             <p className="text-sm text-gray-600">
               Signed in as <span className="font-semibold">{player.username || username}</span>
             </p>
