@@ -1,6 +1,7 @@
 """Rate limiting utilities with Redis or in-memory storage."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import math
 import time
@@ -36,25 +37,34 @@ class RateLimiter:
                     "Redis unavailable for rate limiting, using in-memory fallback: %s",
                     exc,
                 )
+                self.redis = None
         else:
             logger.info("Using in-memory rate limiting (Redis URL not provided)")
 
     def _full_key(self, identifier: str) -> str:
         return f"{self.namespace}:{identifier}"
 
-    def check(self, identifier: str, limit: int, window_seconds: int) -> Tuple[bool, Optional[int]]:
+    async def check(
+        self, identifier: str, limit: int, window_seconds: int
+    ) -> Tuple[bool, Optional[int]]:
         """Check whether an identifier is within the allowed rate limit."""
 
         if limit <= 0:
-            return False, window_seconds
+            return True, None
 
         key = self._full_key(identifier)
 
-        if self.backend == "redis":
-            count = self.redis.incr(key)
-            if count == 1:
-                self.redis.expire(key, window_seconds)
-            ttl = self.redis.ttl(key)
+        if self.backend == "redis" and getattr(self, "redis", None) is not None:
+            loop = asyncio.get_running_loop()
+
+            def _redis_update() -> Tuple[int, int]:
+                count = self.redis.incr(key)
+                if count == 1:
+                    self.redis.expire(key, window_seconds)
+                ttl = self.redis.ttl(key)
+                return count, ttl
+
+            count, ttl = await loop.run_in_executor(None, _redis_update)
             retry_after = None
             if count > limit:
                 retry_after = window_seconds if ttl is None or ttl < 0 else ttl
@@ -76,8 +86,9 @@ class RateLimiter:
                 bucket.append(now)
             else:
                 earliest = bucket[0]
-                remaining = earliest + window_seconds - now
-                retry_after = max(0, math.ceil(remaining))
+                elapsed = now - earliest
+                remaining = max(0.0, window_seconds - elapsed)
+                retry_after = math.ceil(remaining)
 
             with self._tracked_keys_lock:
                 self._tracked_keys.add(key)
@@ -89,7 +100,7 @@ class RateLimiter:
 
         full_prefix = self._full_key(prefix) if prefix else None
 
-        if self.backend == "redis":
+        if self.backend == "redis" and getattr(self, "redis", None) is not None:
             with self._tracked_keys_lock:
                 if full_prefix:
                     keys = [k for k in self._tracked_keys if k.startswith(full_prefix)]

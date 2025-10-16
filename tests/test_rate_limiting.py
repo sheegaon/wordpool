@@ -35,7 +35,7 @@ test_app = FastAPI()
 async def general_limit_dependency(x_api_key: str = Header(..., alias="X-API-Key")) -> None:
     """Apply the same general rate limit used by authenticated endpoints."""
 
-    _enforce_rate_limit("general", x_api_key, GENERAL_RATE_LIMIT)
+    await _enforce_rate_limit("general", x_api_key, GENERAL_RATE_LIMIT)
 
 
 @test_app.get("/general", dependencies=[Depends(general_limit_dependency)])
@@ -43,10 +43,7 @@ async def general_endpoint():
     return {"status": "ok"}
 
 
-@test_app.post(
-    "/vote",
-    dependencies=[Depends(general_limit_dependency), Depends(enforce_vote_rate_limit)],
-)
+@test_app.post("/vote", dependencies=[Depends(enforce_vote_rate_limit)])
 async def vote_endpoint():
     return {"status": "ok"}
 
