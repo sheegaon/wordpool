@@ -18,9 +18,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("players", sa.Column("google_sub", sa.String(length=64), nullable=True))
+    op.add_column("players", sa.Column("google_sub", sa.String(length=255), nullable=True))
     op.add_column("players", sa.Column("email", sa.String(length=255), nullable=True))
-    op.create_index("ix_players_google_sub", "players", ["google_sub"], unique=False)
     op.create_unique_constraint("uq_players_google_sub", "players", ["google_sub"])
     op.create_unique_constraint("uq_players_email", "players", ["email"])
 
