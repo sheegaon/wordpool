@@ -89,7 +89,7 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
     window.google.accounts.id.renderButton(buttonRef.current, {
       theme: 'outline',
       size: 'large',
-      width: '100%',
+      width: 300,
     });
 
     setButtonRendered(true);
