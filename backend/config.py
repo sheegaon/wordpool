@@ -58,7 +58,11 @@ class Settings(BaseSettings):
                 self.database_url = f"postgresql+asyncpg://{rest}"
         return self
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 @lru_cache()
