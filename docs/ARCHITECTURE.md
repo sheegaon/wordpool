@@ -4,19 +4,39 @@
 
 Quipflip is a FastAPI-based backend service with a stateless REST API architecture. The backend maintains all game state while the frontend is a presentation layer.
 
+## Project Structure
+
+```
+repo/
+├── backend/              # FastAPI application, SQLAlchemy models, and services
+│   ├── main.py           # ASGI entrypoint
+│   ├── routers/          # Route modules (players, rounds, phrasesets, health)
+│   ├── services/         # Business logic (rounds, votes, phrasesets, players)
+│   ├── models/           # ORM models (Player, Round, PhraseSet, etc.)
+│   ├── utils/            # Queue/lock abstractions, JSON encoders, helpers
+│   └── migrations/       # Alembic migrations
+├── frontend/             # React + TypeScript client (Vite powered)
+├── docs/                 # Architecture, API, data model, and planning docs
+├── scripts/              # Utilities (e.g., dictionary download)
+├── tests/                # Pytest suites (integration coverage)
+└── requirements.txt      # Backend dependencies
+```
+
+The backend is designed around a clear service layer (`backend/services`) that encapsulates database access and business rules. Routers perform authentication and validation before delegating to services. Shared infrastructure concerns (queues, distributed locks, JSON encoding) live in `backend/utils`. The React frontend consumes the documented API but remains optional for backend development.
+
 ### Technology Stack
 - **Framework**: FastAPI (async Python web framework)
 - **Database**: PostgreSQL (production) / SQLite (development)
 - **ORM**: SQLAlchemy (async)
-- **Authentication**: API key-based (UUID v4)
+- **Authentication**: API key-based (UUID v4) with rotation support
 - **Validation**: Pydantic schemas + NASPA word dictionary + sentence-transformers similarity
-- **Rate Limiting**: Redis-backed (or in-memory fallback)
+- **Queueing & Locks**: Redis-backed when available with in-memory/threaded fallback
 
 ### Authentication
 
 API key authentication with UUID v4 keys issued on player creation. See [API.md](API.md) for complete authentication documentation including:
 - Header format (`X-API-Key`)
-- Security considerations
+- Username-based API key recovery (`POST /player/login`)
 - Key rotation endpoint
 
 ---
@@ -26,13 +46,13 @@ API key authentication with UUID v4 keys issued on player creation. See [API.md]
 ### Results Display
 - **Status Area**: Shows all active and completed rounds, split by type (prompt, copy, vote)
 - **Visual Cue**: Small notification when results are ready
-- **Deferred Collection**: Prizes not collected until player views results
+- **Deferred Collection**: Prizes are claimed the first time contributors view results (tracked via `result_views`)
 - **Results Content**:
   - For contributors: All votes shown, reveal which phrase was original, points earned, payout amount
   - For voters: Correct answer revealed immediately after vote submission, \$5 credited if correct. Show voters vote tally thus far and add to status area so players can check back to see final vote tally.
 
 ### Result Timing
-- **For Voters**: Immediate feedback after vote submission (correct/incorrect, original phrase revealed, \$5 gross/\$4 net if correct)
+- **For Voters**: Immediate feedback after vote submission (correct/incorrect, original phrase revealed, \$5 payout if correct)
 - **For Contributors**: Results available immediately after voting period closes
 - **Prize Collection**: Requires viewing results screen to credit account
 
@@ -51,7 +71,7 @@ API key authentication with UUID v4 keys issued on player creation. See [API.md]
 - State management (see [API.md](API.md#frontend-integration) for details)
 
 ### Backend Responsibilities
-- Player accounts and wallet management
+- Player accounts, username recovery, and wallet management
 - Daily login bonus tracking and distribution
 - Phrase validation against NASPA dictionary and semantic similarity
 - Duplicate and similarity detection (copy vs. original, cosine similarity threshold)
@@ -60,11 +80,11 @@ API key authentication with UUID v4 keys issued on player creation. See [API.md]
 - Matchmaking logic
 - Round lifecycle state machine
 - Timer enforcement with grace period
-- Vote counting and finalization triggers
+- Vote counting and finalization triggers with automatic payout calculation
 - Voting timeline management (3-vote 10-min, 5-vote 60-sec windows)
 - Scoring calculations and payout distribution
 - Transaction logging and audit trail
-- Anti-cheat enforcement (self-voting prevention, rate limits)
+- Anti-cheat enforcement (self-voting prevention, duplicate vote checks)
 - Results preparation and storage
 - One-round-at-a-time constraint enforcement
 
