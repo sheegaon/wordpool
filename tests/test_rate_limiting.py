@@ -1,11 +1,24 @@
 """Tests for backend rate limiting utilities."""
+import atexit
 import os
 
 import pytest
 from fastapi import Depends, FastAPI, Header
 from httpx import ASGITransport, AsyncClient
 
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_rate_limit.db"
+_ORIGINAL_DATABASE_URL = os.environ.get("DATABASE_URL")
+_TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_rate_limiting_tests.db"
+os.environ["DATABASE_URL"] = _TEST_DATABASE_URL
+
+
+def _restore_database_url() -> None:
+    if _ORIGINAL_DATABASE_URL is None:
+        os.environ.pop("DATABASE_URL", None)
+    else:
+        os.environ["DATABASE_URL"] = _ORIGINAL_DATABASE_URL
+
+
+atexit.register(_restore_database_url)
 
 from backend.dependencies import (  # noqa: E402
     GENERAL_RATE_LIMIT,
