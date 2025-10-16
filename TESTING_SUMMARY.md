@@ -1,8 +1,8 @@
-# WordPool Localhost Integration Tests - Summary
+# Quipflip Localhost Integration Tests - Summary
 
 ## Overview
 
-A comprehensive integration test suite has been created for testing the WordPool backend API running on localhost. The suite includes 70+ tests covering all API endpoints, game flows, edge cases, and performance scenarios.
+A comprehensive integration test suite has been created for testing the Quipflip backend API running on localhost. The suite includes 70+ tests covering all API endpoints, game flows, edge cases, and performance scenarios.
 
 ## Files Created
 
@@ -389,6 +389,6 @@ Tests are ready for CI/CD:
 
 ---
 
-**The WordPool API now has comprehensive integration test coverage! 🎉**
+**The Quipflip API now has comprehensive integration test coverage! 🎉**
 
 For questions or issues, see the documentation files or check server logs for debugging information.

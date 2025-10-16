@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://wordpool:wordpool@db:5432/wordpool
+      - DATABASE_URL=postgresql+asyncpg://quipflip:quipflip@db:5432/quipflip
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=development
     depends_on:
@@ -19,9 +19,9 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: wordpool
-      POSTGRES_PASSWORD: wordpool
-      POSTGRES_DB: wordpool
+      POSTGRES_USER: quipflip
+      POSTGRES_PASSWORD: quipflip
+      POSTGRES_DB: quipflip
     ports:
       - "5432:5432"
     volumes:

@@ -110,7 +110,7 @@ const api = axios.create({
 
 // Request interceptor to add API key and log requests
 api.interceptors.request.use((config) => {
-  const apiKey = localStorage.getItem('wordpool_api_key');
+  const apiKey = localStorage.getItem('quipflip_api_key');
   if (apiKey && config.headers) {
     config.headers['X-API-Key'] = apiKey;
   }

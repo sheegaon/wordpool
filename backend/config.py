@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./wordpool.db"
+    database_url: str = "sqlite+aiosqlite:///./quipflip.db"
 
     # Redis (optional, falls back to in-memory)
     redis_url: str = ""

@@ -1,5 +1,5 @@
 """
-Real-world game scenario tests for WordPool API on localhost.
+Real-world game scenario tests for Quipflip API on localhost.
 
 These tests simulate actual game flows and player behaviors.
 IMPORTANT: Backend must be running on http://localhost:8000
@@ -460,7 +460,7 @@ class TestQueueDynamics:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("WordPool Game Scenario Tests")
+    print("Quipflip Game Scenario Tests")
     print("=" * 60)
     print("\nBackend must be running: http://localhost:8000")
     print("Start: uvicorn backend.main:app --reload")

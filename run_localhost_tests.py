@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WordPool Localhost Integration Test Runner
+Quipflip Localhost Integration Test Runner
 
 Python-based test runner for integration tests.
 Alternative to the bash script, works cross-platform.
@@ -217,7 +217,7 @@ Examples:
 
 def main():
     """Main entry point."""
-    print_header("WordPool Localhost Integration Tests")
+    print_header("Quipflip Localhost Integration Tests")
 
     # Parse arguments
     if len(sys.argv) > 1 and sys.argv[1] in ["help", "-h", "--help"]:

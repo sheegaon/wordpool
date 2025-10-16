@@ -1,6 +1,6 @@
 # Quick Start: Localhost Integration Tests
 
-Fast guide to running WordPool integration tests.
+Fast guide to running Quipflip integration tests.
 
 ## Prerequisites
 
@@ -154,7 +154,7 @@ uvicorn backend.main:app --reload
 alembic upgrade head
 
 # Restart server with clean database
-rm wordpool.db
+rm quipflip.db
 alembic upgrade head
 uvicorn backend.main:app --reload
 ```
