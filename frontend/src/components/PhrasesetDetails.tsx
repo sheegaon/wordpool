@@ -1,11 +1,12 @@
 import React from 'react';
-import type { PhrasesetDetails as PhrasesetDetailsType } from '../api/types';
+import type { PhrasesetDetails as PhrasesetDetailsType, PhrasesetSummary } from '../api/types';
 import { StatusBadge } from './StatusBadge';
 import { ProgressBar } from './ProgressBar';
 import { ActivityTimeline } from './ActivityTimeline';
 
 interface PhrasesetDetailsProps {
   phraseset: PhrasesetDetailsType | null;
+  summary?: PhrasesetSummary | null;
   loading?: boolean;
   claiming?: boolean;
   onClaim?: (phrasesetId: string) => void;
@@ -22,6 +23,7 @@ const formatDateTime = (value: string | null) => {
 
 export const PhrasesetDetails: React.FC<PhrasesetDetailsProps> = ({
   phraseset,
+  summary,
   loading,
   claiming,
   onClaim,
@@ -29,7 +31,66 @@ export const PhrasesetDetails: React.FC<PhrasesetDetailsProps> = ({
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center text-gray-600">
-        Loading phraseset details…
+        Loading round details…
+      </div>
+    );
+  }
+
+  // If we have a summary but no full phraseset (prompt without copies yet)
+  if (!phraseset && summary) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6 space-y-6">
+        <header className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-2xl font-semibold text-gray-800">{summary.prompt_text}</h2>
+            <StatusBadge status={summary.status} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-xs text-blue-700 uppercase tracking-wide">Your Role</p>
+              <p className="text-lg font-semibold text-blue-900 capitalize">{summary.your_role}</p>
+              {summary.your_phrase && (
+                <>
+                  <p className="text-xs text-blue-700 mt-3 uppercase tracking-wide">Your Phrase</p>
+                  <p className="text-md font-semibold text-blue-900">{summary.your_phrase}</p>
+                </>
+              )}
+            </div>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <p className="text-xs text-gray-700 uppercase tracking-wide">Status</p>
+              <p className="text-lg font-semibold text-gray-900 capitalize">{summary.status.replace('_', ' ')}</p>
+              {summary.vote_count != null && (
+                <>
+                  <p className="text-xs text-gray-700 mt-3 uppercase tracking-wide">Votes</p>
+                  <p className="text-md font-semibold text-gray-900">{summary.vote_count}</p>
+                </>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {(summary.status === 'waiting_copies' || summary.status === 'waiting_copy1') && !summary.phraseset_id && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-sm text-yellow-800">
+              This prompt is waiting for copies to join. Full details will be available once the round is complete.
+            </p>
+          </div>
+        )}
+
+        <section className="text-xs text-gray-600">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <span className="font-semibold text-gray-700">Created:</span>{' '}
+              {formatDateTime(summary.created_at)}
+            </div>
+            {summary.updated_at && (
+              <div>
+                <span className="font-semibold text-gray-700">Updated:</span>{' '}
+                {formatDateTime(summary.updated_at)}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     );
   }
@@ -37,7 +98,7 @@ export const PhrasesetDetails: React.FC<PhrasesetDetailsProps> = ({
   if (!phraseset) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-        Select a phraseset to see more details.
+        Select a round to see more details.
       </div>
     );
   }
