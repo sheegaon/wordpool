@@ -1,81 +1,81 @@
 """Custom exceptions for the application."""
 
 
-class WordPoolException(Exception):
-    """Base exception for WordPool application."""
+class QuipflipException(Exception):
+    """Base exception for Quipflip application."""
     pass
 
 
-class InsufficientBalanceError(WordPoolException):
+class InsufficientBalanceError(QuipflipException):
     """Player does not have enough balance for operation."""
     pass
 
 
-class AlreadyInRoundError(WordPoolException):
+class AlreadyInRoundError(QuipflipException):
     """Player is already in an active round."""
     pass
 
 
-class RoundNotFoundError(WordPoolException):
+class RoundNotFoundError(QuipflipException):
     """Round does not exist or player doesn't have access."""
     pass
 
 
-class RoundExpiredError(WordPoolException):
+class RoundExpiredError(QuipflipException):
     """Round has expired past grace period."""
     pass
 
 
-class InvalidWordError(WordPoolException):
+class InvalidWordError(QuipflipException):
     """Word is invalid (not in dictionary, wrong format, etc.)."""
     pass
 
 
-class InvalidPhraseError(WordPoolException):
+class InvalidPhraseError(QuipflipException):
     """Phrase is invalid (format, length, word count, etc.)."""
     pass
 
 
-class DuplicateWordError(WordPoolException):
+class DuplicateWordError(QuipflipException):
     """Copy word matches original phrase."""
     pass
 
 
-class DuplicatePhraseError(WordPoolException):
+class DuplicatePhraseError(QuipflipException):
     """Copy phrase matches original phrase."""
     pass
 
 
-class PhraseTooSimilarError(WordPoolException):
+class PhraseTooSimilarError(QuipflipException):
     """Copy phrase is too similar to original or other copy phrase."""
     pass
 
 
-class MaxOutstandingPromptsError(WordPoolException):
+class MaxOutstandingPromptsError(QuipflipException):
     """Player has reached maximum outstanding prompts."""
     pass
 
 
-class NoPromptsAvailableError(WordPoolException):
+class NoPromptsAvailableError(QuipflipException):
     """No prompts waiting in queue for copy round."""
     pass
 
 
-class NoWordsetsAvailableError(WordPoolException):
+class NoWordsetsAvailableError(QuipflipException):
     """No wordsets waiting in queue for voting."""
     pass
 
 
-class AlreadyVotedError(WordPoolException):
+class AlreadyVotedError(QuipflipException):
     """Player has already voted on this wordset."""
     pass
 
 
-class DailyBonusNotAvailableError(WordPoolException):
+class DailyBonusNotAvailableError(QuipflipException):
     """Daily bonus has already been claimed today."""
     pass
 
 
-class SelfVotingError(WordPoolException):
+class SelfVotingError(QuipflipException):
     """Cannot vote on own wordset."""
     pass

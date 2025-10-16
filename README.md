@@ -1,10 +1,10 @@
-# WordPool
+# Quipflip
 
 A multiplayer phrase association game with monetary stakes. Players respond to prompts with brief phrases, copy them, and vote to identify originals.
 
 ## 🎮 Game Overview
 
-WordPool is a three-phase game where players:
+Quipflip is a three-phase game where players:
 1. **Prompt** - Submit a phrase for a creative prompt (\$100)
 2. **Copy** - Submit a similar phrase without seeing the prompt (\$100 or \$90)
 3. **Vote** - Identify the original phrase from three options (\$1)

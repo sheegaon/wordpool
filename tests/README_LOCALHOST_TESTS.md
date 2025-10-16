@@ -1,6 +1,6 @@
-# WordPool Localhost Integration Tests
+# Quipflip Localhost Integration Tests
 
-Comprehensive test suite for testing the WordPool backend API running on localhost.
+Comprehensive test suite for testing the Quipflip backend API running on localhost.
 
 ## Overview
 

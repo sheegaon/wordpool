@@ -1,6 +1,6 @@
-# WordPool Frontend
+# Quipflip Frontend
 
-React + TypeScript frontend for the WordPool phrase association game.
+React + TypeScript frontend for the Quipflip phrase association game.
 
 ## Features
 

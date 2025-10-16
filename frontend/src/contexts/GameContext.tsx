@@ -39,10 +39,10 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [apiKey, setApiKeyState] = useState<string | null>(() =>
-    localStorage.getItem('wordpool_api_key')
+    localStorage.getItem('quipflip_api_key')
   );
   const [username, setUsername] = useState<string | null>(() =>
-    localStorage.getItem('wordpool_username')
+    localStorage.getItem('quipflip_username')
   );
   const [player, setPlayer] = useState<Player | null>(null);
   const [activeRound, setActiveRound] = useState<ActiveRound | null>(null);
@@ -54,17 +54,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   const setApiKey = useCallback((key: string, nextUsername?: string) => {
-    localStorage.setItem('wordpool_api_key', key);
+    localStorage.setItem('quipflip_api_key', key);
     setApiKeyState(key);
     if (nextUsername) {
-      localStorage.setItem('wordpool_username', nextUsername);
+      localStorage.setItem('quipflip_username', nextUsername);
       setUsername(nextUsername);
     }
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('wordpool_api_key');
-    localStorage.removeItem('wordpool_username');
+    localStorage.removeItem('quipflip_api_key');
+    localStorage.removeItem('quipflip_username');
     setApiKeyState(null);
     setUsername(null);
     setPlayer(null);
@@ -85,7 +85,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await apiClient.getBalance(signal);
       setPlayer(data);
       if (data.username && data.username !== username) {
-        localStorage.setItem('wordpool_username', data.username);
+        localStorage.setItem('quipflip_username', data.username);
         setUsername(data.username);
       }
       setError(null);

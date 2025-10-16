@@ -30,10 +30,10 @@ alembic upgrade head
 #### B. Reset Database (SQLite)
 ```bash
 # Backup existing database
-cp wordpool.db wordpool.db.backup
+cp quipflip.db quipflip.db.backup
 
 # Remove database
-rm wordpool.db
+rm quipflip.db
 
 # Re-run migrations
 alembic upgrade head
@@ -113,7 +113,7 @@ ModuleNotFoundError: No module named 'helpers_localhost'
 **Solution:**
 ```bash
 # Ensure you're running from project root
-cd /path/to/wordpool
+cd /path/to/quipflip
 
 # Run tests with proper path
 pytest tests/test_integration_localhost.py -v
@@ -142,7 +142,7 @@ uvicorn backend.main:app --reload
 #### B. Database Lock (SQLite)
 ```bash
 # Kill any processes holding database lock
-lsof wordpool.db
+lsof quipflip.db
 
 # Restart server
 ```
@@ -209,7 +209,7 @@ time.sleep(0.5)  # Wait for queue/database
 #### B. Database State
 Some tests depend on database state. Reset database:
 ```bash
-rm wordpool.db
+rm quipflip.db
 alembic upgrade head
 ```
 
@@ -223,16 +223,16 @@ pytest tests/test_integration_localhost.py -v --maxfail=1
 
 **Symptom:**
 ```
-Permission denied: 'wordpool.db'
+Permission denied: 'quipflip.db'
 ```
 
 **Solution:**
 ```bash
 # Check file permissions
-ls -l wordpool.db
+ls -l quipflip.db
 
 # Fix permissions
-chmod 644 wordpool.db
+chmod 644 quipflip.db
 
 # Ensure parent directory is writable
 chmod 755 .
@@ -289,7 +289,7 @@ Expected:
 ### Step 3: Check Database
 ```bash
 # If using SQLite
-sqlite3 wordpool.db "SELECT name FROM sqlite_master WHERE type='table';"
+sqlite3 quipflip.db "SELECT name FROM sqlite_master WHERE type='table';"
 
 # Should show tables: players, prompts, rounds, wordsets, votes, transactions, etc.
 ```
@@ -320,10 +320,10 @@ When all else fails, complete reset:
 # 1. Stop server (Ctrl+C)
 
 # 2. Backup database
-cp wordpool.db wordpool.db.backup
+cp quipflip.db quipflip.db.backup
 
 # 3. Remove database
-rm wordpool.db
+rm quipflip.db
 
 # 4. Re-run migrations
 alembic upgrade head

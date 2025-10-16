@@ -1,4 +1,4 @@
-# WordPool Phase 1 MVP - Implementation Summary
+# Quipflip Phase 1 MVP - Implementation Summary
 
 ## Status: Phase 1 MVP Complete (100%)
 
@@ -87,7 +87,7 @@
 ## Current File Structure
 
 ```
-wordpool/
+quipflip/
 ├── backend/
 │   ├── main.py                 ✅ FastAPI app with CORS & logging
 │   ├── config.py               ✅ Pydantic settings
@@ -165,7 +165,7 @@ wordpool/
 ✅ **Server is running successfully at http://localhost:8000**
 - Interactive docs: http://localhost:8000/docs
 - Health check: http://localhost:8000/health
-- Database: SQLite (wordpool.db)
+- Database: SQLite (quipflip.db)
 - Redis: In-memory fallback mode
 
 ## Quick Start

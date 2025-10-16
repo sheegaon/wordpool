@@ -9,7 +9,7 @@ export const Landing: React.FC = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [returningUsername, setReturningUsername] = useState(
-    () => localStorage.getItem('wordpool_username') ?? ''
+    () => localStorage.getItem('quipflip_username') ?? ''
   );
   const { setApiKey } = useGame();
   const navigate = useNavigate();
@@ -83,7 +83,7 @@ export const Landing: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
         <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">
-          Quip Hunter
+          Quipflip
         </h1>
         <p className="text-center text-gray-600 mb-8">
           A multiplayer phrase association game

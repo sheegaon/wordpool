@@ -1,5 +1,5 @@
 """
-Integration tests for WordPool API running on localhost.
+Integration tests for Quipflip API running on localhost.
 
 IMPORTANT: These tests assume the backend is running on http://localhost:8000
 To run the server: uvicorn backend.main:app --reload
@@ -86,7 +86,7 @@ class TestHealthEndpoints:
         assert "message" in data
         assert "version" in data
         assert data["version"] == "1.0.0"
-        assert "WordPool" in data["message"]
+        assert "Quipflip" in data["message"]
         client.close()
 
 
@@ -729,7 +729,7 @@ class TestConcurrency:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("WordPool Integration Tests")
+    print("Quipflip Integration Tests")
     print("=" * 60)
     print("\nThese tests assume the backend is running on http://localhost:8000")
     print("To start the server: uvicorn backend.main:app --reload")
