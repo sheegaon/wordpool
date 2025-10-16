@@ -9,6 +9,7 @@ from backend.models.daily_bonus import DailyBonus
 from backend.models.result_view import ResultView
 from backend.models.player_abandoned_prompt import PlayerAbandonedPrompt
 from backend.models.prompt_feedback import PromptFeedback
+from backend.models.phraseset_activity import PhrasesetActivity
 
 __all__ = [
     "Player",
@@ -21,4 +22,5 @@ __all__ = [
     "ResultView",
     "PlayerAbandonedPrompt",
     "PromptFeedback",
+    "PhrasesetActivity",
 ]

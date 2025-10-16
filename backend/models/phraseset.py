@@ -42,6 +42,12 @@ class PhraseSet(Base):
     votes = relationship("Vote", back_populates="phraseset")
     vote_rounds = relationship("Round", back_populates="phraseset", foreign_keys="Round.phraseset_id")
     result_views = relationship("ResultView", back_populates="phraseset")
+    activities = relationship(
+        "PhrasesetActivity",
+        back_populates="phraseset",
+        order_by="PhrasesetActivity.created_at",
+        cascade="all, delete-orphan",
+    )
 
     # Indexes
     __table_args__ = (

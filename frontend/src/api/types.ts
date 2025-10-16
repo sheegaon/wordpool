@@ -64,7 +64,7 @@ export interface PendingResult {
   prompt_text: string;
   completed_at: string;
   role: string;
-  payout_collected: boolean;
+  payout_claimed: boolean;
 }
 
 export interface PendingResultsResponse {
@@ -141,6 +141,136 @@ export interface PhrasesetResults {
   total_votes: number;
   already_collected: boolean;
   finalized_at: string;
+}
+
+export type PhrasesetStatus =
+  | 'waiting_copies'
+  | 'waiting_copy1'
+  | 'active'
+  | 'voting'
+  | 'closing'
+  | 'finalized'
+  | 'abandoned';
+
+export interface PhrasesetSummary {
+  phraseset_id: string | null;
+  prompt_round_id: string;
+  prompt_text: string;
+  your_role: 'prompt' | 'copy';
+  your_phrase: string | null;
+  status: PhrasesetStatus;
+  created_at: string;
+  updated_at: string | null;
+  vote_count: number | null;
+  third_vote_at: string | null;
+  fifth_vote_at: string | null;
+  finalized_at: string | null;
+  has_copy1: boolean;
+  has_copy2: boolean;
+  your_payout: number | null;
+  payout_claimed: boolean | null;
+  new_activity_count: number;
+}
+
+export interface PhrasesetListResponse {
+  phrasesets: PhrasesetSummary[];
+  total: number;
+  has_more: boolean;
+}
+
+export interface PhrasesetDashboardCounts {
+  prompts: number;
+  copies: number;
+  unclaimed_prompts: number;
+  unclaimed_copies: number;
+}
+
+export interface PhrasesetDashboardSummary {
+  in_progress: PhrasesetDashboardCounts;
+  finalized: PhrasesetDashboardCounts;
+  total_unclaimed_amount: number;
+}
+
+export interface PhrasesetContributor {
+  player_id: string;
+  username: string;
+  is_you: boolean;
+  phrase?: string | null;
+}
+
+export interface PhrasesetVoteDetail {
+  vote_id: string;
+  voter_id: string;
+  voter_username: string;
+  voted_phrase: string;
+  correct: boolean;
+  voted_at: string;
+}
+
+export interface PhrasesetActivityEntry {
+  activity_id: string;
+  activity_type: string;
+  created_at: string;
+  player_id?: string | null;
+  player_username?: string | null;
+  metadata: Record<string, any>;
+}
+
+export interface PhrasesetDetails {
+  phraseset_id: string;
+  prompt_round_id: string;
+  prompt_text: string;
+  status: PhrasesetStatus;
+  original_phrase: string | null;
+  copy_phrase_1: string | null;
+  copy_phrase_2: string | null;
+  contributors: PhrasesetContributor[];
+  vote_count: number;
+  third_vote_at: string | null;
+  fifth_vote_at: string | null;
+  closes_at: string | null;
+  votes: PhrasesetVoteDetail[];
+  total_pool: number;
+  results: {
+    vote_counts: Record<string, number>;
+    payouts: Record<
+      string,
+      {
+        player_id: string;
+        payout: number;
+        points: number;
+      }
+    >;
+    total_pool: number;
+  } | null;
+  your_role: 'prompt' | 'copy';
+  your_phrase: string | null;
+  your_payout: number | null;
+  payout_claimed: boolean;
+  activity: PhrasesetActivityEntry[];
+  created_at: string;
+  finalized_at: string | null;
+}
+
+export interface ClaimPrizeResponse {
+  success: boolean;
+  amount: number;
+  new_balance: number;
+  already_claimed: boolean;
+}
+
+export interface UnclaimedResult {
+  phraseset_id: string;
+  prompt_text: string;
+  your_role: 'prompt' | 'copy';
+  your_phrase: string | null;
+  finalized_at: string;
+  your_payout: number;
+}
+
+export interface UnclaimedResultsResponse {
+  unclaimed: UnclaimedResult[];
+  total_unclaimed_amount: number;
 }
 
 export interface ApiError {

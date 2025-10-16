@@ -16,6 +16,7 @@ from backend.models.vote import Vote
 from backend.models.result_view import ResultView
 from backend.services.transaction_service import TransactionService
 from backend.services.scoring_service import ScoringService
+from backend.services.activity_service import ActivityService
 from backend.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ class VoteService:
 
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.activity_service = ActivityService(db)
 
     async def _load_available_wordsets_for_player(self, player_id: UUID) -> list[PhraseSet]:
         """Load phrasesets the player can vote on (excludes contributors and already-voted)."""
@@ -236,6 +238,7 @@ class VoteService:
         )
 
         self.db.add(vote)
+        await self.db.flush()
 
         # Give payout if correct
         if correct:
@@ -256,6 +259,17 @@ class VoteService:
         # Update phraseset vote count
         phraseset.vote_count += 1
 
+        await self.activity_service.record_activity(
+            activity_type="vote_submitted",
+            phraseset_id=phraseset.phraseset_id,
+            player_id=player.player_id,
+            metadata={
+                "voted_phrase": phrase,
+                "correct": correct,
+                "vote_count": phraseset.vote_count,
+            },
+        )
+
         await self.db.commit()
 
         # Update vote timeline
@@ -274,9 +288,18 @@ class VoteService:
 
     async def _update_vote_timeline(self, phraseset: PhraseSet):
         """Update vote timeline markers (3rd vote, 5th vote)."""
+        prompt_round = await self.db.get(Round, phraseset.prompt_round_id)
+        if prompt_round and phraseset.vote_count >= 1 and prompt_round.phraseset_status not in {"closing", "finalized"}:
+            prompt_round.phraseset_status = "voting"
+
         # Mark 3rd vote timestamp
         if phraseset.vote_count == 3 and not phraseset.third_vote_at:
             phraseset.third_vote_at = datetime.now(UTC)
+            await self.activity_service.record_activity(
+                activity_type="third_vote_reached",
+                phraseset_id=phraseset.phraseset_id,
+                metadata={"vote_count": phraseset.vote_count},
+            )
             logger.info(f"Phraseset {phraseset.phraseset_id} reached 3rd vote, 10min window starts")
 
         # Mark 5th vote timestamp and change status to closing
@@ -284,6 +307,16 @@ class VoteService:
             phraseset.fifth_vote_at = datetime.now(UTC)
             phraseset.status = "closing"
             phraseset.closes_at = datetime.now(UTC) + timedelta(seconds=60)
+            if prompt_round:
+                prompt_round.phraseset_status = "closing"
+            await self.activity_service.record_activity(
+                activity_type="fifth_vote_reached",
+                phraseset_id=phraseset.phraseset_id,
+                metadata={
+                    "vote_count": phraseset.vote_count,
+                    "closes_at": phraseset.closes_at.isoformat() if phraseset.closes_at else None,
+                },
+            )
             logger.info(f"Phraseset {phraseset.phraseset_id} reached 5th vote, 60sec closing window")
 
         await self.db.commit()
@@ -367,6 +400,19 @@ class VoteService:
         phraseset.status = "finalized"
         phraseset.finalized_at = datetime.now(UTC)
 
+        prompt_round = await self.db.get(Round, phraseset.prompt_round_id)
+        if prompt_round:
+            prompt_round.phraseset_status = "finalized"
+
+        await self.activity_service.record_activity(
+            activity_type="finalized",
+            phraseset_id=phraseset.phraseset_id,
+            metadata={
+                "total_votes": phraseset.vote_count,
+                "total_pool": phraseset.total_pool,
+            },
+        )
+
         await self.db.commit()
 
         logger.info(
@@ -435,13 +481,25 @@ class VoteService:
                 view_id=uuid.uuid4(),
                 phraseset_id=wordset_id,
                 player_id=player_id,
-                payout_collected=True,  # Mark as collected on first view
                 payout_amount=player_payout,
+                payout_claimed=True,
+                first_viewed_at=datetime.now(UTC),
+                payout_claimed_at=datetime.now(UTC),
             )
             self.db.add(result_view)
             await self.db.commit()
 
             logger.info(f"Player {player_id} collected payout ${player_payout} from phraseset {wordset_id}")
+        else:
+            updated = False
+            if not result_view.first_viewed_at:
+                result_view.first_viewed_at = datetime.now(UTC)
+                updated = True
+            if result_view.payout_claimed and not result_view.payout_claimed_at:
+                result_view.payout_claimed_at = result_view.first_viewed_at or datetime.now(UTC)
+                updated = True
+            if updated:
+                await self.db.commit()
 
         # Get all votes for display
         votes_result = await self.db.execute(
@@ -483,7 +541,7 @@ class VoteService:
             "your_payout": result_view.payout_amount,
             "total_pool": phraseset.total_pool,
             "total_votes": phraseset.vote_count,
-            "already_collected": result_view.payout_collected,
+            "already_collected": result_view.payout_claimed,
             "finalized_at": phraseset.finalized_at,
         }
 

@@ -7,7 +7,8 @@ from backend.config import get_settings
 # Import all models to ensure they're registered
 from backend.models import (
     Player, Prompt, Round, PhraseSet, Vote,
-    Transaction, DailyBonus, ResultView, PlayerAbandonedPrompt
+    Transaction, DailyBonus, ResultView, PlayerAbandonedPrompt,
+    PhrasesetActivity,
 )
 
 settings = get_settings()

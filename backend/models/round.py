@@ -23,6 +23,9 @@ class Round(Base):
     prompt_id = get_uuid_column(ForeignKey("prompts.prompt_id"), nullable=True)
     prompt_text = Column(String(500), nullable=True)  # Denormalized
     submitted_phrase = Column(String(100), nullable=True)  # Prompt player's phrase
+    phraseset_status = Column(String(20), nullable=True)  # waiting_copies, waiting_copy1, active, finalized, abandoned
+    copy1_player_id = get_uuid_column(ForeignKey("players.player_id"), nullable=True, index=True)
+    copy2_player_id = get_uuid_column(ForeignKey("players.player_id"), nullable=True, index=True)
 
     # Copy-specific fields (nullable for non-copy rounds)
     prompt_round_id = get_uuid_column(ForeignKey("rounds.round_id"), nullable=True, index=True)
@@ -38,6 +41,8 @@ class Round(Base):
     player = relationship("Player", back_populates="rounds", foreign_keys=[player_id])
     prompt = relationship("Prompt", back_populates="rounds")
     phraseset = relationship("PhraseSet", back_populates="vote_rounds", foreign_keys=[phraseset_id])
+    copy1_player = relationship("Player", foreign_keys=[copy1_player_id])
+    copy2_player = relationship("Player", foreign_keys=[copy2_player_id])
 
     # Self-referential for copy rounds
     prompt_round = relationship("Round", remote_side=[round_id], foreign_keys=[prompt_round_id])
@@ -45,6 +50,7 @@ class Round(Base):
     # Indexes
     __table_args__ = (
         Index('ix_rounds_status_created', 'status', 'created_at'),
+        Index('ix_rounds_phraseset_status', 'phraseset_status'),
     )
 
     def __repr__(self):

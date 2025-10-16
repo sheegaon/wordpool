@@ -9,10 +9,13 @@ export const Dashboard: React.FC = () => {
     player,
     activeRound,
     pendingResults,
+    phrasesetSummary,
     roundAvailability,
     refreshBalance,
     refreshCurrentRound,
     refreshPendingResults,
+    refreshPhrasesetSummary,
+    refreshUnclaimedResults,
     refreshRoundAvailability,
     claimBonus,
     logout,
@@ -36,12 +39,21 @@ export const Dashboard: React.FC = () => {
         refreshBalance(),
         refreshCurrentRound(),
         refreshPendingResults(),
+        refreshPhrasesetSummary(),
+        refreshUnclaimedResults(),
         refreshRoundAvailability(),
       ]);
     } catch (err) {
       // Error is already handled in context
     }
-  }, [refreshBalance, refreshCurrentRound, refreshPendingResults, refreshRoundAvailability]);
+  }, [
+    refreshBalance,
+    refreshCurrentRound,
+    refreshPendingResults,
+    refreshPhrasesetSummary,
+    refreshUnclaimedResults,
+    refreshRoundAvailability,
+  ]);
 
   // Refresh when component mounts or becomes visible
   useEffect(() => {
@@ -117,6 +129,23 @@ export const Dashboard: React.FC = () => {
     navigate('/results');
   };
 
+  const handleTrackPhrasesets = () => {
+    navigate('/phrasesets');
+  };
+
+  const handleClaimResults = () => {
+    navigate('/phrasesets');
+  };
+
+  const inProgressPrompts = phrasesetSummary?.in_progress.prompts ?? 0;
+  const inProgressCopies = phrasesetSummary?.in_progress.copies ?? 0;
+  const hasInProgress = inProgressPrompts + inProgressCopies > 0;
+
+  const unclaimedPromptCount = phrasesetSummary?.finalized.unclaimed_prompts ?? 0;
+  const unclaimedCopyCount = phrasesetSummary?.finalized.unclaimed_copies ?? 0;
+  const totalUnclaimedCount = unclaimedPromptCount + unclaimedCopyCount;
+  const totalUnclaimedAmount = phrasesetSummary?.total_unclaimed_amount ?? 0;
+
   if (!player) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -188,6 +217,44 @@ export const Dashboard: React.FC = () => {
                 className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg"
               >
                 View Results
+              </button>
+            </div>
+          </div>
+        )}
+
+        {hasInProgress && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold text-gray-800">Past Rounds In Progress</p>
+                <p className="text-sm text-gray-700">
+                  {inProgressPrompts} prompt{inProgressPrompts === 1 ? '' : 's'} • {inProgressCopies} cop{inProgressCopies === 1 ? 'y' : 'ies'}
+                </p>
+              </div>
+              <button
+                onClick={handleTrackPhrasesets}
+                className="w-full sm:w-auto bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-6 rounded-lg"
+              >
+                Track Progress
+              </button>
+            </div>
+          </div>
+        )}
+
+        {totalUnclaimedCount > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold text-green-800">Prizes Ready to Claim</p>
+                <p className="text-sm text-green-700">
+                  {unclaimedPromptCount} prompt{unclaimedPromptCount === 1 ? '' : 's'} • {unclaimedCopyCount} cop{unclaimedCopyCount === 1 ? 'y' : 'ies'} • ${totalUnclaimedAmount} total
+                </p>
+              </div>
+              <button
+                onClick={handleClaimResults}
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg"
+              >
+                Claim Prizes
               </button>
             </div>
           </div>

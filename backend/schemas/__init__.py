@@ -20,6 +20,12 @@ from backend.schemas.phraseset import (
     VoteResponse,
     PhraseVoteCount,
     PhraseSetResults,
+    PhrasesetSummary,
+    PhrasesetListResponse,
+    PhrasesetDashboardSummary,
+    PhrasesetDetails,
+    ClaimPrizeResponse,
+    UnclaimedResultsResponse,
 )
 from backend.schemas.vote import VoteDetail
 
@@ -40,5 +46,11 @@ __all__ = [
     "VoteResponse",
     "PhraseVoteCount",
     "PhraseSetResults",
+    "PhrasesetSummary",
+    "PhrasesetListResponse",
+    "PhrasesetDashboardSummary",
+    "PhrasesetDetails",
+    "ClaimPrizeResponse",
+    "UnclaimedResultsResponse",
     "VoteDetail",
 ]

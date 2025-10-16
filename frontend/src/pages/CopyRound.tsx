@@ -158,7 +158,7 @@ export const CopyRound: React.FC = () => {
             )}
           </p>
           <p className="text-sm text-gray-600 mt-1">
-            If you don't submit, ${roundData.discount_active ? 81 : 90} will be refunded (${roundData.discount_active ? 9 : 10} penalty)
+            If you don't submit, ${roundData.discount_active ? 85 : 95} will be refunded (${roundData.discount_active ? 5 : 5} penalty)
           </p>
         </div>
       </div>
