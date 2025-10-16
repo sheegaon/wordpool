@@ -1,5 +1,5 @@
 """
-Stress and load tests for WordPool API on localhost.
+Stress and load tests for Quipflip API on localhost.
 
 These tests simulate high-load scenarios and edge cases.
 IMPORTANT: Backend must be running on http://localhost:8000
@@ -373,7 +373,7 @@ class TestErrorRecovery:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("WordPool Stress Tests")
+    print("Quipflip Stress Tests")
     print("=" * 60)
     print("\nBackend must be running on http://localhost:8000")
     print("Start: uvicorn backend.main:app --reload")

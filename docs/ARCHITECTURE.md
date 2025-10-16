@@ -2,7 +2,7 @@
 
 ## System Overview
 
-WordPool is a FastAPI-based backend service with a stateless REST API architecture. The backend maintains all game state while the frontend is a presentation layer.
+Quipflip is a FastAPI-based backend service with a stateless REST API architecture. The backend maintains all game state while the frontend is a presentation layer.
 
 ### Technology Stack
 - **Framework**: FastAPI (async Python web framework)

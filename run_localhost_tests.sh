@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# WordPool Localhost Integration Test Runner
+# Quipflip Localhost Integration Test Runner
 # This script helps run integration tests against a running localhost backend
 
 set -e  # Exit on error
@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 BASE_URL="http://localhost:8000"
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}WordPool Localhost Integration Tests${NC}"
+echo -e "${BLUE}Quipflip Localhost Integration Tests${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 

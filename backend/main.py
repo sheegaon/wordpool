@@ -21,8 +21,8 @@ logging.basicConfig(
     handlers=[
         # Console handler (stdout)
         logging.StreamHandler(),
-        # File handler (logs/wordpool.log)
-        logging.FileHandler(logs_dir / "wordpool.log"),
+        # File handler (logs/quipflip.log)
+        logging.FileHandler(logs_dir / "quipflip.log"),
     ]
 )
 
@@ -35,7 +35,7 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     """Manage application startup and shutdown tasks."""
     logger.info("=" * 60)
-    logger.info("WordPool API Starting")
+    logger.info("Quipflip API Starting")
     logger.info(f"Environment: {settings.environment}")
     logger.info(
         f"Database: {settings.database_url.split('@')[-1] if '@' in settings.database_url else 'SQLite'}"
@@ -57,12 +57,12 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        logger.info("WordPool API Shutting Down")
+        logger.info("Quipflip API Shutting Down")
 
 
 # Create FastAPI app
 app = FastAPI(
-    title="WordPool API",
+    title="Quipflip API",
     description="Phase 1 MVP - Word association game backend",
     version="1.0.0",
     lifespan=lifespan,
@@ -73,7 +73,7 @@ allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 if not allowed_origins or allowed_origins == [""]:
     # Default origins for development + production fallback
     allowed_origins = [
-        "https://wordpool-amber.vercel.app",  # Your production frontend
+        "https://quipflip-amber.vercel.app",  # Your production frontend
         "http://localhost:5173",              # Vite dev server
         "http://localhost:3000",              # Alternative React dev server
         "http://127.0.0.1:5173",              # Alternative localhost format
@@ -101,7 +101,7 @@ app.include_router(phrasesets.router, prefix="/phrasesets", tags=["phrasesets"])
 async def root():
     """Root endpoint."""
     return {
-        "message": "WordPool API - Phase 1 MVP",
+        "message": "Quipflip API - Phase 1 MVP",
         "version": "1.0.0",
         "environment": settings.environment,
         "docs": "/docs",

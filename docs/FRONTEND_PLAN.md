@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides high-level guidance for implementing a WordPool frontend. The backend API is complete and documented in [API.md](API.md). This plan focuses on the minimum viable frontend and logical phasing.
+This document provides high-level guidance for implementing a Quipflip frontend. The backend API is complete and documented in [API.md](API.md). This plan focuses on the minimum viable frontend and logical phasing.
 
 ---
 

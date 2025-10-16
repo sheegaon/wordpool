@@ -31,7 +31,7 @@ class Player:
 
 
 class APIClient:
-    """Enhanced HTTP client for WordPool API."""
+    """Enhanced HTTP client for Quipflip API."""
 
     def __init__(self, api_key: Optional[str] = None, base_url: str = BASE_URL):
         self.api_key = api_key
