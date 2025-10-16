@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 import apiClient, { extractErrorMessage } from '../api/client';
+import { GoogleLoginButton } from '../components/GoogleLoginButton';
 
 export const Landing: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [returningUsername, setReturningUsername] = useState(
     () => localStorage.getItem('wordpool_username') ?? ''
@@ -46,6 +48,37 @@ export const Landing: React.FC = () => {
     }
   };
 
+  const handleGoogleCredential = useCallback(
+    async (credential: string) => {
+      if (!credential) {
+        setError('Google sign-in failed. Please try again.');
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setIsGoogleLoading(true);
+        setError(null);
+        const response = await apiClient.loginWithGoogle(credential);
+        setApiKey(response.api_key, response.username);
+        navigate('/dashboard');
+      } catch (err) {
+        const message = extractErrorMessage(err);
+        if (message === 'google_auth_not_available') {
+          setError('Google sign-in is not available on this server. Please use the username login option.');
+        } else if (message === 'google_auth_not_configured') {
+          setError('Google sign-in is not configured yet. Try again later or use the username login option.');
+        } else {
+          setError(message || 'Google sign-in failed');
+        }
+      } finally {
+        setIsGoogleLoading(false);
+        setIsLoading(false);
+      }
+    },
+    [navigate, setApiKey]
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
@@ -63,6 +96,19 @@ export const Landing: React.FC = () => {
         )}
 
         <div className="space-y-6">
+          {/* Google Sign-In */}
+          <div className="border-b pb-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Sign in with Google</h2>
+            <GoogleLoginButton
+              onCredential={handleGoogleCredential}
+              disabled={isLoading}
+              loading={isGoogleLoading}
+            />
+            <p className="text-sm text-gray-600 mt-2">
+              Use your Google account to quickly start playing.
+            </p>
+          </div>
+
           {/* New Player */}
           <div className="border-b pb-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">New Player</h2>

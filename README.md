@@ -46,6 +46,15 @@ npm run dev
 Frontend runs at **http://localhost:5173**
 - See [frontend/README.md](frontend/README.md) for detailed documentation
 
+### Google OAuth Configuration
+
+1. **Obtain a Google OAuth client secret JSON** for a Web application and place it in the `frontend/` directory (e.g. `client_secret_*.json`).
+2. Alternatively, set the environment variables:
+   - `GOOGLE_CLIENT_ID` (backend) or `GOOGLE_CLIENT_SECRET_PATH` pointing to the JSON file
+   - `VITE_GOOGLE_CLIENT_ID` (frontend)
+
+The application will automatically load the client ID from the JSON file when present.
+
 ## 📚 Documentation
 
 **For Developers:**

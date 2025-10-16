@@ -13,7 +13,12 @@ from backend.models.phraseset import PhraseSet
 from backend.models.round import Round
 from backend.config import get_settings
 from backend.utils.exceptions import DailyBonusNotAvailableError
-from backend.services.username_service import UsernameService, is_username_input_valid
+from backend.services.username_service import (
+    UsernameService,
+    canonicalize_username,
+    is_username_input_valid,
+    normalize_username,
+)
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -80,6 +85,110 @@ class PlayerService:
             return None
         username_service = UsernameService(self.db)
         return await username_service.find_player_by_username(username)
+
+    async def get_player_by_google_sub(self, google_sub: str) -> Player | None:
+        """Retrieve a player using their Google subject identifier."""
+        result = await self.db.execute(
+            select(Player).where(Player.google_sub == google_sub)
+        )
+        return result.scalar_one_or_none()
+
+    async def login_with_google(
+        self,
+        google_sub: str,
+        *,
+        email: str | None = None,
+        display_name: str | None = None,
+    ) -> Player:
+        """Get or create a player based on a verified Google login."""
+
+        player = await self.get_player_by_google_sub(google_sub)
+        today = date.today()
+
+        if player:
+            updated = False
+            if email and player.email != email:
+                player.email = email
+                updated = True
+            if player.last_login_date != today:
+                player.last_login_date = today
+                updated = True
+
+            if updated:
+                await self.db.commit()
+                await self.db.refresh(player)
+
+            return player
+
+        return await self._create_google_player(
+            google_sub,
+            email=email,
+            display_name=display_name,
+        )
+
+    async def _create_google_player(
+        self,
+        google_sub: str,
+        *,
+        email: str | None = None,
+        display_name: str | None = None,
+    ) -> Player:
+        """Create a new player linked to a Google account."""
+
+        username_service = UsernameService(self.db)
+
+        preferred_username: str | None = None
+        preferred_canonical: str | None = None
+
+        if display_name and is_username_input_valid(display_name):
+            normalized = normalize_username(display_name)
+            canonical = canonicalize_username(normalized)
+            if canonical:
+                preferred_username = normalized
+                preferred_canonical = canonical
+
+        created_today = date.today()
+
+        for attempt in range(6):
+            if attempt == 0 and preferred_username and preferred_canonical:
+                username = preferred_username
+                username_canonical = preferred_canonical
+            else:
+                username, username_canonical = await username_service.generate_unique_username()
+
+            player = Player(
+                player_id=uuid.uuid4(),
+                api_key=str(uuid.uuid4()),
+                username=username,
+                username_canonical=username_canonical,
+                balance=settings.starting_balance,
+                last_login_date=created_today,
+                google_sub=google_sub,
+                email=email,
+            )
+
+            self.db.add(player)
+
+            try:
+                await self.db.commit()
+                await self.db.refresh(player)
+                logger.info(
+                    "Created Google player: %s email=%s",
+                    player.player_id,
+                    player.email,
+                )
+                return player
+            except IntegrityError as exc:
+                await self.db.rollback()
+                logger.warning(
+                    "Google player creation collision (attempt %s): %s",
+                    attempt + 1,
+                    exc,
+                )
+                preferred_username = None
+                preferred_canonical = None
+
+        raise RuntimeError("Failed to create Google-linked player after multiple attempts")
 
     async def is_daily_bonus_available(self, player: Player) -> bool:
         """Check if daily bonus can be claimed."""

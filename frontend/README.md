@@ -6,7 +6,7 @@ React + TypeScript frontend for the WordPool phrase association game.
 
 ### Phase 1 MVP (Complete)
 
-- ✅ Player authentication with API key
+- ✅ Player authentication with API key or Google OAuth
 - ✅ Dashboard with balance display
 - ✅ Daily bonus claiming
 - ✅ Three round types (Prompt, Copy, Vote)
@@ -103,10 +103,11 @@ The frontend connects to the backend API using the `apiClient` in `src/api/clien
 ### Environment Variables
 
 - `VITE_API_URL` - Backend API URL (default: `http://localhost:8000`)
+- `VITE_GOOGLE_CLIENT_ID` - Optional Google OAuth client ID (falls back to `client_secret*.json` in project root)
 
 ### Authentication
 
-API keys are stored in `localStorage` and automatically included in all requests via request interceptors.
+API keys are stored in `localStorage` and automatically included in all requests via request interceptors. Users can sign in using Google OAuth; on first login a WordPool account is created automatically and linked to the Google profile.
 
 ### State Management
 

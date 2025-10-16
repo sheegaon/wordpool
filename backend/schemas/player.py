@@ -72,3 +72,8 @@ class RotateKeyResponse(BaseModel):
     """Rotate API key response."""
     new_api_key: str
     message: str
+
+
+class GoogleLoginRequest(BaseModel):
+    """Request payload for Google OAuth login."""
+    credential: str
