@@ -1,5 +1,13 @@
 """Player model."""
-from sqlalchemy import Column, String, Integer, DateTime, Date, ForeignKey, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    DateTime,
+    Date,
+    ForeignKey,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime, UTC
@@ -15,6 +23,8 @@ class Player(Base):
     api_key = Column(String(36), unique=True, nullable=False, index=True, default=lambda: str(uuid.uuid4()))
     username = Column(String(80), unique=True, nullable=False)
     username_canonical = Column(String(80), nullable=False)
+    email = Column(String(255), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
     balance = Column(Integer, default=1000, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     last_login_date = Column(Date, nullable=True)
@@ -33,6 +43,11 @@ class Player(Base):
     result_views = relationship("ResultView", back_populates="player")
     abandoned_prompts = relationship("PlayerAbandonedPrompt", back_populates="player")
     phraseset_activities = relationship("PhrasesetActivity", back_populates="player")
+    refresh_tokens = relationship(
+        "RefreshToken",
+        back_populates="player",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self):
         return f"<Player(player_id={self.player_id}, username={self.username}, balance={self.balance})>"

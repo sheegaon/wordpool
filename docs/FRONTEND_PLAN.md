@@ -11,10 +11,10 @@ This document provides high-level guidance for implementing a Quipflip frontend.
 ### Essential Screens
 
 1. **Landing / Authentication**
-   - Create new player (POST /player) → receive API key
-   - API key input for returning players
-   - Username-based recovery flow (POST /player/login) for lost keys
-   - Store API key securely (localStorage/sessionStorage)
+   - Register new player (POST /player) → receive access + refresh tokens (legacy API key included for fallback)
+   - Login form for returning players (POST /auth/login)
+   - Automatic refresh handling via `/auth/refresh` + HTTP-only cookie
+   - Store short-lived access token client-side (memory/localStorage) and rely on refresh token cookie
 
 2. **Dashboard / Home**
    - Display current balance
@@ -93,8 +93,8 @@ This document provides high-level guidance for implementing a Quipflip frontend.
 ### User Flow
 
 ```
-1. First visit → Create player → Store API key → Dashboard
-2. Return visit → Load API key → GET /player/balance → Dashboard
+1. First visit → Register player → Store tokens → Dashboard
+2. Return visit → Refresh access token → GET /player/balance → Dashboard
 3. Dashboard → Check daily bonus → Claim if available
 4. Dashboard → Check active round → Resume if exists
 5. Dashboard → Select round type → Start round
@@ -126,7 +126,7 @@ This document provides high-level guidance for implementing a Quipflip frontend.
    - History of past results
 
 4. **Settings / Account**
-   - API key rotation
+   - Legacy API key rotation (supported for backwards compatibility)
    - Export transaction history
    - Game statistics preview
 
@@ -212,14 +212,14 @@ This document provides high-level guidance for implementing a Quipflip frontend.
 Create a typed API client using the TypeScript definitions in [API.md](API.md#frontend-integration). Consider:
 - Axios or Fetch API wrapper
 - Automatic retry logic
-- Request/response interceptors for API key injection
+- Request/response interceptors for Authorization header injection
 - Error transformation to user-friendly messages
 
 ### Offline Strategy
 
 **Phase 1:**
 - Show error message when offline
-- Preserve API key in storage
+- Preserve access token metadata (with refresh fallback)
 
 **Phase 2+:**
 - Queue actions for later submission
@@ -260,7 +260,7 @@ Create a typed API client using the TypeScript definitions in [API.md](API.md#fr
 - Static hosting (Vercel, Netlify, GitHub Pages)
 - Environment variables for API URL
 - CORS configuration with backend
-- HTTPS required for API key security
+- HTTPS required for secure token transport
 
 ### Phase 2+
 - CDN for assets
@@ -330,7 +330,7 @@ Create a typed API client using the TypeScript definitions in [API.md](API.md#fr
 
 **Authentication:**
 - ✅ POST /player (create account)
-- ✅ Store API key securely
+- ✅ Store access tokens securely
 - ✅ Include X-API-Key header in all requests
 - ✅ Handle 401 errors (invalid key)
 
@@ -389,7 +389,7 @@ Create a typed API client using the TypeScript definitions in [API.md](API.md#fr
    - Handle concurrent session detection (if needed)
 
 4. **API Key Security**
-   - Never log API keys
+   - Never log access or refresh tokens
    - Clear from memory on logout
    - Don't expose in URLs
    - Use HTTPS only
@@ -407,7 +407,7 @@ Create a typed API client using the TypeScript definitions in [API.md](API.md#fr
 1. **Choose your framework** - React, Vue, or Svelte
 2. **Set up project** - Use create-react-app, Vite, or Next.js
 3. **Create API client** - TypeScript wrapper around fetch/axios
-4. **Build authentication** - Landing page + API key storage
+4. **Build authentication** - Landing page + token management
 5. **Implement dashboard** - Balance display + round selection
 6. **Add round screens** - Prompt → Copy → Vote
 7. **Build results view** - Vote breakdown + payout display

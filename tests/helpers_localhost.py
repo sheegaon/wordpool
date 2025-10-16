@@ -8,6 +8,7 @@ import random
 import string
 from typing import Dict, Optional, List, Tuple
 from dataclasses import dataclass
+from uuid import uuid4
 
 BASE_URL = "http://localhost:8000"
 TIMEOUT = 10.0
@@ -16,32 +17,52 @@ TIMEOUT = 10.0
 @dataclass
 class Player:
     """Player data container."""
+
     player_id: str
-    api_key: str
+    username: str
+    access_token: str
+    refresh_token: str
+    legacy_api_key: Optional[str]
     balance: int
+
+    @property
+    def api_key(self) -> Optional[str]:
+        """Backward compatible accessor for legacy API key."""
+        return self.legacy_api_key
 
     @classmethod
     def from_response(cls, data: dict) -> 'Player':
         """Create Player from API response."""
         return cls(
             player_id=data["player_id"],
-            api_key=data["api_key"],
-            balance=data.get("balance", 1000)
+            username=data["username"],
+            access_token=data["access_token"],
+            refresh_token=data["refresh_token"],
+            legacy_api_key=data.get("legacy_api_key"),
+            balance=data.get("balance", 1000),
         )
 
 
 class APIClient:
     """Enhanced HTTP client for Quipflip API."""
 
-    def __init__(self, api_key: Optional[str] = None, base_url: str = BASE_URL):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        access_token: Optional[str] = None,
+        base_url: str = BASE_URL,
+    ):
         self.api_key = api_key
+        self.access_token = access_token
         self.base_url = base_url
         self.client = httpx.Client(base_url=base_url, timeout=TIMEOUT)
 
     def headers(self) -> Dict[str, str]:
         """Get request headers with optional authentication."""
         headers = {"Content-Type": "application/json"}
-        if self.api_key:
+        if self.access_token:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        elif self.api_key:
             headers["X-API-Key"] = self.api_key
         return headers
 
@@ -77,15 +98,22 @@ class PlayerFactory:
         Returns:
             Tuple of (Player, APIClient)
         """
+        username = f"test_user_{uuid4().hex[:8]}"
+        email = f"{username}@example.com"
+        password = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+
         with APIClient() as client:
-            response = client.post("/player")
+            response = client.post("/player", json={
+                "username": username,
+                "email": email,
+                "password": password,
+            })
             if response.status_code != 201:
                 raise Exception(f"Failed to create player: {response.status_code}")
 
             player = Player.from_response(response.json())
 
-        # Return new authenticated client
-        auth_client = APIClient(api_key=player.api_key)
+        auth_client = APIClient(api_key=player.legacy_api_key, access_token=player.access_token)
         return player, auth_client
 
     @staticmethod

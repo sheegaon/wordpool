@@ -3,7 +3,7 @@
 ## Implementation Priorities
 
 ### Phase 1 - MVP (Core Gameplay) ✅ CLARIFIED
-1. **Player accounts and authentication** - API key-based (UUID v4)
+1. **Player accounts and authentication** - JWT access + refresh tokens (legacy API key fallback)
 2. **Balance management and transactions** - Full amount deducted immediately, refunds on timeout
 3. **Core game loop** - Prompt (random assignment), copy, vote with full lifecycle
 4. **Word validation** - OWL2 list with 2-15 char, A-Z only validation
@@ -21,11 +21,11 @@
 16. **Self-voting prevention** - Filter at assignment time
 17. **Health check endpoint** - GET /health for monitoring
 18. **Error standardization** - Consistent JSON error format across all endpoints
-19. **API key rotation endpoint** - POST /player/rotate-key (invalidate compromised keys)
-20. **Username-based API key recovery** - POST /player/login to restore lost keys
+19. **Legacy API key rotation endpoint** - POST /player/rotate-key (invalidate compromised keys)
+20. **Credential-based login** - POST /auth/login with username/password
 
 ### Phase 2 - Polish & Enhancements
-1. **JWT tokens with refresh** - Enhanced authentication beyond API keys
+1. **JWT tokens with refresh** - Enhanced authentication beyond API keys ✅
 2. **Transaction history endpoint** - GET /player/transactions with pagination
 3. **Comprehensive player statistics** - Win rates, earnings over time, favorite prompts
 4. **Advanced rate limiting** - Per-endpoint, per-player rate limits
@@ -85,8 +85,8 @@
 - **API Key-based**: UUID v4 keys, unique per player, stored securely
 - **HTTPS only**: Enforce in production (Heroku provides this)
 - **Header-based**: `X-API-Key` header required for all authenticated endpoints
-- **Validation**: Check API key on every request, return 401 if invalid/missing
-- **Rate limiting (Planned)**: Prevent brute force on API keys, limit requests per key
+- **Validation**: Check Authorization header (or legacy key) on every request, return 401 if invalid/missing
+- **Rate limiting (Planned)**: Prevent brute force on tokens/keys, limit requests per identifier
 - **No password storage**: MVP has no passwords, just keys (simpler, mobile-friendly)
 - **Future**: Phase 2+ adds JWT with refresh tokens for enhanced security
 

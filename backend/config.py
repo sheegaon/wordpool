@@ -2,6 +2,9 @@
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+from sqlalchemy.engine.url import make_url, URL
+from typing import Optional
+import logging
 
 
 class Settings(BaseSettings):
@@ -16,6 +19,10 @@ class Settings(BaseSettings):
     # Application
     environment: str = "development"
     secret_key: str = "dev-secret-key-change-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_exp_minutes: int = 15
+    refresh_token_exp_days: int = 30
+    refresh_token_cookie_name: str = "quipflip_refresh_token"
 
     # Game Constants (all values in whole dollars)
     starting_balance: int = 1000
@@ -50,12 +57,31 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def ensure_asyncpg(self):
-        """Normalize Postgres URLs so SQLAlchemy uses the asyncpg driver."""
+        """Normalize Postgres URLs and guard against malformed configuration."""
         url = self.database_url
-        if url and url.startswith(("postgres://", "postgresql://")):
-            scheme, sep, rest = url.partition("://")
-            if "+asyncpg" not in scheme:
-                self.database_url = f"postgresql+asyncpg://{rest}"
+        if not url:
+            self.database_url = "sqlite+aiosqlite:///./quipflip.db"
+            return self
+
+        parsed: Optional[URL] = None
+        try:
+            parsed = make_url(url)
+        except Exception:  # pragma: no cover - defensive fallback
+            logging.warning(
+                "Invalid DATABASE_URL '%s'; falling back to default sqlite database.",
+                url,
+            )
+            self.database_url = "sqlite+aiosqlite:///./quipflip.db"
+            return self
+
+        drivername = parsed.drivername
+        if drivername.startswith("postgres") and "+asyncpg" not in drivername:
+            parsed = parsed.set(drivername="postgresql+asyncpg")
+            self.database_url = str(parsed)
+        else:
+            # Keep the original value when no normalization is required.
+            self.database_url = str(parsed)
+
         return self
 
     model_config = SettingsConfigDict(

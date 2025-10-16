@@ -4,6 +4,7 @@ from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 from backend.schemas.base import BaseSchema
+from backend.schemas.auth import AuthTokenResponse
 
 
 class PlayerBalance(BaseSchema):
@@ -46,25 +47,10 @@ class PendingResultsResponse(BaseModel):
     pending: list[PendingResult]
 
 
-class CreatePlayerResponse(BaseModel):
-    """Create player response with API key."""
-    player_id: UUID
-    username: str
-    api_key: str
+class CreatePlayerResponse(AuthTokenResponse):
+    """Create player response returning tokens and onboarding message."""
+
     balance: int
-    message: str
-
-
-class UsernameLoginRequest(BaseModel):
-    """Request payload for username login."""
-    username: str
-
-
-class UsernameLoginResponse(BaseModel):
-    """Response payload when logging in with username."""
-    player_id: UUID
-    username: str
-    api_key: str
     message: str
 
 
