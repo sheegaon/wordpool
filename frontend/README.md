@@ -103,6 +103,7 @@ The frontend connects to the backend API using the `apiClient` in `src/api/clien
 ### Environment Variables
 
 - `VITE_API_URL` - Backend API URL (default: `http://localhost:8000`)
+- `VITE_GOOGLE_CLIENT_ID` - Google OAuth client ID (for future use)
 
 ### Authentication
 
