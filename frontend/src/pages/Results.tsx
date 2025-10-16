@@ -158,7 +158,7 @@ export const Results: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-sm text-quip-teal">Payout:</p>
-                      <p className="text-2xl font-display font-bold text-quip-turquoise">${results.your_payout}</p>
+                      <p className="text-2xl font-display font-bold text-quip-turquoise">{results.your_payout} FC</p>
                     </div>
                   </div>
                   {results.already_collected && (

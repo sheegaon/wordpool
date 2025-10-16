@@ -27,7 +27,7 @@
 
   /* Tile card styling */
   .tile-card {
-    @apply rounded-tile shadow-tile bg-white transition-all duration-300;
+    @apply rounded-tile shadow-tile bg-quip-teal-light transition-all duration-300;
     transform-style: preserve-3d;
   }
 

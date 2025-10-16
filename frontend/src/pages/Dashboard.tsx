@@ -393,7 +393,7 @@ export const Dashboard: React.FC = () => {
                 className="w-full bg-quip-orange hover:bg-quip-orange-deep disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm"
               >
                 {roundAvailability?.can_vote ? 'Start Vote Round' :
-                  roundAvailability?.phrasesets_waiting === 0 ? 'No Phrasesets Available' :
+                  roundAvailability?.phrasesets_waiting === 0 ? 'No Quips Available' :
                   player.balance < 1 ? 'Insufficient Balance' :
                   'Not Available'}
               </button>

@@ -159,19 +159,13 @@ export const PhrasesetTracking: React.FC = () => {
       <div className="bg-white shadow-tile-sm">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            {/* Left: Logo and branding */}
-            <div className="flex items-center gap-4">
+            {/* Left: Logo */}
+            <div className="flex items-center">
               <img
-                src="/large_icon.png"
+                src="/quipflip_logo_horizontal_light.png"
                 alt="Quipflip"
-                className="h-12 w-12"
+                className="h-12 w-auto"
               />
-              <div>
-                <h1 className="text-xl font-display font-bold text-quip-navy">Quipflip</h1>
-                <p className="text-xs text-quip-teal italic">
-                  Can you flip their quip?
-                </p>
-              </div>
             </div>
 
             {/* Center: Username */}
@@ -179,11 +173,11 @@ export const PhrasesetTracking: React.FC = () => {
               <p className="text-sm text-quip-navy font-semibold">{player.username || username}</p>
             </div>
 
-            {/* Right: Quip Bank + Logout */}
+            {/* Right: Flipcoins + Logout */}
             <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-xs text-quip-teal font-medium">Quip Bank</p>
-                <p className="text-2xl font-display font-bold text-quip-turquoise">${player.balance}</p>
+              <div className="flex items-center gap-2">
+                <img src="/flipcoin.png" alt="Flipcoin" className="w-10 h-10" />
+                <p className="text-3xl font-display font-bold text-quip-turquoise">{player.balance}</p>
               </div>
 
               {/* Logout Icon */}

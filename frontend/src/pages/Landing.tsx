@@ -52,24 +52,12 @@ export const Landing: React.FC = () => {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <img
-            src="/logo_horiz_light.svg"
+            src="/quipflip_logo_horizontal_light.png"
             alt="Quipflip"
-            className="h-20 w-auto"
+            className="h-24 w-auto"
           />
         </div>
 
-        {/* Hero Image */}
-        <div className="flex justify-center mb-6">
-          <img
-            src="/landing_hero_mobile.png"
-            alt="Quipflip Game"
-            className="w-48 h-auto shuffle-enter"
-          />
-        </div>
-
-        <p className="text-center text-quip-navy mb-2 font-display text-lg font-semibold">
-          Can you flip their quip?
-        </p>
         <p className="text-center text-quip-teal mb-8 text-sm">
           A multiplayer phrase association game
         </p>
@@ -92,7 +80,7 @@ export const Landing: React.FC = () => {
               {isLoading ? 'Creating Account...' : 'Create New Account'}
             </button>
             <p className="text-sm text-quip-teal mt-2">
-              Start with $1,000 in your Quip Bank
+              Start with 1,000 Flipcoins
             </p>
           </div>
 

@@ -109,9 +109,9 @@ export const VoteRound: React.FC = () => {
           {voteResult.correct && (
             <div className="bg-quip-turquoise bg-opacity-10 border-2 border-quip-turquoise rounded-tile p-4">
               <p className="text-2xl font-display font-bold text-quip-turquoise">
-                +${voteResult.payout}
+                +{voteResult.payout} Flipcoins
               </p>
-              <p className="text-sm text-quip-teal">Added to your Quip Bank!</p>
+              <p className="text-sm text-quip-teal">Added to your balance!</p>
             </div>
           )}
           <p className="text-sm text-quip-teal mt-6">Returning to dashboard...</p>
@@ -125,7 +125,7 @@ export const VoteRound: React.FC = () => {
       <div className="max-w-2xl w-full tile-card p-8 slide-up-enter">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="text-3xl">🎯</span>
+            <img src="/icon_vote.svg" alt="" className="w-8 h-8" />
             <h1 className="text-3xl font-display font-bold text-quip-navy">Vote Round</h1>
           </div>
           <p className="text-quip-teal">Identify the original phrase</p>

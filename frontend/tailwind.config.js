@@ -10,6 +10,7 @@ export default {
         // Quipflip Brand Colors
         'quip-turquoise': '#10B4A4',
         'quip-teal': '#0A5852', // Darkened from #0E6F6A for better contrast
+        'quip-teal-light': '#E8F5F4', // Very light teal for tile backgrounds
         'quip-orange': '#FF9A3D',
         'quip-orange-deep': '#E26A00',
         'quip-cream': '#FFF6EE',

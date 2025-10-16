@@ -144,7 +144,7 @@ export const PromptRound: React.FC = () => {
       <div className="max-w-2xl w-full tile-card p-8 slide-up-enter">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="text-3xl">💡</span>
+            <img src="/icon_prompt.svg" alt="" className="w-8 h-8" />
             <h1 className="text-3xl font-display font-bold text-quip-navy">Prompt Round</h1>
           </div>
           <p className="text-quip-teal">Submit a phrase for the prompt</p>
