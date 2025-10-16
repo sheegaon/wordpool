@@ -19,6 +19,9 @@ X-API-Key: <your-api-key-uuid>
 **Getting an API Key:**
 Use the `POST /player` endpoint to create a new player account and receive an API key.
 
+**Recovering an API Key:**
+Use `POST /player/login` with your username to retrieve the API key that was originally issued.
+
 **Security Notes:**
 - API keys are UUIDs, not JWTs (no expiration)
 - Store securely (localStorage/sessionStorage for web, secure storage for mobile)
@@ -57,9 +60,10 @@ Use the `POST /player` endpoint to create a new player account and receive an AP
 - `expired` - Round expired past grace period
 - `already_voted` - Already voted on this phraseset
 - `already_claimed_today` - Daily bonus already claimed
+- `duplicate_phrase` - Copy submission matched an existing phrase too closely
 - `invalid_word` - Word validation failed
 - `no_prompts_available` - No prompts available for copy
-- `no_phrasesets_available` - No phrasesets available for voting
+- `no_wordsets_available` - No phrasesets available for voting
 - `max_outstanding_prompts` - Player has 10 open/closing phrasesets
 
 ---
@@ -143,6 +147,29 @@ curl -X POST http://localhost:8000/player/rotate-key \
 - Your old API key becomes invalid immediately
 - Update all clients with the new key
 - Use if you suspect key compromise
+
+#### `POST /player/login`
+Retrieve the API key for an existing account using a username (no authentication required).
+
+**Request:**
+```bash
+curl -X POST http://localhost:8000/player/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"Prompt Pirate"}'
+```
+
+**Response:**
+```json
+{
+  "player_id": "3555a0e9-d46d-4a36-8756-f0e9c836d822",
+  "username": "Prompt Pirate",
+  "api_key": "dff60a88-04c8-4a11-a8d8-874add980d12",
+  "message": "Welcome back! We've restored your API key for this username."
+}
+```
+
+**Errors:**
+- `username_not_found` - No player with that username exists
 
 #### `GET /player/balance`
 Get player balance and status.
@@ -255,7 +282,7 @@ Get list of finalized phrasesets awaiting result viewing.
       "prompt_text": "the meaning of life is",
       "completed_at": "2025-01-06T12:00:00",
       "role": "prompt",
-      "payout_collected": false
+      "payout_claimed": false
     }
   ]
 }
@@ -323,7 +350,7 @@ Start a vote round (-\$1).
 ```
 
 **Errors:**
-- `no_phrasesets_available` - No phrasesets in queue
+- `no_wordsets_available` - No phrasesets in queue
 - `already_in_round` - Player already in active round
 - `insufficient_balance` - Balance < \$1
 
@@ -347,7 +374,7 @@ Submit phrase for prompt or copy round.
 
 **Errors:**
 - `invalid_phrase` - Word not in dictionary or invalid format
-- `duplicate` - Copy word matches original
+- `duplicate_phrase` - Copy word matches original or is too similar
 - `expired` - Past grace period
 - `not_found` - Round not found or not owned by player
 
@@ -414,6 +441,75 @@ Submit vote for phraseset.
 - `already_voted` - Already voted on this phraseset
 - `player_not_in_round` - Not in active vote round
 
+#### `GET /phrasesets/{phraseset_id}/details`
+Get full contributor view for a phraseset the player participated in.
+
+**Response:**
+```json
+{
+  "phraseset_id": "uuid",
+  "prompt_round_id": "uuid",
+  "prompt_text": "my deepest desire is to be (a/an)",
+  "status": "finalized",
+  "original_phrase": "FAMOUS",
+  "copy_phrase_1": "POPULAR",
+  "copy_phrase_2": "WEALTHY",
+  "contributors": [
+    {"player_id": "uuid", "username": "Prompt Pirate", "is_you": true, "phrase": "FAMOUS"},
+    {"player_id": "uuid", "username": "Copy Cat", "is_you": false, "phrase": "POPULAR"},
+    {"player_id": "uuid", "username": "Shadow Scribe", "is_you": false, "phrase": "WEALTHY"}
+  ],
+  "vote_count": 10,
+  "third_vote_at": "2025-01-06T12:10:00Z",
+  "fifth_vote_at": "2025-01-06T12:11:05Z",
+  "closes_at": "2025-01-06T12:12:05Z",
+  "votes": [
+    {
+      "vote_id": "uuid",
+      "voter_id": "uuid",
+      "voter_username": "Voter 1",
+      "voted_phrase": "FAMOUS",
+      "correct": true,
+      "voted_at": "2025-01-06T12:10:30Z"
+    }
+  ],
+  "total_pool": 300,
+  "results": {
+    "vote_counts": {
+      "FAMOUS": 6,
+      "POPULAR": 2,
+      "WEALTHY": 2
+    },
+    "payouts": {
+      "prompt": {"player_id": "uuid", "payout": 150, "points": 6},
+      "copy1": {"player_id": "uuid", "payout": 100, "points": 2},
+      "copy2": {"player_id": "uuid", "payout": 50, "points": 2}
+    },
+    "total_pool": 300
+  },
+  "your_role": "prompt",
+  "your_phrase": "FAMOUS",
+  "your_payout": 150,
+  "payout_claimed": true,
+  "activity": [
+    {
+      "activity_id": "uuid",
+      "activity_type": "vote_recorded",
+      "created_at": "2025-01-06T12:10:30Z",
+      "player_id": "uuid",
+      "player_username": "Voter 1",
+      "metadata": {"phrase": "FAMOUS"}
+    }
+  ],
+  "created_at": "2025-01-06T12:00:00Z",
+  "finalized_at": "2025-01-06T12:12:05Z"
+}
+```
+
+**Errors:**
+- `Phraseset not found` - Invalid phraseset ID
+- `Not a contributor to this phraseset` - Player did not submit the prompt or copies
+
 #### `GET /phrasesets/{phraseset_id}/results`
 Get phraseset results (collects prize on first view).
 
@@ -441,6 +537,23 @@ Get phraseset results (collects prize on first view).
 - `Phraseset not found` - Invalid phraseset ID
 - `Phraseset not yet finalized` - Still collecting votes
 - `Not a contributor to this phraseset` - Player wasn't prompt/copy contributor
+
+#### `POST /phrasesets/{phraseset_id}/claim`
+Explicitly mark a phraseset payout as claimed (idempotent).
+
+**Response:**
+```json
+{
+  "success": true,
+  "amount": 150,
+  "new_balance": 1320,
+  "already_claimed": false
+}
+```
+
+**Errors:**
+- `Phraseset not found` - Invalid phraseset ID
+- `Not a contributor to this phraseset` - Player did not submit the prompt or copies
 
 ---
 
@@ -487,16 +600,7 @@ curl -H "X-API-Key: your-key" http://localhost:8000/phrasesets/{phraseset_id}/re
 
 ## Rate Limiting
 
-Rate limiting is enforced to prevent abuse:
-- General endpoints: 100 requests/minute per API key
-- Vote submission: 20 requests/minute per API key
-
-**Response when rate limited:**
-```json
-{
-  "detail": "Rate limit exceeded. Try again later."
-}
-```
+Rate limiting has not yet been implemented in the backend. It remains a roadmap item for future phases; clients should still implement sensible retry/backoff behaviour to prepare for eventual enforcement.
 
 ---
 
