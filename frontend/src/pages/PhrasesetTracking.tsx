@@ -248,6 +248,7 @@ export const PhrasesetTracking: React.FC = () => {
           <div className="lg:col-span-2">
             <PhrasesetDetails
               phraseset={details}
+              summary={selectedSummary}
               loading={detailsLoading}
               claiming={claiming}
               onClaim={handleClaim}
