@@ -1,7 +1,10 @@
 """Application configuration management."""
+from functools import lru_cache
+import json
+from pathlib import Path
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from functools import lru_cache
 
 
 class Settings(BaseSettings):
@@ -48,6 +51,10 @@ class Settings(BaseSettings):
     similarity_model: str = "all-MiniLM-L6-v2"  # Sentence transformer model
     word_similarity_threshold: float = 0.85  # Minimum ratio for considering words too similar
 
+    # Google OAuth
+    google_client_id: str | None = None
+    google_client_secret_path: str | None = None
+
     @model_validator(mode="after")
     def ensure_asyncpg(self):
         """Normalize Postgres URLs so SQLAlchemy uses the asyncpg driver."""
@@ -56,6 +63,40 @@ class Settings(BaseSettings):
             scheme, sep, rest = url.partition("://")
             if "+asyncpg" not in scheme:
                 self.database_url = f"postgresql+asyncpg://{rest}"
+        return self
+
+    @model_validator(mode="after")
+    def load_google_client_id(self):
+        """Populate Google client ID from client secret file when not provided."""
+        if self.google_client_id:
+            return self
+
+        candidate_paths: list[Path] = []
+
+        if self.google_client_secret_path:
+            candidate_paths.append(Path(self.google_client_secret_path))
+
+        frontend_dir = Path("frontend")
+        if frontend_dir.exists():
+            candidate_paths.extend(sorted(frontend_dir.glob("client_secret*.json")))
+
+        for path in candidate_paths:
+            if not path.exists() or not path.is_file():
+                continue
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+
+            client_id = (
+                data.get("web", {}).get("client_id")
+                or data.get("installed", {}).get("client_id")
+            )
+
+            if client_id:
+                self.google_client_id = client_id
+                break
+
         return self
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")

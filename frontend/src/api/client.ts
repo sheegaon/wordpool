@@ -198,6 +198,15 @@ export const apiClient = {
     return data;
   },
 
+  async loginWithGoogle(credential: string, signal?: AbortSignal): Promise<UsernameLoginResponse> {
+    const { data } = await api.post(
+      '/player/login/google',
+      { credential },
+      { signal }
+    );
+    return data;
+  },
+
   async getBalance(signal?: AbortSignal): Promise<Player> {
     const { data } = await api.get('/player/balance', { signal });
     return data;

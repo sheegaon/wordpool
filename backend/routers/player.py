@@ -16,6 +16,7 @@ from backend.schemas.player import (
     RotateKeyResponse,
     UsernameLoginRequest,
     UsernameLoginResponse,
+    GoogleLoginRequest,
 )
 from backend.schemas.phraseset import (
     PhrasesetListResponse,
@@ -31,6 +32,13 @@ from backend.config import get_settings
 from datetime import datetime, UTC, timedelta
 from sqlalchemy import select
 import logging
+
+try:
+    from google.oauth2 import id_token as google_id_token
+    from google.auth.transport import requests as google_requests
+except ModuleNotFoundError:  # pragma: no cover - optional dependency for Google OAuth
+    google_id_token = None
+    google_requests = None
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -135,6 +143,55 @@ async def login_with_username(
         username=player.username,
         api_key=player.api_key,
         message="Welcome back! We've restored your API key for this username.",
+    )
+
+
+@router.post("/login/google", response_model=UsernameLoginResponse)
+async def login_with_google(
+    request: GoogleLoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Authenticate or create a player using a Google OAuth credential."""
+
+    if not request.credential:
+        raise HTTPException(status_code=400, detail="missing_credential")
+
+    if not settings.google_client_id:
+        raise HTTPException(status_code=503, detail="google_auth_not_configured")
+
+    if google_id_token is None or google_requests is None:
+        logger.error("Google OAuth dependency not installed")
+        raise HTTPException(status_code=503, detail="google_auth_not_available")
+
+    try:
+        token_info = google_id_token.verify_oauth2_token(
+            request.credential,
+            google_requests.Request(),
+            settings.google_client_id,
+        )
+    except ValueError as exc:
+        logger.warning("Invalid Google credential: %s", exc)
+        raise HTTPException(status_code=401, detail="invalid_google_token") from exc
+
+    google_sub = token_info.get("sub")
+    if not google_sub:
+        raise HTTPException(status_code=401, detail="invalid_google_token")
+
+    email = token_info.get("email")
+    display_name = token_info.get("name") or email
+
+    player_service = PlayerService(db)
+    player = await player_service.login_with_google(
+        google_sub,
+        email=email,
+        display_name=display_name,
+    )
+
+    return UsernameLoginResponse(
+        player_id=player.player_id,
+        username=player.username,
+        api_key=player.api_key,
+        message="Google sign-in successful.",
     )
 
 
