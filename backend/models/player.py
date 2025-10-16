@@ -32,6 +32,7 @@ class Player(Base):
     daily_bonuses = relationship("DailyBonus", back_populates="player")
     result_views = relationship("ResultView", back_populates="player")
     abandoned_prompts = relationship("PlayerAbandonedPrompt", back_populates="player")
+    phraseset_activities = relationship("PhrasesetActivity", back_populates="player")
 
     def __repr__(self):
         return f"<Player(player_id={self.player_id}, username={self.username}, balance={self.balance})>"

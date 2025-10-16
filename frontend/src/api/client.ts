@@ -17,6 +17,11 @@ import type {
   UsernameLoginResponse,
   PromptFeedbackResponse,
   GetPromptFeedbackResponse,
+  PhrasesetListResponse,
+  PhrasesetDashboardSummary,
+  PhrasesetDetails,
+  ClaimPrizeResponse,
+  UnclaimedResultsResponse,
 } from './types';
 
 // Base URL - configure based on environment
@@ -213,6 +218,27 @@ export const apiClient = {
     return data;
   },
 
+  async getPlayerPhrasesets(
+    params: { role?: string; status?: string; limit?: number; offset?: number } = {},
+    signal?: AbortSignal,
+  ): Promise<PhrasesetListResponse> {
+    const { data } = await api.get('/player/phrasesets', {
+      params,
+      signal,
+    });
+    return data;
+  },
+
+  async getPhrasesetsSummary(signal?: AbortSignal): Promise<PhrasesetDashboardSummary> {
+    const { data } = await api.get('/player/phrasesets/summary', { signal });
+    return data;
+  },
+
+  async getUnclaimedResults(signal?: AbortSignal): Promise<UnclaimedResultsResponse> {
+    const { data } = await api.get('/player/unclaimed-results', { signal });
+    return data;
+  },
+
   async rotateKey(signal?: AbortSignal): Promise<{ new_api_key: string; message: string }> {
     const { data } = await api.post('/player/rotate-key', {}, { signal });
     return data;
@@ -252,6 +278,16 @@ export const apiClient = {
 
   async getPhrasesetResults(phrasesetId: string, signal?: AbortSignal): Promise<PhrasesetResults> {
     const { data } = await api.get(`/phrasesets/${phrasesetId}/results`, { signal });
+    return data;
+  },
+
+  async getPhrasesetDetails(phrasesetId: string, signal?: AbortSignal): Promise<PhrasesetDetails> {
+    const { data } = await api.get(`/phrasesets/${phrasesetId}/details`, { signal });
+    return data;
+  },
+
+  async claimPhrasesetPrize(phrasesetId: string, signal?: AbortSignal): Promise<ClaimPrizeResponse> {
+    const { data } = await api.post(`/phrasesets/${phrasesetId}/claim`, {}, { signal });
     return data;
   },
 

@@ -1,5 +1,5 @@
 """Player API router."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import get_db
 from backend.dependencies import get_current_player
@@ -17,9 +17,15 @@ from backend.schemas.player import (
     UsernameLoginRequest,
     UsernameLoginResponse,
 )
+from backend.schemas.phraseset import (
+    PhrasesetListResponse,
+    PhrasesetDashboardSummary,
+    UnclaimedResultsResponse,
+)
 from backend.services.player_service import PlayerService
 from backend.services.transaction_service import TransactionService
 from backend.services.round_service import RoundService
+from backend.services.phraseset_service import PhrasesetService
 from backend.utils.exceptions import DailyBonusNotAvailableError
 from backend.config import get_settings
 from datetime import datetime, UTC, timedelta
@@ -253,57 +259,88 @@ async def get_pending_results(
     db: AsyncSession = Depends(get_db),
 ):
     """Get list of finalized phrasesets where player was contributor."""
-    # Find phrasesets where player was prompt contributor
-    prompt_wordsets = await db.execute(
-        select(PhraseSet)
-        .join(Round, PhraseSet.prompt_round_id == Round.round_id)
-        .where(Round.player_id == player.player_id)
-        .where(PhraseSet.status == "finalized")
+    phraseset_service = PhrasesetService(db)
+    contributions, _ = await phraseset_service.get_player_phrasesets(
+        player.player_id,
+        role="all",
+        status="finalized",
+        limit=500,
+        offset=0,
     )
 
-    # Find phrasesets where player was copy contributor
-    copy_wordsets = await db.execute(
-        select(PhraseSet)
-        .where(
-            (PhraseSet.copy_round_1_id.in_(
-                select(Round.round_id).where(Round.player_id == player.player_id)
-            )) |
-            (PhraseSet.copy_round_2_id.in_(
-                select(Round.round_id).where(Round.player_id == player.player_id)
-            ))
-        )
-        .where(PhraseSet.status == "finalized")
-    )
-
-    all_wordsets = set(prompt_wordsets.scalars().all()) | set(copy_wordsets.scalars().all())
-
-    # Build response
-    pending = []
-    for ws in all_wordsets:
-        # Get role
-        prompt_round = await db.get(Round, ws.prompt_round_id)
-        role = "prompt" if prompt_round.player_id == player.player_id else "copy"
-
-        # Check if already collected
-        from backend.models.result_view import ResultView
-        result_view_query = await db.execute(
-            select(ResultView)
-            .where(ResultView.phraseset_id == ws.phraseset_id)
-            .where(ResultView.player_id == player.player_id)
-        )
-        result_view = result_view_query.scalar_one_or_none()
-
+    pending: list[PendingResult] = []
+    for entry in contributions:
+        finalized_at = entry.get("finalized_at")
+        if not finalized_at:
+            continue
+        if not entry.get("phraseset_id"):
+            continue
         pending.append(
             PendingResult(
-                phraseset_id=ws.phraseset_id,
-                prompt_text=ws.prompt_text,
-                completed_at=ensure_utc(ws.finalized_at),
-                role=role,
-                payout_collected=result_view.payout_collected if result_view else False,
+                phraseset_id=entry["phraseset_id"],
+                prompt_text=entry["prompt_text"],
+                completed_at=ensure_utc(finalized_at),
+                role=entry["your_role"],
+                payout_claimed=entry.get("payout_claimed", False),
             )
         )
 
-    # Sort by completion time (newest first)
-    pending.sort(key=lambda x: x.completed_at, reverse=True)
-
+    pending.sort(key=lambda item: item.completed_at, reverse=True)
     return PendingResultsResponse(pending=pending)
+
+
+@router.get(
+    "/phrasesets",
+    response_model=PhrasesetListResponse,
+)
+async def list_player_phrasesets(
+    role: str = Query("all", regex="^(all|prompt|copy)$"),
+    status: str = Query("all"),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    player: Player = Depends(get_current_player),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return paginated list of phrasesets for the current player."""
+    phraseset_service = PhrasesetService(db)
+    phrasesets, total = await phraseset_service.get_player_phrasesets(
+        player.player_id,
+        role=role,
+        status=status,
+        limit=limit,
+        offset=offset,
+    )
+    has_more = offset + len(phrasesets) < total
+    return PhrasesetListResponse(
+        phrasesets=phrasesets,
+        total=total,
+        has_more=has_more,
+    )
+
+
+@router.get(
+    "/phrasesets/summary",
+    response_model=PhrasesetDashboardSummary,
+)
+async def get_phraseset_summary(
+    player: Player = Depends(get_current_player),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return dashboard summary of phrasesets for the player."""
+    phraseset_service = PhrasesetService(db)
+    summary = await phraseset_service.get_phraseset_summary(player.player_id)
+    return PhrasesetDashboardSummary(**summary)
+
+
+@router.get(
+    "/unclaimed-results",
+    response_model=UnclaimedResultsResponse,
+)
+async def get_unclaimed_results(
+    player: Player = Depends(get_current_player),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return finalized phrasesets with unclaimed payouts."""
+    phraseset_service = PhrasesetService(db)
+    payload = await phraseset_service.get_unclaimed_results(player.player_id)
+    return UnclaimedResultsResponse(**payload)

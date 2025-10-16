@@ -15,6 +15,7 @@ from backend.models.player_abandoned_prompt import PlayerAbandonedPrompt
 from backend.services.transaction_service import TransactionService
 from backend.services.queue_service import QueueService
 from backend.services.phrase_validator import get_phrase_validator
+from backend.services.activity_service import ActivityService
 from backend.config import get_settings
 from backend.utils.exceptions import InvalidPhraseError, DuplicatePhraseError, RoundNotFoundError, RoundExpiredError
 
@@ -28,6 +29,7 @@ class RoundService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.phrase_validator = get_phrase_validator()
+        self.activity_service = ActivityService(db)
 
     async def start_prompt_round(self, player: Player, transaction_service: TransactionService) -> Round:
         """
@@ -159,12 +161,23 @@ class RoundService:
         # Update round
         round_object.submitted_phrase = phrase.strip().upper()
         round_object.status = "submitted"
+        round_object.phraseset_status = "waiting_copies"
 
         # Clear player's active round
         player.active_round_id = None
 
         # Add to queue
         QueueService.add_prompt_to_queue(round_object.round_id)
+
+        await self.activity_service.record_activity(
+            activity_type="prompt_created",
+            prompt_round_id=round_object.round_id,
+            player_id=player.player_id,
+            metadata={
+                "prompt_text": round_object.prompt_text,
+                "phrase": round_object.submitted_phrase,
+            },
+        )
 
         await self.db.commit()
         await self.db.refresh(round_object)
@@ -326,6 +339,7 @@ class RoundService:
             other_copy_phrase = result.scalars().first()
 
         prompt_text = None
+        prompt_round = None
         if round_object.prompt_round_id:
             prompt_round = await self.db.get(Round, round_object.prompt_round_id)
             if prompt_round:
@@ -350,71 +364,99 @@ class RoundService:
         # Clear player's active round
         player.active_round_id = None
 
+        if prompt_round:
+            is_first_copy = prompt_round.copy1_player_id is None
+            if is_first_copy:
+                prompt_round.copy1_player_id = player.player_id
+                prompt_round.phraseset_status = "waiting_copy1"
+            elif prompt_round.copy2_player_id is None:
+                prompt_round.copy2_player_id = player.player_id
+            else:
+                logger.warning(
+                    "Prompt round %s already has two copy players; new submission still accepted",
+                    prompt_round.round_id,
+                )
+
+            await self.activity_service.record_activity(
+                activity_type="copy1_submitted" if is_first_copy else "copy2_submitted",
+                prompt_round_id=prompt_round.round_id,
+                player_id=player.player_id,
+                metadata={
+                    "copy_phrase": round_object.copy_phrase,
+                },
+            )
+
+            if prompt_round.copy2_player_id is None:
+                # Ensure prompt stays available for a second copy
+                QueueService.add_prompt_to_queue(prompt_round.round_id)
+
+        await self.db.flush()
+
+        phraseset = None
+        if prompt_round:
+            phraseset = await self._create_phraseset_if_ready(prompt_round)
+            if phraseset:
+                prompt_round.phraseset_status = "active"
+                await self.activity_service.attach_phraseset_id(
+                    prompt_round.round_id, phraseset.phraseset_id
+                )
+
         await self.db.commit()
 
-        # Check if we can create phraseset
-        await self._check_and_create_phraseset(round_object.prompt_round_id)
-
         await self.db.refresh(round_object)
+        if prompt_round:
+            await self.db.refresh(prompt_round)
+        if phraseset:
+            await self.db.refresh(phraseset)
 
         logger.info(f"Submitted phrase for copy round {round_id}: {phrase}")
         return round_object
 
-    async def _check_and_create_phraseset(self, prompt_round_id: UUID):
-        """Check if we have 2 copies for prompt, create phraseset if so."""
-        # Get all submitted copy rounds for this prompt
+    async def _create_phraseset_if_ready(self, prompt_round: Round) -> PhraseSet | None:
+        """Create phraseset when two copies submitted."""
         result = await self.db.execute(
             select(Round)
-            .where(Round.prompt_round_id == prompt_round_id)
+            .where(Round.prompt_round_id == prompt_round.round_id)
             .where(Round.round_type == "copy")
             .where(Round.status == "submitted")
+            .order_by(Round.created_at.asc())
         )
         copy_rounds = list(result.scalars().all())
 
-        if len(copy_rounds) == 1:
-            # Still need a second copy – requeue prompt for another player
-            QueueService.add_prompt_to_queue(prompt_round_id)
-            logger.info(
-                f"Prompt round {prompt_round_id} requeued after first copy submission"
-            )
-            return
+        if len(copy_rounds) < 2 or not prompt_round.submitted_phrase:
+            return None
 
-        if len(copy_rounds) >= 2:
-            # Get prompt round
-            prompt_round = await self.db.get(Round, prompt_round_id)
+        copy1, copy2 = copy_rounds[0], copy_rounds[1]
 
-            # Use first 2 copies
-            copy1 = copy_rounds[0]
-            copy2 = copy_rounds[1]
+        total_pool = settings.wordset_prize_pool
+        system_contribution = copy1.system_contribution + copy2.system_contribution
 
-            # Calculate total pool (300 + system contributions)
-            total_pool = settings.wordset_prize_pool
-            system_contribution = copy1.system_contribution + copy2.system_contribution
+        phraseset = PhraseSet(
+            phraseset_id=uuid.uuid4(),
+            prompt_round_id=prompt_round.round_id,
+            copy_round_1_id=copy1.round_id,
+            copy_round_2_id=copy2.round_id,
+            prompt_text=prompt_round.prompt_text,
+            original_phrase=prompt_round.submitted_phrase,
+            copy_phrase_1=copy1.copy_phrase,
+            copy_phrase_2=copy2.copy_phrase,
+            status="open",
+            vote_count=0,
+            total_pool=total_pool,
+            system_contribution=system_contribution,
+        )
 
-            # Create phraseset
-            phraseset = PhraseSet(
-                phraseset_id=uuid.uuid4(),
-                prompt_round_id=prompt_round_id,
-                copy_round_1_id=copy1.round_id,
-                copy_round_2_id=copy2.round_id,
-                prompt_text=prompt_round.prompt_text,
-                original_phrase=prompt_round.submitted_phrase,
-                copy_phrase_1=copy1.copy_phrase,
-                copy_phrase_2=copy2.copy_phrase,
-                status="open",
-                vote_count=0,
-                total_pool=total_pool,
-                system_contribution=system_contribution,
-            )
+        self.db.add(phraseset)
+        await self.db.flush()
 
-            self.db.add(phraseset)
+        QueueService.add_wordset_to_queue(phraseset.phraseset_id)
+        logger.info(
+            "Created phraseset %s from prompt %s",
+            phraseset.phraseset_id,
+            prompt_round.round_id,
+        )
 
-            # Add to voting queue
-            QueueService.add_wordset_to_queue(phraseset.phraseset_id)
-
-            await self.db.commit()
-
-            logger.info(f"Created phraseset {phraseset.phraseset_id} from prompt {prompt_round_id}")
+        return phraseset
 
     async def handle_timeout(
         self,
@@ -456,6 +498,7 @@ class RoundService:
         # Mark as expired/abandoned
         if round_object.round_type == "prompt":
             round_object.status = "expired"
+            round_object.phraseset_status = "abandoned"
             refund_amount = settings.prompt_cost - (settings.prompt_cost // 20)  # Refund 95% of cost
 
             # Create refund transaction
