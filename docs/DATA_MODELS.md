@@ -5,7 +5,9 @@
 ### Player
 - `player_id` (UUID, primary key)
 - `api_key` (string, unique, indexed) - UUID v4 for authentication
-- `balance` (integer, default 1000) - current balance in cents
+- `username` (string, unique) - generated display name
+- `username_canonical` (string, unique) - lowercase form for lookups
+- `balance` (integer, default 1000) - current balance in whole dollars
 - `created_at` (timestamp)
 - `last_login_date` (date, nullable) - UTC date for daily bonus tracking
 - `active_round_id` (UUID, nullable, references rounds.round_id) - enforces one-round-at-a-time
@@ -24,6 +26,8 @@
   - `prompt_id` (UUID, references prompt library)
   - `prompt_text` (string) - denormalized for performance
   - `submitted_phrase` (string, nullable) - prompt player's phrase
+  - `phraseset_status` (string, nullable) - mirrors phraseset lifecycle while attached to the round
+  - `copy1_player_id` / `copy2_player_id` (UUID, nullable) - contributors once assigned
 
 - **Copy-specific fields** (nullable for non-copy rounds):
   - `prompt_round_id` (UUID, references rounds.round_id, indexed) - links to original prompt
@@ -83,10 +87,12 @@
 - `view_id` (UUID, primary key)
 - `phraseset_id` (UUID, references phraseset, indexed)
 - `player_id` (UUID, references player, indexed)
-- `payout_collected` (boolean, default false)
+- `payout_claimed` (boolean, default false, indexed)
 - `payout_amount` (integer) - prize pool payout for contributor
-- `viewed_at` (timestamp)
-- Indexes: `view_id`, `(player_id, phraseset_id)` unique composite, `payout_collected`
+- `viewed_at` (timestamp) - most recent view timestamp
+- `first_viewed_at` (timestamp, nullable) - when the player first saw the results
+- `payout_claimed_at` (timestamp, nullable) - when payout_claimed flipped to true
+- Indexes: `view_id`, `(player_id, phraseset_id)` unique composite, `payout_claimed`
 - Note: Used for idempotent prize collection
 
 ### Transaction (Ledger)

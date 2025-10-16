@@ -13,6 +13,7 @@ This document provides high-level guidance for implementing a Quipflip frontend.
 1. **Landing / Authentication**
    - Create new player (POST /player) → receive API key
    - API key input for returning players
+   - Username-based recovery flow (POST /player/login) for lost keys
    - Store API key securely (localStorage/sessionStorage)
 
 2. **Dashboard / Home**
