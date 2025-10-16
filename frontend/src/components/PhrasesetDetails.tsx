@@ -29,7 +29,7 @@ export const PhrasesetDetails: React.FC<PhrasesetDetailsProps> = ({
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center text-gray-600">
-        Loading phraseset details…
+        Loading round details…
       </div>
     );
   }
@@ -37,7 +37,7 @@ export const PhrasesetDetails: React.FC<PhrasesetDetailsProps> = ({
   if (!phraseset) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-        Select a phraseset to see more details.
+        Select a round to see more details.
       </div>
     );
   }

@@ -226,9 +226,9 @@ export const Dashboard: React.FC = () => {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-semibold text-gray-800">Phrasesets In Progress</p>
+                <p className="font-semibold text-gray-800">Past Rounds In Progress</p>
                 <p className="text-sm text-gray-700">
-                  {inProgressPrompts} prompt{inProgressPrompts === 1 ? '' : 's'} • {inProgressCopies} copy{inProgressCopies === 1 ? '' : 'ies'}
+                  {inProgressPrompts} prompt{inProgressPrompts === 1 ? '' : 's'} • {inProgressCopies} cop{inProgressCopies === 1 ? 'y' : 'ies'}
                 </p>
               </div>
               <button
@@ -247,7 +247,7 @@ export const Dashboard: React.FC = () => {
               <div>
                 <p className="font-semibold text-green-800">Prizes Ready to Claim</p>
                 <p className="text-sm text-green-700">
-                  {unclaimedPromptCount} prompt{unclaimedPromptCount === 1 ? '' : 's'} • {unclaimedCopyCount} copy{unclaimedCopyCount === 1 ? '' : 'ies'} • ${totalUnclaimedAmount} total
+                  {unclaimedPromptCount} prompt{unclaimedPromptCount === 1 ? '' : 's'} • {unclaimedCopyCount} cop{unclaimedCopyCount === 1 ? 'y' : 'ies'} • ${totalUnclaimedAmount} total
                 </p>
               </div>
               <button

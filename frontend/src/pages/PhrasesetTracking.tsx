@@ -147,7 +147,7 @@ export const PhrasesetTracking: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Phraseset Tracking</h1>
+            <h1 className="text-3xl font-bold text-gray-800">Past Round Tracking</h1>
             <p className="text-sm text-gray-600">
               Monitor your prompts and copies throughout the game lifecycle.
             </p>
@@ -167,8 +167,8 @@ export const PhrasesetTracking: React.FC = () => {
               <p className="text-lg font-semibold text-gray-800">
                 {phrasesetSummary.in_progress.prompts} prompt
                 {phrasesetSummary.in_progress.prompts === 1 ? '' : 's'} &nbsp;•&nbsp;
-                {phrasesetSummary.in_progress.copies} copy
-                {phrasesetSummary.in_progress.copies === 1 ? '' : 'ies'}
+                {phrasesetSummary.in_progress.copies} cop
+                {phrasesetSummary.in_progress.copies === 1 ? 'y' : 'ies'}
               </p>
             </div>
             <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -176,8 +176,8 @@ export const PhrasesetTracking: React.FC = () => {
               <p className="text-lg font-semibold text-gray-800">
                 {phrasesetSummary.finalized.prompts} prompt
                 {phrasesetSummary.finalized.prompts === 1 ? '' : 's'} &nbsp;•&nbsp;
-                {phrasesetSummary.finalized.copies} copy
-                {phrasesetSummary.finalized.copies === 1 ? '' : 'ies'}
+                {phrasesetSummary.finalized.copies} cop
+                {phrasesetSummary.finalized.copies === 1 ? 'y' : 'ies'}
               </p>
             </div>
             <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -222,7 +222,7 @@ export const PhrasesetTracking: React.FC = () => {
               </label>
             </div>
             <div className="text-sm text-gray-600">
-              Showing {totalTracked} phraseset{totalTracked === 1 ? '' : 's'}
+              Showing {totalTracked} round{totalTracked === 1 ? '' : 's'}
             </div>
           </div>
         </div>
@@ -236,7 +236,7 @@ export const PhrasesetTracking: React.FC = () => {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-4">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Your Phrasesets</h2>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Your Past Rounds</h2>
               <PhrasesetList
                 phrasesets={phrasesets}
                 selectedId={selectedId}
