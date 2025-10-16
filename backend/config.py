@@ -44,9 +44,9 @@ class Settings(BaseSettings):
     significant_word_min_length: int = 4
 
     # Similarity Checking
-    similarity_threshold: float = 0.85  # Cosine similarity threshold for rejecting similar phrases
-    similarity_model: str = "all-MiniLM-L6-v2"  # Sentence transformer model
-    word_similarity_threshold: float = 0.85  # Minimum ratio for considering words too similar
+    similarity_threshold: float = 0.8  # Cosine similarity threshold for rejecting similar phrases
+    similarity_model: str = "all-mpnet-base-v2"  # previously "all-MiniLM-L6-v2"  # Sentence transformer model
+    word_similarity_threshold: float = 0.8  # Minimum ratio for considering words too similar
 
     @model_validator(mode="after")
     def ensure_asyncpg(self):

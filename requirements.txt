@@ -1,7 +1,7 @@
 # FastAPI and server
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
-python-multipart==0.0.6
+python-multipart==0.0.19
 
 # Database
 sqlalchemy[asyncio]==2.0.25
@@ -28,5 +28,6 @@ python-dateutil==2.8.2
 
 # Phrase similarity checking
 sentence-transformers==2.7.0
-scikit-learn==1.4.0
+scikit-learn==1.5.0
 numpy>=1.24.0
+google-genai==1.45.0
