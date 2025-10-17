@@ -9,7 +9,7 @@ bcrypt==5.0.0  # Password hashing
 
 # Database
 sqlalchemy[asyncio]==2.0.44
-asyncpg==0.30.0
+asyncpg==0.29.0
 aiosqlite==0.21.0
 alembic==1.17.0
 
