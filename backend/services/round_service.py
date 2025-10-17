@@ -31,7 +31,7 @@ class RoundService:
         self.phrase_validator = get_phrase_validator()
         self.activity_service = ActivityService(db)
 
-    async def start_prompt_round(self, player: Player, transaction_service: TransactionService) -> Round:
+    async def start_prompt_round(self, player: Player, transaction_service: TransactionService) -> Optional[Round]:
         """
         Start a prompt round.
 
@@ -57,7 +57,7 @@ class RoundService:
                 .distinct()
             )
 
-            base_stmt = select(Prompt).where(Prompt.enabled == True)
+            base_stmt = select(Prompt).where(Prompt.enabled is True)
 
             # Try to get an unseen prompt first
             prompt_stmt = base_stmt.where(Prompt.prompt_id.not_in(seen_prompts_subquery))
@@ -128,11 +128,11 @@ class RoundService:
         return round_object
 
     async def submit_prompt_phrase(
-        self,
-        round_id: UUID,
-        phrase: str,
-        player: Player,
-        transaction_service: TransactionService,
+            self,
+            round_id: UUID,
+            phrase: str,
+            player: Player,
+            transaction_service: TransactionService,
     ) -> Optional[Round]:
         """Submit word for prompt round."""
         # Get round
@@ -145,7 +145,8 @@ class RoundService:
 
         # Check grace period
         # Make grace_cutoff timezone-aware if expires_at is naive (SQLite stores naive)
-        expires_at_aware = round_object.expires_at.replace(tzinfo=UTC) if round_object.expires_at.tzinfo is None else round_object.expires_at
+        expires_at_aware = round_object.expires_at.replace(
+            tzinfo=UTC) if round_object.expires_at.tzinfo is None else round_object.expires_at
         grace_cutoff = expires_at_aware + timedelta(seconds=settings.grace_period_seconds)
         if datetime.now(UTC) > grace_cutoff:
             raise RoundExpiredError("Round expired past grace period")
@@ -185,7 +186,7 @@ class RoundService:
         logger.info(f"Submitted phrase for prompt round {round_id}: {phrase}")
         return round_object
 
-    async def start_copy_round(self, player: Player, transaction_service: TransactionService) -> Round:
+    async def start_copy_round(self, player: Player, transaction_service: TransactionService) -> Optional[Round]:
         """
         Start a copy round.
 
@@ -304,12 +305,12 @@ class RoundService:
         return round_object
 
     async def submit_copy_phrase(
-        self,
-        round_id: UUID,
-        phrase: str,
-        player: Player,
-        transaction_service: TransactionService,
-    ) -> Round:
+            self,
+            round_id: UUID,
+            phrase: str,
+            player: Player,
+            transaction_service: TransactionService,
+    ) -> Optional[Round]:
         """Submit phrase for copy round."""
         # Get round
         round_object = await self.db.get(Round, round_id)
@@ -321,7 +322,8 @@ class RoundService:
 
         # Check grace period
         # Make grace_cutoff timezone-aware if expires_at is naive (SQLite stores naive)
-        expires_at_aware = round_object.expires_at.replace(tzinfo=UTC) if round_object.expires_at.tzinfo is None else round_object.expires_at
+        expires_at_aware = round_object.expires_at.replace(
+            tzinfo=UTC) if round_object.expires_at.tzinfo is None else round_object.expires_at
         grace_cutoff = expires_at_aware + timedelta(seconds=settings.grace_period_seconds)
         if datetime.now(UTC) > grace_cutoff:
             raise RoundExpiredError("Round expired past grace period")
@@ -459,9 +461,9 @@ class RoundService:
         return phraseset
 
     async def handle_timeout(
-        self,
-        round_id: UUID,
-        transaction_service: TransactionService,
+            self,
+            round_id: UUID,
+            transaction_service: TransactionService,
     ):
         """
         Handle timeout for abandoned round.
@@ -478,9 +480,7 @@ class RoundService:
             expires_at.replace(tzinfo=UTC) if expires_at and expires_at.tzinfo is None else expires_at
         )
         grace_cutoff = (
-            expires_at_aware + timedelta(seconds=settings.grace_period_seconds)
-            if expires_at_aware
-            else None
+            expires_at_aware + timedelta(seconds=settings.grace_period_seconds) if expires_at_aware else None
         )
 
         # Respect grace period before cleanup
@@ -499,7 +499,7 @@ class RoundService:
         if round_object.round_type == "prompt":
             round_object.status = "expired"
             round_object.phraseset_status = "abandoned"
-            refund_amount = settings.prompt_cost - (settings.prompt_cost // 20)  # Refund 95% of cost
+            refund_amount = settings.prompt_cost - settings.abandoned_penalty
 
             # Create refund transaction
             await transaction_service.create_transaction(
@@ -513,7 +513,7 @@ class RoundService:
 
         elif round_object.round_type == "copy":
             round_object.status = "abandoned"
-            refund_amount = round_object.cost - (round_object.cost // 20)  # Refund 95% of cost
+            refund_amount = round_object.cost - settings.abandoned_penalty
 
             # Create refund transaction
             await transaction_service.create_transaction(

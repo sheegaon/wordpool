@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     copy_cost_discount: int = 90
     vote_cost: int = 1
     vote_payout_correct: int = 5
+    abandoned_penalty: int = 5
     phraseset_prize_pool: int = 300
     max_outstanding_prompts: int = 10
     copy_discount_threshold: int = 10  # prompts waiting to trigger discount
