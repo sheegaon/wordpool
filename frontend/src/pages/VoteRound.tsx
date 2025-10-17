@@ -94,8 +94,8 @@ export const VoteRound: React.FC = () => {
     return (
       <div className="min-h-screen bg-quip-cream bg-pattern flex items-center justify-center p-4">
         <div className="max-w-2xl w-full tile-card p-8 text-center flip-enter">
-          <div className={`text-6xl mb-4`}>
-            {voteResult.correct ? '🎯' : '😅'}
+          <div className="flex justify-center mb-4">
+            <img src="/icon_vote.svg" alt="" className="w-24 h-24" />
           </div>
           <h2 className={`text-3xl font-display font-bold mb-4 ${voteResult.correct ? 'text-quip-turquoise' : 'text-quip-orange'}`}>
             {voteResult.correct ? successMsg : 'Incorrect'}

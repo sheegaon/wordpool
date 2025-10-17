@@ -94,7 +94,9 @@ export const CopyRound: React.FC = () => {
     return (
       <div className="min-h-screen bg-quip-cream bg-pattern flex items-center justify-center p-4">
         <div className="tile-card max-w-md w-full p-8 text-center flip-enter">
-          <div className="text-6xl mb-4">🔄</div>
+          <div className="flex justify-center mb-4">
+            <img src="/icon_copy.svg" alt="" className="w-24 h-24" />
+          </div>
           <h2 className="text-2xl font-display font-bold text-quip-turquoise mb-2 success-message">
             {successMessage}
           </h2>
