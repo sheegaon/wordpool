@@ -4,6 +4,7 @@ from backend.services.transaction_service import TransactionService
 from backend.services.queue_service import QueueService
 from backend.services.player_service import PlayerService
 from backend.services.scoring_service import ScoringService
+from backend.services.ai_copy_service import AICopyService
 
 __all__ = [
     "get_phrase_validator",
@@ -11,4 +12,5 @@ __all__ = [
     "QueueService",
     "PlayerService",
     "ScoringService",
+    "AICopyService",
 ]

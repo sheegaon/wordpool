@@ -48,6 +48,15 @@ class Settings(BaseSettings):
     similarity_model: str = "all-mpnet-base-v2"  # previously "all-MiniLM-L6-v2"  # Sentence transformer model
     word_similarity_threshold: float = 0.8  # Minimum ratio for considering words too similar
 
+    # AI backup copies
+    ai_copy_backup_delay_seconds: int = 600
+    ai_copy_backup_batch_size: int = 3
+    ai_copy_generation_attempts: int = 3
+    ai_copy_provider: str = "openai"
+    ai_copy_openai_model: str = "gpt-5-nano"
+    ai_copy_gemini_model: str = "gemini-2.5-flash-lite"
+    ai_copy_player_username: str = "AI Copycat"
+
     @model_validator(mode="after")
     def ensure_asyncpg(self):
         """Normalize Postgres URLs so SQLAlchemy uses the asyncpg driver."""

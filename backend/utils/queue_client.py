@@ -78,6 +78,27 @@ class QueueClient:
             removed = self.redis.lrem(queue_name, 1, json.dumps(item))
             return removed > 0
         else:
-            # In-memory doesn't support remove efficiently
-            # For MVP, we'll just skip this functionality
-            return False
+            with self._memory_lock:
+                if queue_name not in self._memory_queues:
+                    return False
+
+                queue = self._memory_queues[queue_name]
+                temp: list[dict] = []
+                removed = False
+
+                while True:
+                    try:
+                        current = queue.get_nowait()
+                    except Empty:
+                        break
+
+                    if not removed and current == item:
+                        removed = True
+                        continue
+
+                    temp.append(current)
+
+                for entry in temp:
+                    queue.put(entry)
+
+                return removed

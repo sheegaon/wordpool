@@ -16,6 +16,7 @@ from backend.services.transaction_service import TransactionService
 from backend.services.queue_service import QueueService
 from backend.services.phrase_validator import get_phrase_validator
 from backend.services.activity_service import ActivityService
+from backend.services.ai_copy_service import AICopyService
 from backend.config import get_settings
 from backend.utils.exceptions import InvalidPhraseError, DuplicatePhraseError, RoundNotFoundError, RoundExpiredError
 
@@ -30,6 +31,7 @@ class RoundService:
         self.db = db
         self.phrase_validator = get_phrase_validator()
         self.activity_service = ActivityService(db)
+        self.ai_copy_service = AICopyService(db)
 
     async def start_prompt_round(self, player: Player, transaction_service: TransactionService) -> Round:
         """
@@ -183,6 +185,7 @@ class RoundService:
         await self.db.refresh(round_object)
 
         logger.info(f"Submitted phrase for prompt round {round_id}: {phrase}")
+        await self._run_ai_backup_cycle()
         return round_object
 
     async def start_copy_round(self, player: Player, transaction_service: TransactionService) -> Round:
@@ -199,6 +202,8 @@ class RoundService:
         prompt_round_id = None
         prompt_round = None
 
+        await self._run_ai_backup_cycle()
+
         for attempt in range(max_attempts):
             # Get next prompt from queue
             prompt_round_id = QueueService.get_next_prompt()
@@ -210,6 +215,21 @@ class RoundService:
             if not prompt_round:
                 logger.warning(f"Prompt round not found in DB: {prompt_round_id}")
                 continue  # Try next prompt
+
+            if prompt_round.phraseset_status not in {None, "waiting_copies", "waiting_copy1"}:
+                logger.info(
+                    "Prompt round %s already in status %s, skipping for copy",
+                    prompt_round.round_id,
+                    prompt_round.phraseset_status,
+                )
+                continue
+
+            if not prompt_round.submitted_phrase:
+                logger.warning(
+                    "Prompt round %s missing submitted phrase, skipping",
+                    prompt_round.round_id,
+                )
+                continue
 
             # CRITICAL: Check if player is trying to copy their own prompt
             if prompt_round.player_id == player.player_id:
@@ -410,6 +430,7 @@ class RoundService:
             await self.db.refresh(phraseset)
 
         logger.info(f"Submitted phrase for copy round {round_id}: {phrase}")
+        await self._run_ai_backup_cycle()
         return round_object
 
     async def _create_phraseset_if_ready(self, prompt_round: Round) -> PhraseSet | None:
@@ -603,3 +624,39 @@ class RoundService:
         )
 
         return available_count
+
+    async def _run_ai_backup_cycle(self):
+        """Invoke the AI copy backup service and finalize any completed sets."""
+
+        try:
+            ready_prompt_ids = await self.ai_copy_service.run_backup_cycle()
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.exception("AI backup cycle failed: %s", exc)
+            return
+
+        if not ready_prompt_ids:
+            return
+
+        phraseset_created = False
+        for prompt_id in ready_prompt_ids:
+            prompt_round = await self.db.get(Round, prompt_id)
+            if not prompt_round:
+                continue
+
+            phraseset = await self._create_phraseset_if_ready(prompt_round)
+            if not phraseset:
+                continue
+
+            prompt_round.phraseset_status = "active"
+            await self.activity_service.attach_phraseset_id(
+                prompt_round.round_id, phraseset.phraseset_id
+            )
+            phraseset_created = True
+            logger.info(
+                "AI backup finalized phraseset %s for prompt %s",
+                phraseset.phraseset_id,
+                prompt_round.round_id,
+            )
+
+        if phraseset_created:
+            await self.db.commit()
