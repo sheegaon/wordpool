@@ -6,6 +6,8 @@ from uuid import uuid4
 from httpx import AsyncClient, ASGITransport
 
 from backend.main import app
+from backend.models.player import Player
+from backend.services.player_service import PlayerService
 
 
 @pytest.mark.asyncio

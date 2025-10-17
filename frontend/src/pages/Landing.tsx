@@ -63,11 +63,20 @@ export const Landing: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full bg-white rounded-lg shadow-xl p-8 grid gap-8 md:grid-cols-2">
-        <div>
-          <h1 className="text-4xl font-bold mb-4 text-gray-800">Quipflip</h1>
-          <p className="text-gray-600 mb-6">A multiplayer phrase association game</p>
+    <div className="min-h-screen bg-gradient-to-br from-quip-orange to-quip-turquoise flex items-center justify-center p-4 bg-pattern">
+      <div className="max-w-md w-full tile-card p-8 animate-slide-up">
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <img
+            src="/quipflip_logo_horizontal_transparent.png"
+            alt="Quipflip"
+            className="h-32 w-auto"
+          />
+        </div>
+
+        <p className="text-center text-quip-teal mb-8 text-sm">
+          A multiplayer phrase association game
+        </p>
 
           {error && (
             <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">

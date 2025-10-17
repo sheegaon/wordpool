@@ -8,6 +8,7 @@ import type {
 import { useGame } from '../contexts/GameContext';
 import { PhrasesetList } from '../components/PhrasesetList';
 import { PhrasesetDetails } from '../components/PhrasesetDetails';
+import { Header } from '../components/Header';
 
 type RoleFilter = 'all' | 'prompt' | 'copy';
 type StatusFilter = 'all' | 'in_progress' | 'voting' | 'finalized' | 'abandoned';
@@ -29,6 +30,7 @@ const statusOptions: { value: StatusFilter; label: string }[] = [
 export const PhrasesetTracking: React.FC = () => {
   const navigate = useNavigate();
   const {
+    player,
     refreshBalance,
     refreshPhrasesetSummary,
     refreshUnclaimedResults,
@@ -142,54 +144,67 @@ export const PhrasesetTracking: React.FC = () => {
 
   const totalTracked = useMemo(() => phrasesets.length, [phrasesets.length]);
 
+  if (!player) {
+    return (
+      <div className="min-h-screen bg-quip-cream bg-pattern flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-quip-cream bg-pattern">
+      <Header />
+
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Past Round Tracking</h1>
-            <p className="text-sm text-gray-600">
-              Monitor your prompts and copies throughout the game lifecycle.
+            <h1 className="text-2xl font-display font-bold text-quip-navy">Past Round Tracking</h1>
+            <p className="text-sm text-quip-teal">
+              Monitor your quips throughout the game lifecycle.
             </p>
           </div>
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-gray-600 hover:text-gray-800 text-sm"
+            className="text-quip-teal hover:text-quip-turquoise text-sm font-medium inline-flex items-center gap-2 transition-colors"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
             Back to Dashboard
           </button>
         </div>
 
         {phrasesetSummary && (
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-xs uppercase text-gray-500">In Progress</p>
-              <p className="text-lg font-semibold text-gray-800">
+            <div className="tile-card p-4">
+              <p className="text-xs uppercase text-quip-teal font-medium">In Progress</p>
+              <p className="text-lg font-display font-semibold text-quip-navy">
                 {phrasesetSummary.in_progress.prompts} prompt
                 {phrasesetSummary.in_progress.prompts === 1 ? '' : 's'} &nbsp;•&nbsp;
                 {phrasesetSummary.in_progress.copies} cop
                 {phrasesetSummary.in_progress.copies === 1 ? 'y' : 'ies'}
               </p>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-xs uppercase text-gray-500">Finalized</p>
-              <p className="text-lg font-semibold text-gray-800">
+            <div className="tile-card p-4">
+              <p className="text-xs uppercase text-quip-teal font-medium">Finalized</p>
+              <p className="text-lg font-display font-semibold text-quip-navy">
                 {phrasesetSummary.finalized.prompts} prompt
                 {phrasesetSummary.finalized.prompts === 1 ? '' : 's'} &nbsp;•&nbsp;
                 {phrasesetSummary.finalized.copies} cop
                 {phrasesetSummary.finalized.copies === 1 ? 'y' : 'ies'}
               </p>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-xs uppercase text-gray-500">Unclaimed</p>
-              <p className="text-lg font-semibold text-green-700">
+            <div className="tile-card p-4 bg-quip-turquoise bg-opacity-10">
+              <p className="text-xs uppercase text-quip-teal font-medium">Unclaimed</p>
+              <p className="text-lg font-display font-semibold text-quip-turquoise">
                 ${phrasesetSummary.total_unclaimed_amount}
               </p>
             </div>
           </div>
         )}
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="tile-card p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-3">
               <label className="text-sm text-gray-700 flex items-center gap-2">

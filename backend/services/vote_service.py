@@ -127,7 +127,7 @@ class VoteService:
         # Get available phraseset (outside lock - read-only)
         phraseset = await self.get_available_wordset_for_player(player.player_id)
         if not phraseset:
-            raise NoWordsetsAvailableError("No phrasesets available for voting")
+            raise NoWordsetsAvailableError("No quips available for voting")
 
         # Acquire lock for the entire transaction
         from backend.utils import lock_client
