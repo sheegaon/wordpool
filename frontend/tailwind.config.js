@@ -17,8 +17,8 @@ export default {
         'quip-navy': '#0B2137',
       },
       fontFamily: {
-        'display': ['Satoshi', 'Poppins', 'Inter', 'system-ui', 'sans-serif'],
-        'sans': ['Inter', 'Manrope', 'system-ui', 'sans-serif'],
+        'display': ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
+        'sans': ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         'tile': '20px',

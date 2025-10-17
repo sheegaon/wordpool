@@ -1,6 +1,6 @@
 import React from 'react';
 import Lottie from 'lottie-react';
-import flipAnimation from '../flip-littie.json';
+import flipAnimation from '../flip-lottie.json';
 
 interface LoadingSpinnerProps {
   message?: string;
