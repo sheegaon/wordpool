@@ -11,12 +11,16 @@ from backend.services.phraseset_service import PhrasesetService
 
 
 def _base_player(username: str) -> Player:
+    from backend.utils.passwords import hash_password
+
     now = datetime.now(UTC)
     return Player(
         player_id=uuid4(),
         api_key=str(uuid4()),
         username=username,
         username_canonical=username,
+        email=f"{username}@example.com",
+        password_hash=hash_password("TestPassword123!"),
         balance=1000,
         created_at=now,
     )

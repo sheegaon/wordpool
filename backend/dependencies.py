@@ -90,7 +90,9 @@ async def get_current_player(
     if not x_api_key:
         raise HTTPException(status_code=401, detail="missing_credentials")
 
-    await _enforce_rate_limit("general", x_api_key, GENERAL_RATE_LIMIT)
+    # First, apply a rate limit on the API key itself to prevent database abuse
+    # from brute force attempts with invalid keys
+    await _enforce_rate_limit("invalid_key_attempts", x_api_key, GENERAL_RATE_LIMIT)
 
     player = await player_service.get_player_by_api_key(x_api_key)
 
@@ -98,40 +100,26 @@ async def get_current_player(
         logger.warning(f"Invalid API key attempt: {x_api_key[:8]}...")
         raise HTTPException(status_code=401, detail="Invalid API key")
 
+    # Now apply the general rate limit based on player_id (not API key)
+    # This prevents users from bypassing rate limits by rotating their API key
+    await _enforce_rate_limit("general", str(player.player_id), GENERAL_RATE_LIMIT)
+
     logger.debug(f"Authenticated player via API key: {player.player_id}")
     return player
 
 
 async def enforce_vote_rate_limit(
-    authorization: str | None = Header(default=None, alias="Authorization"),
-    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
-    db: AsyncSession = Depends(get_db),
-) -> None:
-    """Enforce tighter limits on vote submissions.
+    player: Player = Depends(get_current_player),
+) -> Player:
+    """Enforce tighter limits on vote submissions and return the authenticated player.
 
-    Note: This dependency should be used in conjunction with get_current_player
-    to ensure authentication. Invalid tokens will cause a 401 error rather than
-    silently bypassing rate limiting.
+    This dependency leverages get_current_player to authenticate the user and then
+    applies a stricter rate limit based on the player's ID. This approach:
+    - Eliminates duplication of authentication logic
+    - Ensures consistent behavior with get_current_player
+    - Prevents bypassing limits by rotating API keys (always uses player_id)
+    - Automatically handles authentication errors via get_current_player
+    - Returns the player to avoid redundant get_current_player calls in endpoints
     """
-
-    identifier = None
-    if authorization:
-        scheme, _, token = authorization.partition(" ")
-        if scheme.lower() == "bearer" and token:
-            auth_service = AuthService(db)
-            try:
-                payload = auth_service.decode_access_token(token)
-                sub = payload.get("sub")
-                if sub:
-                    identifier = str(sub)
-            except AuthError as exc:
-                # Don't silently fail - invalid/expired tokens should return 401
-                detail = "token_expired" if "expired" in str(exc).lower() else "invalid_token"
-                raise HTTPException(status_code=401, detail=detail) from exc
-
-    if not identifier and x_api_key:
-        identifier = x_api_key
-
-    # If we still don't have an identifier and this is a rate-limited endpoint,
-    # that means neither auth method was provided - should have been caught by get_current_player
-    await _enforce_rate_limit("vote_submit", identifier, VOTE_RATE_LIMIT)
+    await _enforce_rate_limit("vote_submit", str(player.player_id), VOTE_RATE_LIMIT)
+    return player

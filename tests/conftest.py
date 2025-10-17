@@ -94,3 +94,35 @@ async def test_app(test_engine):
     app.dependency_overrides[get_db] = override_get_db
     yield app
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def player_factory(db_session):
+    """Factory for creating test players with default credentials."""
+    from backend.services.player_service import PlayerService
+    from backend.utils.passwords import hash_password
+    import uuid
+
+    player_service = PlayerService(db_session)
+
+    async def _create_player(
+        username: str | None = None,
+        email: str | None = None,
+        password: str = "TestPassword123!",
+    ):
+        # Use UUID to ensure unique usernames/emails across all tests
+        unique_id = str(uuid.uuid4())[:8]
+
+        if username is None:
+            username = f"player{unique_id}"
+        if email is None:
+            email = f"player{unique_id}@example.com"
+
+        password_hash = hash_password(password)
+        return await player_service.create_player(
+            username=username,
+            email=email,
+            password_hash=password_hash,
+        )
+
+    return _create_player

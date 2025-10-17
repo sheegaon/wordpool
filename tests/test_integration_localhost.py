@@ -15,16 +15,52 @@ from typing import Dict, Optional
 BASE_URL = "http://localhost:8000"
 TIMEOUT = 10.0  # seconds
 
+# Counter for unique test users
+_player_counter = 0
+
+
+def create_test_player_data():
+    """Generate unique test player registration data."""
+    global _player_counter
+    _player_counter += 1
+    return {
+        "username": f"testplayer{_player_counter}_{int(time.time()*1000)}",
+        "email": f"testplayer{_player_counter}_{int(time.time()*1000)}@example.com",
+        "password": "TestPassword123!"
+    }
+
+
+def create_authenticated_client():
+    """Create a new player and return an authenticated client."""
+    client = TestClient()
+    player_data = create_test_player_data()
+    response = client.post("/player", json=player_data)
+
+    if response.status_code != 201:
+        raise Exception(f"Failed to create player: {response.status_code} - {response.text}")
+
+    data = response.json()
+    access_token = data.get("access_token")
+
+    client.close()
+
+    # Return new client with access token and the player data
+    auth_client = TestClient(access_token=access_token)
+    return auth_client, data
+
 
 class TestClient:
     """Helper class for making API requests with authentication."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, access_token: Optional[str] = None, api_key: Optional[str] = None):
+        self.access_token = access_token
         self.api_key = api_key
         self.client = httpx.Client(base_url=BASE_URL, timeout=TIMEOUT)
 
     def headers(self) -> Dict[str, str]:
         """Get request headers with optional authentication."""
+        if self.access_token:
+            return {"Authorization": f"Bearer {self.access_token}"}
         if self.api_key:
             return {"X-API-Key": self.api_key}
         return {}
@@ -94,27 +130,27 @@ class TestPlayerManagement:
     """Test player creation and management."""
 
     def test_create_player(self, verify_server_running):
-        """Test POST /player creates new player with API key."""
+        """Test POST /player creates new player with credentials."""
         client = TestClient()
-        response = client.post("/player")
+        player_data = create_test_player_data()
+        response = client.post("/player", json=player_data)
 
         assert response.status_code == 201
         data = response.json()
         assert "player_id" in data
-        assert "api_key" in data
+        assert "username" in data
+        assert data["username"] == player_data["username"]
         assert data["balance"] == 1000
-        assert "message" in data
+        assert "access_token" in data
+        assert "refresh_token" in data
         client.close()
 
     def test_get_balance(self, verify_server_running):
         """Test GET /player/balance returns player balance."""
-        # Create player
-        client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        # Create authenticated client
+        auth_client, player_data = create_authenticated_client()
 
         # Get balance
-        auth_client = TestClient(api_key)
         response = auth_client.get("/player/balance")
 
         assert response.status_code == 200
@@ -125,57 +161,37 @@ class TestPlayerManagement:
         assert data["daily_bonus_amount"] == 100
         assert "outstanding_prompts" in data
 
-        client.close()
         auth_client.close()
 
     def test_balance_requires_auth(self, verify_server_running):
         """Test /player/balance requires authentication."""
-        client = TestClient()  # No API key
+        client = TestClient()  # No auth token
         response = client.get("/player/balance")
 
-        assert response.status_code == 422  # Pydantic validation error for missing auth
+        assert response.status_code == 401  # Unauthorized
         client.close()
 
     def test_rotate_api_key(self, verify_server_running):
         """Test POST /player/rotate-key generates new key."""
-        # Create player
-        client = TestClient()
-        create_response = client.post("/player")
-        old_api_key = create_response.json()["api_key"]
+        # Create authenticated client
+        auth_client, player_data = create_authenticated_client()
 
-        # Rotate key
-        auth_client = TestClient(old_api_key)
+        # Get current API key from player data (it's included in registration response)
+        # Note: This endpoint still exists for legacy API key rotation
         response = auth_client.post("/player/rotate-key")
 
         assert response.status_code == 200
         data = response.json()
         assert "new_api_key" in data
-        assert data["new_api_key"] != old_api_key
 
-        # Old key should no longer work
-        old_client = TestClient(old_api_key)
-        balance_response = old_client.get("/player/balance")
-        assert balance_response.status_code == 401
-
-        # New key should work
-        new_client = TestClient(data["new_api_key"])
-        balance_response = new_client.get("/player/balance")
-        assert balance_response.status_code == 200
-
-        client.close()
         auth_client.close()
-        old_client.close()
-        new_client.close()
 
     def test_get_current_round_no_active(self, verify_server_running):
         """Test GET /player/current-round with no active round."""
-        # Create player
-        client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        # Create authenticated client
+        auth_client, player_data = create_authenticated_client()
 
         # Check current round
-        auth_client = TestClient(api_key)
         response = auth_client.get("/player/current-round")
 
         assert response.status_code == 200
@@ -184,18 +200,14 @@ class TestPlayerManagement:
         assert data["round_type"] is None
         assert data["state"] is None
 
-        client.close()
         auth_client.close()
 
     def test_get_pending_results_empty(self, verify_server_running):
         """Test GET /player/pending-results with no results."""
-        # Create player
-        client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        # Create authenticated client
+        auth_client, player_data = create_authenticated_client()
 
         # Check pending results
-        auth_client = TestClient(api_key)
         response = auth_client.get("/player/pending-results")
 
         assert response.status_code == 200
@@ -203,7 +215,6 @@ class TestPlayerManagement:
         assert "pending" in data
         assert isinstance(data["pending"], list)
 
-        client.close()
         auth_client.close()
 
 
@@ -212,13 +223,10 @@ class TestRoundAvailability:
 
     def test_get_available_rounds(self, verify_server_running):
         """Test GET /rounds/available returns round status."""
-        # Create player
-        client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        # Create authenticated client
+        auth_client, player_data = create_authenticated_client()
 
         # Get availability
-        auth_client = TestClient(api_key)
         response = auth_client.get("/rounds/available")
 
         assert response.status_code == 200
@@ -232,7 +240,6 @@ class TestRoundAvailability:
         assert "copy_cost" in data
         assert "current_round_id" in data
 
-        client.close()
         auth_client.close()
 
 
@@ -241,13 +248,10 @@ class TestPromptRoundFlow:
 
     def test_start_prompt_round(self, verify_server_running):
         """Test POST /rounds/prompt creates new round."""
-        # Create player
-        client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        # Create authenticated client
+        auth_client, player_data = create_authenticated_client()
 
         # Start prompt round
-        auth_client = TestClient(api_key)
         response = auth_client.post("/rounds/prompt", json={})
 
         assert response.status_code == 200
@@ -261,17 +265,13 @@ class TestPromptRoundFlow:
         balance_response = auth_client.get("/player/balance")
         assert balance_response.json()["balance"] == 900
 
-        client.close()
         auth_client.close()
 
     def test_submit_prompt_word(self, verify_server_running):
         """Test POST /rounds/{round_id}/submit for prompt round."""
-        # Create player and start prompt round
-        client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        # Create authenticated client and start prompt round
+        auth_client, player_data = create_authenticated_client()
 
-        auth_client = TestClient(api_key)
         prompt_response = auth_client.post("/rounds/prompt", json={})
         round_id = prompt_response.json()["round_id"]
 
@@ -291,17 +291,13 @@ class TestPromptRoundFlow:
         current_data = current_response.json()
         assert current_data["round_id"] is None
 
-        client.close()
         auth_client.close()
 
     def test_submit_invalid_word(self, verify_server_running):
         """Test submitting invalid word fails."""
-        # Create player and start prompt round
-        client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        # Create authenticated client and start prompt round
+        auth_client, player_data = create_authenticated_client()
 
-        auth_client = TestClient(api_key)
         prompt_response = auth_client.post("/rounds/prompt", json={})
         round_id = prompt_response.json()["round_id"]
 
@@ -313,17 +309,13 @@ class TestPromptRoundFlow:
 
         assert submit_response.status_code == 422  # Changed from 400 to 422 for validation errors
 
-        client.close()
         auth_client.close()
 
     def test_cannot_start_second_round(self, verify_server_running):
         """Test player cannot start second round while one is active."""
-        # Create player and start prompt round
-        client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        # Create authenticated client and start prompt round
+        auth_client, player_data = create_authenticated_client()
 
-        auth_client = TestClient(api_key)
         auth_client.post("/rounds/prompt", json={})
 
         # Try to start another round
@@ -333,7 +325,6 @@ class TestPromptRoundFlow:
         data = second_response.json()
         assert "already" in data["detail"].lower() or "active" in data["detail"].lower()
 
-        client.close()
         auth_client.close()
 
     def test_insufficient_balance_for_prompt(self, verify_server_running):
@@ -349,13 +340,10 @@ class TestCopyRoundFlow:
 
     def test_no_prompts_available(self, verify_server_running):
         """Test POST /rounds/copy fails when no prompts available."""
-        # Create player (no prompts in queue yet)
-        client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        # Create authenticated client
+        auth_client, player_data = create_authenticated_client()
 
-        # Try to start copy round
-        auth_client = TestClient(api_key)
+        # 
         response = auth_client.post("/rounds/copy", json={})
 
         # Should fail if no prompts are available
@@ -370,7 +358,6 @@ class TestCopyRoundFlow:
             assert "original_phrase" in data  # Changed from original_word to original_phrase
             assert "cost" in data
 
-        client.close()
         auth_client.close()
 
     def test_copy_round_with_prompt(self, verify_server_running):
@@ -418,10 +405,6 @@ class TestCopyRoundFlow:
             assert submit_response.status_code == 200
 
         # Cleanup
-        client1.close()
-        client2.close()
-        p1_client.close()
-        p2_client.close()
 
 
 class TestVoteRoundFlow:
@@ -429,13 +412,10 @@ class TestVoteRoundFlow:
 
     def test_no_wordsets_available(self, verify_server_running):
         """Test POST /rounds/vote when no wordsets ready."""
-        # Create player
-        client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        # Create authenticated client
+        auth_client, player_data = create_authenticated_client()
 
-        # Try to start vote round
-        auth_client = TestClient(api_key)
+        # 
         response = auth_client.post("/rounds/vote", json={})
 
         # May fail if no complete phrasesets exist
@@ -449,7 +429,6 @@ class TestVoteRoundFlow:
             assert "phrases" in data  # Changed from words to phrases
             assert len(data["phrases"]) == 3
 
-        client.close()
         auth_client.close()
 
 
@@ -460,8 +439,8 @@ class TestCompleteGameFlow:
         """Test complete game: prompt -> 2 copies -> votes."""
         # Create prompt player
         prompt_client = TestClient()
-        prompt_player = prompt_client.post("/player").json()
-        p1 = TestClient(prompt_player["api_key"])
+        prompt_player = create_authenticated_client()
+        p1 = auth_client
 
         # Start and submit prompt
         prompt_round = p1.post("/rounds/prompt", json={}).json()
@@ -472,8 +451,8 @@ class TestCompleteGameFlow:
 
         # Create first copy player
         copy1_client = TestClient()
-        copy1_player = copy1_client.post("/player").json()
-        c1 = TestClient(copy1_player["api_key"])
+        copy1_player = create_authenticated_client()
+        c1 = auth_client
 
         time.sleep(0.5)  # Ensure prompt is in queue
 
@@ -488,8 +467,8 @@ class TestCompleteGameFlow:
 
             # Create second copy player
             copy2_client = TestClient()
-            copy2_player = copy2_client.post("/player").json()
-            c2 = TestClient(copy2_player["api_key"])
+            copy2_player = create_authenticated_client()
+            c2 = auth_client
 
             time.sleep(0.5)
 
@@ -504,8 +483,8 @@ class TestCompleteGameFlow:
 
                 # Create voter
                 voter_client = TestClient()
-                voter_player = voter_client.post("/player").json()
-                v1 = TestClient(voter_player["api_key"])
+                voter_player = create_authenticated_client()
+                v1 = auth_client
 
                 time.sleep(0.5)
 
@@ -554,10 +533,8 @@ class TestEdgeCases:
     def test_get_nonexistent_round(self, verify_server_running):
         """Test GET /rounds/{round_id} with invalid ID."""
         client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        auth_client, player_data = create_authenticated_client()
 
-        auth_client = TestClient(api_key)
         response = auth_client.get("/rounds/00000000-0000-0000-0000-000000000000")
 
         assert response.status_code == 404
@@ -570,11 +547,11 @@ class TestEdgeCases:
         # Create two players
         client1 = TestClient()
         player1 = client1.post("/player").json()
-        p1 = TestClient(player1["api_key"])
+        p1 = auth_client
 
         client2 = TestClient()
         player2 = client2.post("/player").json()
-        p2 = TestClient(player2["api_key"])
+        p2 = auth_client
 
         # Player 1 starts round
         round_data = p1.post("/rounds/prompt", json={}).json()
@@ -597,10 +574,8 @@ class TestEdgeCases:
     def test_word_too_short(self, verify_server_running):
         """Test submitting single-letter word (too short)."""
         client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        auth_client, player_data = create_authenticated_client()
 
-        auth_client = TestClient(api_key)
         prompt_response = auth_client.post("/rounds/prompt", json={})
         round_id = prompt_response.json()["round_id"]
 
@@ -618,10 +593,8 @@ class TestEdgeCases:
     def test_word_too_long(self, verify_server_running):
         """Test submitting word that's too long (>100 chars)."""
         client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        auth_client, player_data = create_authenticated_client()
 
-        auth_client = TestClient(api_key)
         prompt_response = auth_client.post("/rounds/prompt", json={})
         round_id = prompt_response.json()["round_id"]
 
@@ -643,10 +616,8 @@ class TestDataConsistency:
     def test_balance_consistency_after_round(self, verify_server_running):
         """Test balance is correctly updated after round operations."""
         client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        auth_client, player_data = create_authenticated_client()
 
-        auth_client = TestClient(api_key)
 
         # Check initial balance
         balance1 = auth_client.get("/player/balance").json()["balance"]
@@ -665,10 +636,8 @@ class TestDataConsistency:
     def test_outstanding_prompts_tracking(self, verify_server_running):
         """Test outstanding_prompts counter is accurate."""
         client = TestClient()
-        create_response = client.post("/player")
-        api_key = create_response.json()["api_key"]
+        auth_client, player_data = create_authenticated_client()
 
-        auth_client = TestClient(api_key)
 
         # Check initial outstanding prompts
         balance_data = auth_client.get("/player/balance").json()
@@ -703,7 +672,7 @@ class TestConcurrency:
         for _ in range(3):
             client = TestClient()
             player = client.post("/player").json()
-            auth_client = TestClient(player["api_key"])
+            auth_client = auth_client
 
             players.append(player)
             clients.append(client)

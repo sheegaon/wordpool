@@ -9,16 +9,9 @@ from backend.services.activity_service import ActivityService
 
 
 @pytest.mark.asyncio
-async def test_record_and_attach_activity(db_session):
+async def test_record_and_attach_activity(db_session, player_factory):
     """Activities recorded against prompt rounds should attach to phrasesets."""
-    player = Player(
-        player_id=uuid4(),
-        api_key=str(uuid4()),
-        username="player_one",
-        username_canonical="player_one",
-        balance=1000,
-        created_at=datetime.now(UTC),
-    )
+    player = await player_factory(username="player_one")
     prompt_round = Round(
         round_id=uuid4(),
         player_id=player.player_id,

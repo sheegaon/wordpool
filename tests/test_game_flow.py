@@ -1,23 +1,19 @@
 """Tests for complete game flow."""
 import pytest
 import uuid
-from backend.models.player import Player
 from backend.models.prompt import Prompt
-from backend.services.player_service import PlayerService
 from backend.services.round_service import RoundService
 from backend.services.transaction_service import TransactionService
-from backend.services.vote_service import VoteService
 
 
 @pytest.mark.asyncio
-async def test_prompt_round_lifecycle(db_session):
+async def test_prompt_round_lifecycle(db_session, player_factory):
     """Test prompt round from start to submission."""
     # Create player and services
-    player_service = PlayerService(db_session)
     round_service = RoundService(db_session)
     transaction_service = TransactionService(db_session)
 
-    player = await player_service.create_player()
+    player = await player_factory()
 
     # Seed a test prompt with unique text
     prompt = Prompt(
@@ -46,13 +42,15 @@ async def test_prompt_round_lifecycle(db_session):
 
 
 @pytest.mark.asyncio
-async def test_one_round_at_a_time_enforcement(db_session):
+async def test_one_round_at_a_time_enforcement(db_session, player_factory):
     """Test player can only have one active round."""
+    from backend.services.player_service import PlayerService
+
     player_service = PlayerService(db_session)
     round_service = RoundService(db_session)
     transaction_service = TransactionService(db_session)
 
-    player = await player_service.create_player()
+    player = await player_factory()
 
     # Seed prompt
     prompt = Prompt(text="test", category="test", enabled=True)
@@ -69,10 +67,12 @@ async def test_one_round_at_a_time_enforcement(db_session):
 
 
 @pytest.mark.asyncio
-async def test_insufficient_balance_prevention(db_session):
+async def test_insufficient_balance_prevention(db_session, player_factory):
     """Test player cannot start round without sufficient balance."""
+    from backend.services.player_service import PlayerService
+
     player_service = PlayerService(db_session)
-    player = await player_service.create_player()
+    player = await player_factory()
 
     # Set balance to $50 (insufficient for $100 prompt)
     player.balance = 50
@@ -84,13 +84,12 @@ async def test_insufficient_balance_prevention(db_session):
 
 
 @pytest.mark.asyncio
-async def test_transaction_ledger_tracking(db_session):
+async def test_transaction_ledger_tracking(db_session, player_factory):
     """Test all transactions are recorded with balance_after."""
-    player_service = PlayerService(db_session)
     round_service = RoundService(db_session)
     transaction_service = TransactionService(db_session)
 
-    player = await player_service.create_player()
+    player = await player_factory()
 
     # Seed prompt with unique text
     prompt = Prompt(text=f"test ledger {uuid.uuid4()}", category="test", enabled=True)
@@ -115,21 +114,24 @@ async def test_transaction_ledger_tracking(db_session):
 
 
 @pytest.mark.asyncio
-async def test_daily_bonus_logic(db_session):
+async def test_daily_bonus_logic(db_session, player_factory):
     """Test daily bonus availability and claiming."""
     from datetime import date, timedelta, datetime, UTC
     from backend.models.player import Player as PlayerModel
+    from backend.services.player_service import PlayerService
 
     player_service = PlayerService(db_session)
     transaction_service = TransactionService(db_session)
 
     # Test 1: Bonus not available on creation day
-    player1 = await player_service.create_player()
+    player1 = await player_factory()
     available = await player_service.is_daily_bonus_available(player1)
     assert available is False, "Bonus should not be available on creation day"
 
     # Test 2: Bonus available for player created yesterday with old last_login_date
     # Create a player with dates manually set
+    from backend.utils.passwords import hash_password
+
     yesterday = date.today() - timedelta(days=1)
     yesterday_dt = datetime.combine(yesterday, datetime.min.time()).replace(tzinfo=UTC)
 
@@ -138,6 +140,8 @@ async def test_daily_bonus_logic(db_session):
         api_key=str(uuid.uuid4()),
         username="test_daily_bonus",
         username_canonical="test_daily_bonus",
+        email="test_daily_bonus@example.com",
+        password_hash=hash_password("TestPassword123!"),
         balance=1000,
         created_at=yesterday_dt,
         last_login_date=yesterday,
@@ -161,15 +165,14 @@ async def test_daily_bonus_logic(db_session):
 
 
 @pytest.mark.asyncio
-async def test_cannot_copy_own_prompt(db_session):
+async def test_cannot_copy_own_prompt(db_session, player_factory):
     """Test that players cannot copy their own prompts."""
     from backend.services.queue_service import QueueService
 
-    player_service = PlayerService(db_session)
     round_service = RoundService(db_session)
     transaction_service = TransactionService(db_session)
 
-    player = await player_service.create_player()
+    player = await player_factory()
 
     # Seed a test prompt
     prompt = Prompt(
