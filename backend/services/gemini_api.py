@@ -95,7 +95,7 @@ def _generate_content(model: str, contents: List[types.Content]) -> str:
 
 
 async def generate_copy(
-        self, original_phrase: str, prompt_text: str,
+        original_phrase: str, prompt_text: str,
         model: str = "gemini-2.5-flash-lite", timeout: int = 30,
 ) -> GeminiSuggestion:
     """Call Gemini and return the recommended noun index with structured response."""
