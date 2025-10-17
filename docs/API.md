@@ -9,24 +9,29 @@ Production: https://your-app.herokuapp.com
 
 ## Authentication
 
-All endpoints except `/health`, `/`, and `POST /player` require authentication via API key.
+All endpoints except `/health`, `/`, and the new authentication routes require a valid
+JSON Web Token (JWT) access token. During the transition period, legacy API keys are still
+honored when supplied in the `X-API-Key` header, but new clients should migrate to JWTs.
 
-**Header:**
+**Access Token Header:**
 ```
-X-API-Key: <your-api-key-uuid>
+Authorization: Bearer <access_token>
 ```
 
-**Getting an API Key:**
-Use the `POST /player` endpoint to create a new player account and receive an API key.
+**Refresh Token Storage:**
+- Refresh tokens are issued alongside access tokens.
+- The API sets a HTTP-only cookie named `quipflip_refresh_token`.
+- Clients can also send the refresh token explicitly in request bodies if needed.
 
-**Recovering an API Key:**
-Use `POST /player/login` with your username to retrieve the API key that was originally issued.
+**Getting Tokens:**
+- Use `POST /player` to register with a username, email, and password.
+- Use `POST /auth/login` with your credentials to obtain fresh tokens.
+- Tokens expire after 15 minutes; call `POST /auth/refresh` (or rely on the cookie) to obtain a new pair.
 
-**Security Notes:**
-- API keys are UUIDs, not JWTs (no expiration)
-- Store securely (localStorage/sessionStorage for web, secure storage for mobile)
-- Use `POST /player/rotate-key` if compromised
-- No password recovery - losing API key means losing account
+**Legacy API Keys:**
+- Responses continue to include a `legacy_api_key` for backward compatibility.
+- Supply the key in the `X-API-Key` header if you cannot adopt JWTs immediately.
+- Keys can still be rotated with `POST /player/rotate-key`.
 
 ## Response Format
 
@@ -48,7 +53,7 @@ Use `POST /player/login` with your username to retrieve the API key that was ori
 - `200 OK` - Success
 - `201 Created` - Resource created (POST /player)
 - `400 Bad Request` - Invalid request or business logic error
-- `401 Unauthorized` - Missing or invalid API key
+- `401 Unauthorized` - Missing or invalid credentials
 - `404 Not Found` - Resource not found
 - `409 Conflict` - State conflict (e.g., already voted)
 - `429 Too Many Requests` - Rate limit exceeded
@@ -105,26 +110,32 @@ Health check endpoint (no authentication required).
 Create a new player account (no authentication required).
 
 **Request:**
-```
-POST /player
+```bash
+curl -X POST http://localhost:8000/player \
+  -H "Content-Type: application/json" \
+  -d '{
+        "username": "Prompt Pirate",
+        "email": "prompt.pirate@example.com",
+        "password": "SuperSecure123!"
+      }'
 ```
 
 **Response (201 Created):**
 ```json
 {
   "player_id": "3555a0e9-d46d-4a36-8756-f0e9c836d822",
-  "api_key": "dff60a88-04c8-4a11-a8d8-874add980d12",
+  "username": "Prompt Pirate",
+  "access_token": "<jwt access token>",
+  "refresh_token": "<refresh token>",
+  "legacy_api_key": "dff60a88-04c8-4a11-a8d8-874add980d12",
+  "expires_in": 900,
   "balance": 1000,
-  "message": "Player created! Use this API key in the X-API-Key header for authentication. Starting balance: \$1000"
+  "message": "Player created! Your account is ready to play. An access token and refresh token have been issued for authentication.",
+  "token_type": "bearer"
 }
 ```
 
-**Important:** Save the `api_key` immediately - it cannot be retrieved later.
-
-**cURL Example:**
-```bash
-curl -X POST http://localhost:8000/player
-```
+**Important:** Store the refresh token securely. Legacy clients may continue to use `legacy_api_key` as a fallback.
 
 #### `POST /player/rotate-key`
 Rotate API key for security (requires authentication).
@@ -148,14 +159,18 @@ curl -X POST http://localhost:8000/player/rotate-key \
 - Update all clients with the new key
 - Use if you suspect key compromise
 
-#### `POST /player/login`
-Retrieve the API key for an existing account using a username (no authentication required).
+### Authentication Endpoints
 
-**Request:**
+#### `POST /auth/login`
+Exchange a username and password for a new access token + refresh token pair.
+
 ```bash
-curl -X POST http://localhost:8000/player/login \
+curl -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"Prompt Pirate"}'
+  -d '{
+        "username": "Prompt Pirate",
+        "password": "SuperSecure123!"
+      }'
 ```
 
 **Response:**
@@ -163,13 +178,35 @@ curl -X POST http://localhost:8000/player/login \
 {
   "player_id": "3555a0e9-d46d-4a36-8756-f0e9c836d822",
   "username": "Prompt Pirate",
-  "api_key": "dff60a88-04c8-4a11-a8d8-874add980d12",
-  "message": "Welcome back! We've restored your API key for this username."
+  "access_token": "<jwt access token>",
+  "refresh_token": "<refresh token>",
+  "legacy_api_key": "dff60a88-04c8-4a11-a8d8-874add980d12",
+  "expires_in": 900,
+  "token_type": "bearer"
 }
 ```
 
-**Errors:**
-- `username_not_found` - No player with that username exists
+#### `POST /auth/refresh`
+Use an existing refresh token (or the refresh cookie) to obtain a new access token.
+
+```bash
+curl -X POST http://localhost:8000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<refresh token>"}'
+```
+
+Returns the same shape as `POST /auth/login` with a rotated refresh token.
+
+#### `POST /auth/logout`
+Invalidate a refresh token and clear the server cookie.
+
+```bash
+curl -X POST http://localhost:8000/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<refresh token>"}'
+```
+
+Responds with `204 No Content`.
 
 #### `GET /player/balance`
 Get player balance and status.

@@ -64,7 +64,7 @@ Frontend runs at **http://localhost:5173**
 **✅ Phase 1 MVP Complete (100%)**
 
 *Backend:*
-- Player accounts with API key authentication
+- Player accounts with JWT + refresh token authentication (legacy API keys supported)
 - Three round types (Prompt, Copy, Vote)
 - Queue management with dynamic pricing
 - NASPA dictionary validation (191k words)
@@ -88,7 +88,6 @@ Frontend runs at **http://localhost:5173**
 **🔜 Phase 2 (Planned)**
 - Transaction history endpoint
 - Enhanced statistics
-- JWT authentication
 - Admin API for testing
 
 **🎯 Phase 3+ (Future)**

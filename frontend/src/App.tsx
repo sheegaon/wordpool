@@ -13,9 +13,9 @@ import { ErrorNotification } from './components/ErrorNotification';
 
 // Protected Route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { apiKey } = useGame();
+  const { isAuthenticated } = useGame();
 
-  if (!apiKey) {
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
@@ -24,16 +24,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // App Routes
 const AppRoutes: React.FC = () => {
-  const { apiKey } = useGame();
+  const { isAuthenticated } = useGame();
 
   return (
     <>
       <ErrorNotification />
       <Routes>
-        <Route
-          path="/"
-          element={apiKey ? <Navigate to="/dashboard" replace /> : <Landing />}
-        />
+        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />} />
         <Route
           path="/dashboard"
           element={

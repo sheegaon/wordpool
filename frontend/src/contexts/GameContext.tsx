@@ -7,11 +7,11 @@ import type {
   RoundAvailability,
   PhrasesetDashboardSummary,
   UnclaimedResult,
+  AuthTokenResponse,
 } from '../api/types';
 
 interface GameContextType {
-  // State
-  apiKey: string | null;
+  isAuthenticated: boolean;
   username: string | null;
   player: Player | null;
   activeRound: ActiveRound | null;
@@ -22,9 +22,8 @@ interface GameContextType {
   loading: boolean;
   error: string | null;
 
-  // Actions
-  setApiKey: (key: string, username?: string) => void;
-  logout: () => void;
+  startSession: (username: string, tokens: AuthTokenResponse) => void;
+  logout: () => Promise<void>;
   refreshBalance: () => Promise<void>;
   refreshCurrentRound: () => Promise<void>;
   refreshPendingResults: () => Promise<void>;
@@ -38,12 +37,8 @@ interface GameContextType {
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [apiKey, setApiKeyState] = useState<string | null>(() =>
-    localStorage.getItem('quipflip_api_key')
-  );
-  const [username, setUsername] = useState<string | null>(() =>
-    localStorage.getItem('quipflip_username')
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
   const [activeRound, setActiveRound] = useState<ActiveRound | null>(null);
   const [pendingResults, setPendingResults] = useState<PendingResult[]>([]);
@@ -53,130 +48,187 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const setApiKey = useCallback((key: string, nextUsername?: string) => {
-    localStorage.setItem('quipflip_api_key', key);
-    setApiKeyState(key);
-    if (nextUsername) {
-      localStorage.setItem('quipflip_username', nextUsername);
-      setUsername(nextUsername);
-    }
+  useEffect(() => {
+    const initializeSession = async () => {
+      const storedUsername = apiClient.getStoredUsername();
+      if (storedUsername) {
+        setUsername(storedUsername);
+      }
+      const token = await apiClient.ensureAccessToken();
+      setIsAuthenticated(Boolean(token));
+    };
+    initializeSession();
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('quipflip_api_key');
-    localStorage.removeItem('quipflip_username');
-    setApiKeyState(null);
-    setUsername(null);
-    setPlayer(null);
-    setActiveRound(null);
-    setPendingResults([]);
-    setPhrasesetSummary(null);
-    setUnclaimedResults([]);
-    setRoundAvailability(null);
+  const startSession = useCallback((nextUsername: string, tokens: AuthTokenResponse) => {
+    apiClient.setSession(nextUsername, tokens);
+    setUsername(nextUsername);
+    setIsAuthenticated(true);
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await apiClient.logout();
+    } catch (err) {
+      // Swallow logout errors to ensure UI state is cleared
+      console.warn('Failed to logout cleanly', err);
+    } finally {
+      apiClient.clearSession();
+      setIsAuthenticated(false);
+      setUsername(null);
+      setPlayer(null);
+      setActiveRound(null);
+      setPendingResults([]);
+      setPhrasesetSummary(null);
+      setUnclaimedResults([]);
+      setRoundAvailability(null);
+    }
   }, []);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const refreshBalance = useCallback(async (signal?: AbortSignal) => {
-    if (!apiKey) return;
-    try {
-      const data = await apiClient.getBalance(signal);
-      setPlayer(data);
-      if (data.username && data.username !== username) {
-        localStorage.setItem('quipflip_username', data.username);
-        setUsername(data.username);
-      }
-      setError(null);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'CanceledError') return;
-      const errorMessage = extractErrorMessage(err);
-      setError(errorMessage || 'Failed to fetch balance');
-      if (errorMessage && errorMessage.includes('Invalid API key')) {
+  const handleAuthError = useCallback(
+    (message: string | null | undefined) => {
+      if (!message) return;
+      const normalized = message.toLowerCase();
+      if (
+        normalized.includes('unauthorized') ||
+        normalized.includes('token') ||
+        normalized.includes('credentials')
+      ) {
         logout();
       }
-    }
-  }, [apiKey, logout, username]);
+    },
+    [logout],
+  );
 
-  const refreshCurrentRound = useCallback(async (signal?: AbortSignal) => {
-    if (!apiKey) return;
-    try {
-      const data = await apiClient.getCurrentRound(signal);
-      setActiveRound(data);
-      setError(null);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'CanceledError') return;
-      setError(extractErrorMessage(err) || 'Failed to fetch current round');
-    }
-  }, [apiKey]);
+  const refreshBalance = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isAuthenticated) return;
+      try {
+        const data = await apiClient.getBalance(signal);
+        setPlayer(data);
+        if (data.username && data.username !== username) {
+          apiClient.setSession(data.username);
+          setUsername(data.username);
+        }
+        setError(null);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'CanceledError') return;
+        const errorMessage = extractErrorMessage(err);
+        setError(errorMessage || 'Failed to fetch balance');
+        handleAuthError(errorMessage);
+      }
+    },
+    [handleAuthError, isAuthenticated, username],
+  );
 
-  const refreshPendingResults = useCallback(async (signal?: AbortSignal) => {
-    if (!apiKey) return;
-    try {
-      const data = await apiClient.getPendingResults(signal);
-      setPendingResults(data.pending);
-      setError(null);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'CanceledError') return;
-      setError(extractErrorMessage(err) || 'Failed to fetch pending results');
-    }
-  }, [apiKey]);
+  const refreshCurrentRound = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isAuthenticated) return;
+      try {
+        const data = await apiClient.getCurrentRound(signal);
+        setActiveRound(data);
+        setError(null);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'CanceledError') return;
+        const message = extractErrorMessage(err) || 'Failed to fetch current round';
+        setError(message);
+        handleAuthError(message);
+      }
+    },
+    [handleAuthError, isAuthenticated],
+  );
 
-  const refreshPhrasesetSummary = useCallback(async (signal?: AbortSignal) => {
-    if (!apiKey) return;
-    try {
-      const data = await apiClient.getPhrasesetsSummary(signal);
-      setPhrasesetSummary(data);
-      setError(null);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'CanceledError') return;
-      setError(extractErrorMessage(err) || 'Failed to fetch phraseset summary');
-    }
-  }, [apiKey]);
+  const refreshPendingResults = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isAuthenticated) return;
+      try {
+        const data = await apiClient.getPendingResults(signal);
+        setPendingResults(data.pending);
+        setError(null);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'CanceledError') return;
+        const message = extractErrorMessage(err) || 'Failed to fetch pending results';
+        setError(message);
+        handleAuthError(message);
+      }
+    },
+    [handleAuthError, isAuthenticated],
+  );
 
-  const refreshUnclaimedResults = useCallback(async (signal?: AbortSignal) => {
-    if (!apiKey) return;
-    try {
-      const data = await apiClient.getUnclaimedResults(signal);
-      setUnclaimedResults(data.unclaimed);
-      setError(null);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'CanceledError') return;
-      setError(extractErrorMessage(err) || 'Failed to fetch unclaimed results');
-    }
-  }, [apiKey]);
+  const refreshPhrasesetSummary = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isAuthenticated) return;
+      try {
+        const data = await apiClient.getPhrasesetsSummary(signal);
+        setPhrasesetSummary(data);
+        setError(null);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'CanceledError') return;
+        const message = extractErrorMessage(err) || 'Failed to fetch phraseset summary';
+        setError(message);
+        handleAuthError(message);
+      }
+    },
+    [handleAuthError, isAuthenticated],
+  );
 
-  const refreshRoundAvailability = useCallback(async (signal?: AbortSignal) => {
-    if (!apiKey) return;
-    try {
-      const data = await apiClient.getRoundAvailability(signal);
-      setRoundAvailability(data);
-      setError(null);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'CanceledError') return;
-      setError(extractErrorMessage(err) || 'Failed to fetch round availability');
-    }
-  }, [apiKey]);
+  const refreshUnclaimedResults = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isAuthenticated) return;
+      try {
+        const data = await apiClient.getUnclaimedResults(signal);
+        setUnclaimedResults(data.unclaimed);
+        setError(null);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'CanceledError') return;
+        const message = extractErrorMessage(err) || 'Failed to fetch unclaimed results';
+        setError(message);
+        handleAuthError(message);
+      }
+    },
+    [handleAuthError, isAuthenticated],
+  );
+
+  const refreshRoundAvailability = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isAuthenticated) return;
+      try {
+        const data = await apiClient.getRoundAvailability(signal);
+        setRoundAvailability(data);
+        setError(null);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'CanceledError') return;
+        const message = extractErrorMessage(err) || 'Failed to fetch round availability';
+        setError(message);
+        handleAuthError(message);
+      }
+    },
+    [handleAuthError, isAuthenticated],
+  );
 
   const claimBonus = useCallback(async () => {
-    if (!apiKey) return;
+    if (!isAuthenticated) return;
     try {
       setLoading(true);
       await apiClient.claimDailyBonus();
       await refreshBalance();
       setError(null);
     } catch (err) {
-      setError(extractErrorMessage(err) || 'Failed to claim bonus');
+      const message = extractErrorMessage(err) || 'Failed to claim bonus';
+      setError(message);
+      handleAuthError(message);
       throw err;
     } finally {
       setLoading(false);
     }
-  }, [apiKey, refreshBalance]);
+  }, [handleAuthError, isAuthenticated, refreshBalance]);
 
-  // Initial load
   useEffect(() => {
-    if (!apiKey) return;
+    if (!isAuthenticated) return;
 
     const controller = new AbortController();
     refreshBalance(controller.signal);
@@ -188,7 +240,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => controller.abort();
   }, [
-    apiKey,
+    isAuthenticated,
     refreshBalance,
     refreshCurrentRound,
     refreshPendingResults,
@@ -197,66 +249,27 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshRoundAvailability,
   ]);
 
-  // Polling intervals
   useEffect(() => {
-    if (!apiKey) return;
-
-    const controllers: AbortController[] = [];
-
-    const pushController = () => {
-      const controller = new AbortController();
-      controllers.push(controller);
-      return controller;
-    };
+    if (!isAuthenticated) return;
 
     const balanceInterval = setInterval(() => {
-      const controller = pushController();
-      refreshBalance(controller.signal);
-    }, 30000);
+      refreshBalance();
+      refreshRoundAvailability();
+    }, 60_000);
 
-    const roundInterval = setInterval(() => {
-      if (activeRound?.round_id) {
-        const controller = pushController();
-        refreshCurrentRound(controller.signal);
-      }
-    }, 5000);
-
-    const resultsInterval = setInterval(() => {
-      const controller = pushController();
-      refreshPendingResults(controller.signal);
-    }, 60000);
-
-    const summaryInterval = setInterval(() => {
-      const controller = pushController();
-      refreshPhrasesetSummary(controller.signal);
-    }, 60000);
-
-    const unclaimedInterval = setInterval(() => {
-      const controller = pushController();
-      refreshUnclaimedResults(controller.signal);
-    }, 60000);
-
-    const availabilityInterval = setInterval(() => {
-      if (!activeRound?.round_id) {
-        const controller = pushController();
-        refreshRoundAvailability(controller.signal);
-      }
-    }, 10000);
+    const pendingInterval = setInterval(() => {
+      refreshPendingResults();
+      refreshPhrasesetSummary();
+      refreshUnclaimedResults();
+    }, 90_000);
 
     return () => {
       clearInterval(balanceInterval);
-      clearInterval(roundInterval);
-      clearInterval(resultsInterval);
-      clearInterval(summaryInterval);
-      clearInterval(unclaimedInterval);
-      clearInterval(availabilityInterval);
-      controllers.forEach(controller => controller.abort());
+      clearInterval(pendingInterval);
     };
   }, [
-    apiKey,
-    activeRound?.round_id,
+    isAuthenticated,
     refreshBalance,
-    refreshCurrentRound,
     refreshPendingResults,
     refreshPhrasesetSummary,
     refreshUnclaimedResults,
@@ -264,7 +277,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ]);
 
   const value: GameContextType = {
-    apiKey,
+    isAuthenticated,
     username,
     player,
     activeRound,
@@ -274,7 +287,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     roundAvailability,
     loading,
     error,
-    setApiKey,
+    startSession,
     logout,
     refreshBalance,
     refreshCurrentRound,
@@ -289,9 +302,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };
 
-export const useGame = () => {
+export const useGame = (): GameContextType => {
   const context = useContext(GameContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useGame must be used within a GameProvider');
   }
   return context;

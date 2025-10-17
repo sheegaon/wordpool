@@ -10,18 +10,18 @@ export interface Player {
   outstanding_prompts: number;
 }
 
-export interface CreatePlayerResponse {
+export interface AuthTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: 'bearer';
+  expires_in: number;
   player_id: string;
   username: string;
-  api_key: string;
-  balance: number;
-  message: string;
+  legacy_api_key?: string | null;
 }
 
-export interface UsernameLoginResponse {
-  player_id: string;
-  username: string;
-  api_key: string;
+export interface CreatePlayerResponse extends AuthTokenResponse {
+  balance: number;
   message: string;
 }
 
