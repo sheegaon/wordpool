@@ -56,10 +56,17 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Run migrations in async mode."""
+    # Get connect args for SSL if needed
+    connect_args = {}
+    url = config.get_main_option("sqlalchemy.url")
+    if url and ("heroku" in url or "amazonaws" in url or get_settings().environment == "production"):
+        connect_args["sslmode"] = "require"
+    
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args
     )
 
     async with connectable.connect() as connection:

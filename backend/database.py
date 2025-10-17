@@ -5,11 +5,17 @@ from backend.config import get_settings
 
 settings = get_settings()
 
+# Determine if we need SSL (for Heroku or other cloud databases)
+connect_args = {}
+if "heroku" in settings.database_url or "amazonaws" in settings.database_url or settings.environment == "production":
+    connect_args["sslmode"] = "require"
+
 # Create async engine
 engine = create_async_engine(
     settings.database_url,
     echo=settings.environment == "development",
-    future=True
+    future=True,
+    connect_args=connect_args
 )
 
 # Session factory
