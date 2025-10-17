@@ -55,3 +55,24 @@ async def db_session(test_engine):
     async with async_session() as session:
         yield session
         await session.rollback()
+
+
+@pytest.fixture
+async def test_app(test_engine):
+    """Create test app with database override."""
+    from backend.main import app
+    from backend.database import get_db
+
+    # Override the get_db dependency
+    async def override_get_db():
+        async_session = async_sessionmaker(
+            test_engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+        )
+        async with async_session() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    yield app
+    app.dependency_overrides.clear()

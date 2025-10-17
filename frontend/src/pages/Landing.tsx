@@ -54,7 +54,7 @@ export const Landing: React.FC = () => {
           <img
             src="/quipflip_logo_horizontal_transparent.png"
             alt="Quipflip"
-            className="h-24 w-auto"
+            className="h-32 w-auto"
           />
         </div>
 

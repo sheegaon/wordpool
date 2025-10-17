@@ -161,7 +161,7 @@ export const PhrasesetTracking: React.FC = () => {
           <div className="flex justify-between items-center">
             {/* Left: Logo */}
             <div className="flex items-center">
-              <img src="/quipflip_logo_horizontal_transparent.png" alt="Quipflip" className="h-14 w-auto" />
+              <img src="/quipflip_logo_horizontal_transparent.png" alt="Quipflip" className="h-16 w-auto" />
             </div>
 
             {/* Center: Username */}
