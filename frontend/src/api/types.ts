@@ -10,19 +10,22 @@ export interface Player {
   outstanding_prompts: number;
 }
 
-export interface CreatePlayerResponse {
+export interface AuthTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: 'bearer';
+  expires_in: number;
   player_id: string;
   username: string;
-  api_key: string;
+}
+
+export interface CreatePlayerResponse extends AuthTokenResponse {
   balance: number;
   message: string;
 }
 
-export interface UsernameLoginResponse {
-  player_id: string;
-  username: string;
-  api_key: string;
-  message: string;
+export interface SuggestUsernameResponse {
+  suggested_username: string;
 }
 
 export interface PromptState {
@@ -194,6 +197,7 @@ export interface PhrasesetDashboardSummary {
 export interface PhrasesetContributor {
   player_id: string;
   username: string;
+  pseudonym: string;
   is_you: boolean;
   phrase?: string | null;
 }
@@ -202,6 +206,7 @@ export interface PhrasesetVoteDetail {
   vote_id: string;
   voter_id: string;
   voter_username: string;
+  voter_pseudonym: string;
   voted_phrase: string;
   correct: boolean;
   voted_at: string;

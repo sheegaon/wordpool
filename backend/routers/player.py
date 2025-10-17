@@ -1,5 +1,5 @@
 """Player API router."""
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import get_db
 from backend.dependencies import get_current_player
@@ -13,9 +13,6 @@ from backend.schemas.player import (
     PendingResultsResponse,
     PendingResult,
     CreatePlayerResponse,
-    RotateKeyResponse,
-    UsernameLoginRequest,
-    UsernameLoginResponse,
 )
 from backend.schemas.phraseset import (
     PhrasesetListResponse,
@@ -28,6 +25,9 @@ from backend.services.round_service import RoundService
 from backend.services.phraseset_service import PhrasesetService
 from backend.utils.exceptions import DailyBonusNotAvailableError
 from backend.config import get_settings
+from backend.schemas.auth import RegisterRequest
+from backend.services.auth_service import AuthService, AuthError
+from backend.utils.cookies import set_refresh_cookie
 from datetime import datetime, UTC, timedelta
 from sqlalchemy import select
 import logging
@@ -47,49 +47,44 @@ def ensure_utc(dt: datetime) -> datetime:
 
 @router.post("", response_model=CreatePlayerResponse, status_code=201)
 async def create_player(
+    request: RegisterRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new player account and return API key.
+    """Create a new player account and return credentials."""
 
-    This endpoint creates a new player with a starting balance and generates
-    a unique API key for authentication. Save the API key - it cannot be retrieved later.
-    """
-    player_service = PlayerService(db)
-    player = await player_service.create_player()
+    auth_service = AuthService(db)
+    try:
+        player = await auth_service.register_player(
+            username=request.username,
+            email=request.email,
+            password=request.password,
+        )
+    except AuthError as exc:
+        message = str(exc)
+        if message == "username_taken":
+            raise HTTPException(status_code=409, detail="username_taken") from exc
+        if message == "email_taken":
+            raise HTTPException(status_code=409, detail="email_taken") from exc
+        if message == "invalid_username":
+            raise HTTPException(status_code=422, detail="invalid_username") from exc
+        raise
+
+    access_token, refresh_token, expires_in = await auth_service.issue_tokens(player)
+    set_refresh_cookie(response, refresh_token, expires_days=settings.refresh_token_exp_days)
 
     return CreatePlayerResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=expires_in,
+        token_type="bearer",
         player_id=player.player_id,
         username=player.username,
-        api_key=player.api_key,
         balance=player.balance,
         message=(
-            "Player created! Your username is "
-            f'"{player.username}". The API key is required for API calls - '
-            "keep it somewhere safe. Starting balance: "
-            f"${player.balance}"
+            "Player created! Your account is ready to play. "
+            "An access token and refresh token have been issued for authentication."
         ),
-    )
-
-
-@router.post("/rotate-key", response_model=RotateKeyResponse)
-async def rotate_api_key(
-    player: Player = Depends(get_current_player),
-    db: AsyncSession = Depends(get_db),
-):
-    """Rotate API key for security purposes.
-
-    Generates a new API key and invalidates the old one. The old API key
-    will immediately stop working. Use this if you suspect your key has been compromised.
-
-    **Important:** You must start using the new key immediately - the old key in your
-    current request will no longer work for future requests.
-    """
-    player_service = PlayerService(db)
-    new_key = await player_service.rotate_api_key(player)
-
-    return RotateKeyResponse(
-        new_api_key=new_key,
-        message="API key rotated successfully. Use the new key for all future requests. Your old key is now invalid."
     )
 
 
@@ -115,26 +110,6 @@ async def get_balance(
         daily_bonus_amount=settings.daily_bonus_amount,
         last_login_date=player.last_login_date,
         outstanding_prompts=outstanding,
-    )
-
-
-@router.post("/login", response_model=UsernameLoginResponse)
-async def login_with_username(
-    request: UsernameLoginRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """Retrieve API key for an existing player via username."""
-    player_service = PlayerService(db)
-    player = await player_service.get_player_by_username(request.username)
-
-    if not player:
-        raise HTTPException(status_code=404, detail="username_not_found")
-
-    return UsernameLoginResponse(
-        player_id=player.player_id,
-        username=player.username,
-        api_key=player.api_key,
-        message="Welcome back! We've restored your API key for this username.",
     )
 
 

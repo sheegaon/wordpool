@@ -3,12 +3,14 @@ import logging
 
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from backend.config import get_settings
 from backend.database import get_db
 from backend.models.player import Player
 from backend.services.player_service import PlayerService
 from backend.utils.rate_limiter import RateLimiter
+from backend.services.auth_service import AuthService, AuthError
 
 logger = logging.getLogger(__name__)
 
@@ -30,15 +32,15 @@ def _mask_api_key(api_key: str) -> str:
     return f"{api_key[:4]}…{api_key[-4:]}"
 
 
-async def _enforce_rate_limit(scope: str, api_key: str, limit: int) -> None:
-    """Apply a rate limit for the provided scope and API key."""
+async def _enforce_rate_limit(scope: str, identifier: str | None, limit: int) -> None:
+    """Apply a rate limit for the provided scope and identifier."""
 
-    if not api_key:
+    if not identifier:
         return
 
-    identifier = f"{scope}:{api_key}"
+    key = f"{scope}:{identifier}"
     allowed, retry_after = await rate_limiter.check(
-        identifier, limit, RATE_LIMIT_WINDOW_SECONDS
+        key, limit, RATE_LIMIT_WINDOW_SECONDS
     )
 
     if allowed:
@@ -48,37 +50,57 @@ async def _enforce_rate_limit(scope: str, api_key: str, limit: int) -> None:
     if retry_after is not None:
         headers["Retry-After"] = str(retry_after)
 
-    masked_key = _mask_api_key(api_key)
-    logger.warning("Rate limit exceeded for scope=%s api_key=%s", scope, masked_key)
+    masked_identifier = _mask_api_key(identifier)
+    logger.warning("Rate limit exceeded for scope=%s identifier=%s", scope, masked_identifier)
     raise HTTPException(status_code=429, detail=RATE_LIMIT_ERROR_MESSAGE, headers=headers or None)
 
 
 async def get_current_player(
-    x_api_key: str = Header(..., alias="X-API-Key"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ) -> Player:
-    """
-    Get current authenticated player from API key header.
+    """Resolve the current authenticated player via JWT access token."""
 
-    Raises:
-        HTTPException: 401 if API key invalid
-    """
-    await _enforce_rate_limit("general", x_api_key, GENERAL_RATE_LIMIT)
+    if not authorization:
+        raise HTTPException(status_code=401, detail="missing_credentials")
+
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise HTTPException(status_code=401, detail="invalid_authorization_header")
+
+    auth_service = AuthService(db)
+    try:
+        payload = auth_service.decode_access_token(token)
+        player_id_str = payload.get("sub")
+        if not player_id_str:
+            raise AuthError("invalid_token")
+        player_id = UUID(str(player_id_str))
+    except (ValueError, AuthError) as exc:
+        detail = "token_expired" if isinstance(exc, AuthError) and str(exc) == "token_expired" else "invalid_token"
+        raise HTTPException(status_code=401, detail=detail) from exc
 
     player_service = PlayerService(db)
-    player = await player_service.get_player_by_api_key(x_api_key)
-
+    player = await player_service.get_player_by_id(player_id)
     if not player:
-        logger.warning(f"Invalid API key attempt: {x_api_key[:8]}...")
-        raise HTTPException(status_code=401, detail="Invalid API key")
+        raise HTTPException(status_code=401, detail="invalid_token")
 
-    logger.debug(f"Authenticated player: {player.player_id}")
+    await _enforce_rate_limit("general", str(player.player_id), GENERAL_RATE_LIMIT)
+    logger.debug("Authenticated player via JWT: %s", player.player_id)
     return player
 
 
 async def enforce_vote_rate_limit(
-    x_api_key: str = Header(..., alias="X-API-Key"),
-) -> None:
-    """Enforce tighter limits on vote submissions."""
+    player: Player = Depends(get_current_player),
+) -> Player:
+    """Enforce tighter limits on vote submissions and return the authenticated player.
 
-    await _enforce_rate_limit("vote_submit", x_api_key, VOTE_RATE_LIMIT)
+    This dependency leverages get_current_player to authenticate the user and then
+    applies a stricter rate limit based on the player's ID. This approach:
+    - Eliminates duplication of authentication logic
+    - Ensures consistent behavior with get_current_player
+    - Prevents bypassing limits by rotating API keys (always uses player_id)
+    - Automatically handles authentication errors via get_current_player
+    - Returns the player to avoid redundant get_current_player calls in endpoints
+    """
+    await _enforce_rate_limit("vote_submit", str(player.player_id), VOTE_RATE_LIMIT)
+    return player

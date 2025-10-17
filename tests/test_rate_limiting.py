@@ -24,7 +24,6 @@ from backend.dependencies import (  # noqa: E402
     GENERAL_RATE_LIMIT,
     VOTE_RATE_LIMIT,
     _enforce_rate_limit,
-    enforce_vote_rate_limit,
     rate_limiter,
 )
 
@@ -38,12 +37,18 @@ async def general_limit_dependency(x_api_key: str = Header(..., alias="X-API-Key
     await _enforce_rate_limit("general", x_api_key, GENERAL_RATE_LIMIT)
 
 
+async def vote_limit_dependency(x_api_key: str = Header(..., alias="X-API-Key")) -> None:
+    """Apply the same vote rate limit used by authenticated vote endpoints."""
+
+    await _enforce_rate_limit("vote_submit", x_api_key, VOTE_RATE_LIMIT)
+
+
 @test_app.get("/general", dependencies=[Depends(general_limit_dependency)])
 async def general_endpoint():
     return {"status": "ok"}
 
 
-@test_app.post("/vote", dependencies=[Depends(enforce_vote_rate_limit)])
+@test_app.post("/vote", dependencies=[Depends(vote_limit_dependency)])
 async def vote_endpoint():
     return {"status": "ok"}
 
@@ -59,7 +64,12 @@ def reset_rate_limiters():
 
 @pytest.mark.asyncio
 async def test_general_rate_limit_per_api_key():
-    """General limit allows 100 requests per minute per API key."""
+    """General limit allows 100 requests per minute per API key.
+
+    Note: This is a unit test for the rate limiting mechanism itself.
+    In production, rate limiting is applied per player_id (not API key)
+    to prevent bypassing limits by rotating keys.
+    """
 
     async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         headers = {"X-API-Key": "key-123"}
@@ -75,7 +85,12 @@ async def test_general_rate_limit_per_api_key():
 
 @pytest.mark.asyncio
 async def test_vote_rate_limit_is_stricter_than_general():
-    """Vote submissions enforce the tighter 20 requests per minute limit."""
+    """Vote submissions enforce the tighter 20 requests per minute limit.
+
+    Note: This is a unit test for the rate limiting mechanism itself.
+    In production, rate limiting is applied per player_id (not API key)
+    to prevent bypassing limits by rotating keys.
+    """
 
     async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         headers = {"X-API-Key": "key-456"}

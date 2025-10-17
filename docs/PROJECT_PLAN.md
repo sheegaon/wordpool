@@ -2,43 +2,56 @@
 
 ## Implementation Priorities
 
-### Phase 1 - MVP (Core Gameplay) ✅ CLARIFIED
-1. **Player accounts and authentication** - API key-based (UUID v4)
-2. **Balance management and transactions** - Full amount deducted immediately, refunds on timeout
-3. **Core game loop** - Prompt (random assignment), copy, vote with full lifecycle
-4. **Word validation** - OWL2 list with 2-15 char, A-Z only validation
-5. **Queue system** - FIFO with Redis/in-memory fallback
-6. **Scoring and payouts** - Proportional distribution with rounding
-7. **One-round-at-a-time enforcement** - Via active_round_id in player table
-8. **Results viewing and prize collection** - Idempotent with ResultView tracking
-9. **Essential API endpoints** - All endpoints documented in ARCHITECTURE.md
-10. **Daily login bonus** - UTC date-based, \$100 once per day (excluding creation date)
-11. **Copy discount system** - \$90 when prompts_waiting > 10, system contributes \$10
-12. **Grace period handling** - 5-second backend grace on all submissions
-13. **Outstanding prompts limit** - Max 10 phrasesets in 'open' or 'closing' status
-14. **Vote timeline state machine** - 3rd vote (10 min window), 5th vote (60 sec window)
-15. **Copy abandonment** - Return to queue, prevent same player retry (24h cooldown)
-16. **Self-voting prevention** - Filter at assignment time
-17. **Health check endpoint** - GET /health for monitoring
-18. **Error standardization** - Consistent JSON error format across all endpoints
-19. **API key rotation endpoint** - POST /player/rotate-key (invalidate compromised keys)
-20. **Username-based API key recovery** - POST /player/login to restore lost keys
+### Phase 1 - MVP (Core Gameplay) ✅ COMPLETE
+1. ✅ **Player accounts and authentication** - JWT access + refresh tokens with HTTP-only cookies
+2. ✅ **Email-based login** - Players authenticate with email/password
+3. ✅ **Player pseudonyms** - Auto-generated hidden names shown to other players in results
+4. ✅ **Balance management and transactions** - Full amount deducted immediately, refunds on timeout
+5. ✅ **Core game loop** - Prompt (random assignment), copy, vote with full lifecycle
+6. ✅ **Word validation** - NASPA dictionary (191k words) with 1-5 words, 2-100 chars, A-Z only
+7. ✅ **Queue system** - FIFO with Redis/in-memory fallback
+8. ✅ **Scoring and payouts** - Proportional distribution with rounding
+9. ✅ **One-round-at-a-time enforcement** - Via active_round_id in player table
+10. ✅ **Results viewing and prize collection** - Separate claim endpoint for payouts
+11. ✅ **Essential API endpoints** - All endpoints documented in API.md
+12. ✅ **Daily login bonus** - UTC date-based, \$100 once per day (excluding creation date)
+13. ✅ **Copy discount system** - \$90 when prompts_waiting > 10, system contributes \$10
+14. ✅ **Grace period handling** - 5-second backend grace on all submissions
+15. ✅ **Outstanding prompts limit** - Max 10 phrasesets in 'open' or 'closing' status
+16. ✅ **Vote timeline state machine** - 3rd vote (10 min window), 5th vote (60 sec window)
+17. ✅ **Copy abandonment** - Return to queue, prevent same player retry (24h cooldown)
+18. ✅ **Self-voting prevention** - Filter at assignment time
+19. ✅ **Health check endpoint** - GET /health for monitoring
+20. ✅ **Error standardization** - Consistent JSON error format across all endpoints
+21. ✅ **Suggested usernames** - GET /auth/suggest-username for registration convenience
+22. ✅ **Frontend MVP** - Complete React + TypeScript frontend with all game flows
+23. ✅ **Prompt feedback system** - Like/dislike feedback on prompts
+24. ✅ **Phraseset tracking** - Dashboard to view all phrasesets by role and status
+25. ✅ **Unclaimed results** - Separate endpoint for unclaimed prizes with claim functionality
 
 ### Phase 2 - Polish & Enhancements
-1. **JWT tokens with refresh** - Enhanced authentication beyond API keys
-2. **Transaction history endpoint** - GET /player/transactions with pagination
-3. **Comprehensive player statistics** - Win rates, earnings over time, favorite prompts
-4. **Advanced rate limiting** - Per-endpoint, per-player rate limits
-5. **Prompt management** - Track usage_count, avg_copy_quality for rotation
-6. **Admin API endpoints** - Manual injection for testing (AI backup simulation)
+1. ✅ **JWT authentication** - Secure token-based auth with automatic refresh (COMPLETE)
+2. ✅ **AI copy providers (OpenAI + Gemini)** - Configurable AI backup system (COMPLETE)
+3. **Transaction history endpoint** - GET /player/transactions with pagination
+4. **Enhanced player statistics** - Win rates, earnings over time, detailed analytics
+5. **Advanced rate limiting** - Per-endpoint, per-player rate limits
+6. **Prompt management** - Track usage_count, avg_copy_quality for rotation
+7. **Admin API endpoints** - Manual injection for testing (AI backup simulation)
+8. **Settings page** - User preferences, account management
+9. **Enhanced results visualization** - Charts, graphs, vote distribution graphics
+10. **Tutorial/onboarding flow** - Guide new players through first game
+11. **Dark mode** - Theme toggle with persistent preference
 
 ### Phase 3 - AI & Advanced Features
-1. **AI backup copies/votes** - After 10 minutes inactivity (GPT or embeddings-based)
-2. **Word similarity scoring** - Cosine similarity for copy quality metrics
-3. **Background jobs** - Proper timeout cleanup, finalization triggers
-4. **Comprehensive monitoring** - Metrics, dashboards, alerting
-5. **Performance optimization** - Query optimization, caching, connection pooling
-6. **Database-based queue fallback** - Alternative to Redis for true distributed setup
+1. 🔄 **AI backup copies** - Automated generation after 10 minutes (IN PROGRESS - service ready, needs scheduler)
+2. ✅ **AI provider infrastructure** - OpenAI + Gemini with automatic fallback (COMPLETE)
+3. ✅ **AI backup votes** - Automated voting when voters unavailable (COMPLETE)
+4. ✅ **AI metrics tracking** - Comprehensive usage, cost, and success rate monitoring (COMPLETE)
+5. ✅ **Integration tests** - 17 test cases for AI service (COMPLETE)
+6. **Background job scheduler** - Celery/APScheduler for AI backup cycles and cleanup
+7. **Metrics dashboard API** - Endpoints for viewing AI analytics
+8. **Performance optimization** - Query optimization, caching, connection pooling
+9. **Database-based queue fallback** - Alternative to Redis for true distributed setup
 
 ### Phase 4 - Social & Engagement
 1. **Player statistics dashboard** - Detailed win rates, earnings, patterns
@@ -49,6 +62,67 @@
 6. **Seasonal events** - Themed prompts and bonuses
 7. **User-submitted prompts** - Community content (moderated)
 8. **OAuth integration** - Google, Twitter, etc.
+
+---
+
+## AI Copy Service Implementation
+
+### Overview
+The AI copy service provides automated backup copy generation when human players are unavailable. The system supports multiple AI providers with automatic fallback and configurable behavior.
+
+### Supported Providers
+1. **OpenAI** (Default)
+   - Model: GPT-5 Nano (configurable)
+   - Fast, high-quality responses
+   - Requires `OPENAI_API_KEY`
+
+2. **Gemini**
+   - Model: gemini-2.5-flash-lite (configurable)
+   - Cost-effective alternative
+   - Requires `GEMINI_API_KEY`
+
+### Architecture
+```
+ai_copy_service.py          # Main orchestrator
+├── openai_api.py          # OpenAI provider implementation
+├── gemini_api.py          # Gemini provider implementation
+└── prompt_builder.py      # Shared prompt construction logic
+```
+
+### Configuration
+Environment variables in `.env`:
+```bash
+AI_COPY_PROVIDER=openai           # "openai" or "gemini"
+OPENAI_API_KEY=sk-...            # OpenAI API key
+GEMINI_API_KEY=...               # Gemini API key
+AI_COPY_OPENAI_MODEL=gpt-5-nano  # Model override (optional)
+AI_COPY_GEMINI_MODEL=gemini-2.5-flash-lite  # Model override (optional)
+AI_COPY_TIMEOUT_SECONDS=30       # API timeout
+AI_BACKUP_DELAY_MINUTES=10       # Wait time before AI backup
+```
+
+### Key Features
+- **Provider Selection**: Automatic based on config and available API keys
+- **Fallback Logic**: Falls back to alternate provider if primary unavailable
+- **Transaction Safety**: Proper transaction management in `run_backup_cycle()`
+- **Validation**: All AI phrases validated same as human submissions
+- **Error Handling**: Graceful degradation if AI services unavailable
+
+### Implementation Status
+- ✅ Provider infrastructure (OpenAI + Gemini)
+- ✅ Shared prompt builder (eliminates duplication)
+- ✅ Configuration system
+- ✅ Error handling and fallbacks
+- ✅ Phrase validation integration
+- ⏸️ Background scheduler integration (Phase 3)
+- ⏸️ AI voting support (Phase 3)
+
+### Next Steps
+1. Integrate with background job scheduler (Celery or APScheduler)
+2. Add monitoring and metrics for AI usage
+3. Implement AI voting for complete backup coverage
+4. Add cost tracking and optimization
+5. A/B testing between providers for quality comparison
 
 ---
 
@@ -85,8 +159,8 @@
 - **API Key-based**: UUID v4 keys, unique per player, stored securely
 - **HTTPS only**: Enforce in production (Heroku provides this)
 - **Header-based**: `X-API-Key` header required for all authenticated endpoints
-- **Validation**: Check API key on every request, return 401 if invalid/missing
-- **Rate limiting (Planned)**: Prevent brute force on API keys, limit requests per key
+- **Validation**: Check Authorization header (or legacy key) on every request, return 401 if invalid/missing
+- **Rate limiting (Planned)**: Prevent brute force on tokens/keys, limit requests per identifier
 - **No password storage**: MVP has no passwords, just keys (simpler, mobile-friendly)
 - **Future**: Phase 2+ adds JWT with refresh tokens for enhanced security
 

@@ -13,7 +13,12 @@ from backend.models.phraseset import PhraseSet
 from backend.models.round import Round
 from backend.config import get_settings
 from backend.utils.exceptions import DailyBonusNotAvailableError
-from backend.services.username_service import UsernameService, is_username_input_valid
+from backend.services.username_service import (
+    UsernameService,
+    canonicalize_username,
+    normalize_username,
+    is_username_input_valid,
+)
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -25,40 +30,54 @@ class PlayerService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create_player(self) -> Player:
-        """Create new player with starting balance, API key, and generated username."""
-        username_service = UsernameService(self.db)
+    async def create_player(
+        self,
+        *,
+        username: str,
+        email: str,
+        password_hash: str,
+        pseudonym: str,
+        pseudonym_canonical: str,
+    ) -> Player:
+        """Create new player using explicit credentials."""
 
-        for attempt in range(6):
-            username, username_canonical = await username_service.generate_unique_username()
-            player = Player(
-                player_id=uuid.uuid4(),
-                api_key=str(uuid.uuid4()),
-                username=username,
-                username_canonical=username_canonical,
-                balance=settings.starting_balance,
-                last_login_date=date.today(),  # Set to today so no bonus on creation
+        normalized_username = normalize_username(username)
+        canonical_username = canonicalize_username(normalized_username)
+        if not canonical_username:
+            raise ValueError("invalid_username")
+
+        player = Player(
+            player_id=uuid.uuid4(),
+            api_key=str(uuid.uuid4()),
+            username=normalized_username,
+            username_canonical=canonical_username,
+            pseudonym=pseudonym,
+            pseudonym_canonical=pseudonym_canonical,
+            email=email.strip().lower(),
+            password_hash=password_hash,
+            balance=settings.starting_balance,
+            last_login_date=date.today(),  # Set to today so no bonus on creation
+        )
+        self.db.add(player)
+        try:
+            await self.db.commit()
+            await self.db.refresh(player)
+            logger.info(
+                "Created player: %s username=%s pseudonym=%s balance=%s",
+                player.player_id,
+                player.username,
+                player.pseudonym,
+                player.balance,
             )
-            self.db.add(player)
-            try:
-                await self.db.commit()
-                await self.db.refresh(player)
-                logger.info(
-                    "Created player: %s username=%s balance=%s",
-                    player.player_id,
-                    player.username,
-                    player.balance,
-                )
-                return player
-            except IntegrityError as exc:
-                await self.db.rollback()
-                logger.warning(
-                    "Username collision when creating player (attempt %s): %s",
-                    attempt + 1,
-                    exc,
-                )
-
-        raise RuntimeError("Failed to create player after multiple attempts")
+            return player
+        except IntegrityError as exc:
+            await self.db.rollback()
+            error_message = str(exc).lower()
+            if "uq_players_username" in error_message or "uq_players_username_canonical" in error_message:
+                raise ValueError("username_taken") from exc
+            if "uq_players_email" in error_message or "email" in error_message:
+                raise ValueError("email_taken") from exc
+            raise
 
     async def get_player_by_api_key(self, api_key: str) -> Player | None:
         """Get player by API key (for authentication)."""

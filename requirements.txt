@@ -1,32 +1,38 @@
 # FastAPI and server
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-python-multipart==0.0.6
+fastapi==0.119.0
+uvicorn[standard]==0.37.0
+python-multipart==0.0.20
+
+# Authentication and Security
+PyJWT==2.10.1
+bcrypt==5.0.0  # Password hashing
 
 # Database
-sqlalchemy[asyncio]==2.0.25
-asyncpg==0.29.0
-aiosqlite==0.19.0
-alembic==1.13.1
+sqlalchemy[asyncio]==2.0.44
+asyncpg==0.30.0
+aiosqlite==0.21.0
+alembic==1.17.0
 
 # Redis (optional, for production)
-redis==5.0.1
+redis==6.4.0
 
 # Configuration and validation
-pydantic==2.5.3
-pydantic-settings==2.1.0
+pydantic==2.12.2
+pydantic-settings==2.11.0
 python-dotenv==1.0.0
 
 # Testing
-pytest==7.4.4
+pytest==8.4.2
 pytest-asyncio==0.23.3
-httpx==0.26.0
+httpx==0.28.1
 faker==22.6.0
 
 # Utilities
 python-dateutil==2.8.2
 
 # Phrase similarity checking
-sentence-transformers==2.7.0
-scikit-learn==1.4.0
+sentence-transformers==5.1.1
+scikit-learn==1.7.2
 numpy>=1.24.0
+google-genai>=1.45.0
+openai>=2.4.0

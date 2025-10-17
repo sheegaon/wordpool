@@ -88,9 +88,10 @@ app.add_middleware(
 )
 
 # Import and register routers
-from backend.routers import health, player, rounds, phrasesets, prompt_feedback
+from backend.routers import health, player, rounds, phrasesets, prompt_feedback, auth
 
 app.include_router(health.router, tags=["health"])
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(player.router, prefix="/player", tags=["player"])
 app.include_router(rounds.router, prefix="/rounds", tags=["rounds"])
 app.include_router(prompt_feedback.router, prefix="/rounds", tags=["prompt_feedback"])

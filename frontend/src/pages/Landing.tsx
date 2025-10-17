@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 import apiClient, { extractErrorMessage } from '../api/client';
@@ -6,18 +6,38 @@ import apiClient, { extractErrorMessage } from '../api/client';
 export const Landing: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [returningUsername, setReturningUsername] = useState(
-    () => localStorage.getItem('quipflip_username') ?? ''
-  );
-  const { setApiKey } = useGame();
+  const [registerUsername, setRegisterUsername] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+
+  const { startSession } = useGame();
   const navigate = useNavigate();
 
-  const handleCreatePlayer = async () => {
+  // Fetch suggested username on component mount
+  useEffect(() => {
+    apiClient.suggestUsername()
+      .then(response => setRegisterUsername(response.suggested_username))
+      .catch(() => {}); // Silently fail if suggestion fails
+  }, []);
+
+  const handleCreatePlayer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!registerUsername.trim() || !registerEmail.trim() || !registerPassword.trim()) {
+      setError('Please provide a username, email, and password to create an account.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiClient.createPlayer();
-      setApiKey(response.api_key, response.username);
+      const response = await apiClient.createPlayer({
+        username: registerUsername.trim(),
+        email: registerEmail.trim(),
+        password: registerPassword,
+      });
+      startSession(response.username, response);
       navigate('/dashboard');
     } catch (err) {
       setError(extractErrorMessage(err) || 'Failed to create player');
@@ -28,19 +48,22 @@ export const Landing: React.FC = () => {
 
   const handleExistingPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!returningUsername.trim()) {
-      setError('Please enter your username');
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setError('Please enter your email and password.');
       return;
     }
 
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiClient.loginWithUsername(returningUsername.trim());
-      setApiKey(response.api_key, response.username);
+      const response = await apiClient.login({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+      startSession(response.username, response);
       navigate('/dashboard');
     } catch (err) {
-      setError(extractErrorMessage(err) || 'We could not find that username');
+      setError(extractErrorMessage(err) || 'Invalid email or password');
     } finally {
       setIsLoading(false);
     }
@@ -58,64 +81,94 @@ export const Landing: React.FC = () => {
           />
         </div>
 
-        <p className="text-center text-quip-teal mb-8 text-sm">
-          A multiplayer phrase association game
-        </p>
+          {error && (
+            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
+          <div className="space-y-6">
+            {/* New Player */}
+            <div className="border-b border-quip-teal pb-6">
+              <h2 className="text-xl font-semibold mb-4 text-quip-navy">Create an Account</h2>
+              <form onSubmit={handleCreatePlayer} className="space-y-3">
+                <input
+                  type="text"
+                  value={registerUsername}
+                  onChange={(e) => setRegisterUsername(e.target.value)}
+                  placeholder="Choose a username"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
+                  disabled={isLoading}
+                />
+                <input
+                  type="email"
+                  value={registerEmail}
+                  onChange={(e) => setRegisterEmail(e.target.value)}
+                  placeholder="Your email"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
+                  disabled={isLoading}
+                />
+                <input
+                  type="password"
+                  value={registerPassword}
+                  onChange={(e) => setRegisterPassword(e.target.value)}
+                  placeholder="Create a password"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-quip-turquoise hover:bg-quip-teal disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm transform hover:-translate-y-0.5"
+                >
+                  {isLoading ? 'Creating Account...' : 'Create New Account'}
+                </button>
+              </form>
+              <p className="text-sm text-quip-teal mt-2">
+                Start with 1,000 Flipcoins
+              </p>
+            </div>
+
+            {/* Returning Player */}
+            <div>
+              <h2 className="text-xl font-semibold mb-4 text-quip-navy">Returning Player</h2>
+              <form onSubmit={handleExistingPlayer} className="space-y-3">
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="Email address"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
+                  disabled={isLoading}
+                />
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-quip-orange hover:bg-quip-orange-deep disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm transform hover:-translate-y-0.5"
+                >
+                  {isLoading ? 'Logging in...' : 'Login'}
+                </button>
+              </form>
+              <p className="text-sm text-gray-600 mt-2">
+                Forgot your password? Email support@quipflip.gg for assistance.
+              </p>
+            </div>
           </div>
-        )}
 
-        <div className="space-y-6">
-          {/* New Player */}
-          <div className="border-b pb-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">New Player</h2>
-            <button
-              onClick={handleCreatePlayer}
-              disabled={isLoading}
-              className="w-full bg-quip-turquoise hover:bg-quip-teal disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm transform hover:-translate-y-0.5"
-            >
-              {isLoading ? 'Creating Account...' : 'Create New Account'}
-            </button>
-            <p className="text-sm text-quip-teal mt-2">
-              Start with 1,000 Flipcoins
-            </p>
+          <div className="mt-8 text-center text-sm text-quip-navy">
+            <p className="font-display font-semibold mb-2">How to Play:</p>
+            <p className="text-quip-teal">1. Submit clever phrases for prompts</p>
+            <p className="text-quip-teal">2. Copy phrases without seeing the prompt</p>
+            <p className="text-quip-teal">3. Vote to identify the original phrase</p>
           </div>
-
-          {/* Returning Player */}
-          <div>
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">Returning Player</h2>
-            <form onSubmit={handleExistingPlayer}>
-              <input
-                type="text"
-                value={returningUsername}
-                onChange={(e) => setReturningUsername(e.target.value)}
-                placeholder="Enter your username"
-                className="w-full px-4 py-2 border border-gray-300 rounded-tile mb-3 focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
-                disabled={isLoading}
-              />
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-quip-orange hover:bg-quip-orange-deep disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm transform hover:-translate-y-0.5"
-              >
-                {isLoading ? 'Logging in...' : 'Login'}
-              </button>
-            </form>
-            <p className="text-sm text-gray-600 mt-2">
-              Enter the username shown on your dashboard to continue
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8 text-center text-sm text-quip-navy">
-          <p className="font-display font-semibold mb-2">How to Play:</p>
-          <p className="text-quip-teal">1. Submit phrases for prompts</p>
-          <p className="text-quip-teal">2. Copy others' phrases without seeing the prompt</p>
-          <p className="text-quip-teal">3. Vote to identify the original phrase</p>
-        </div>
       </div>
     </div>
   );

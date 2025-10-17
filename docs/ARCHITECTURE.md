@@ -28,16 +28,17 @@ The backend is designed around a clear service layer (`backend/services`) that e
 - **Framework**: FastAPI (async Python web framework)
 - **Database**: PostgreSQL (production) / SQLite (development)
 - **ORM**: SQLAlchemy (async)
-- **Authentication**: API key-based (UUID v4) with rotation support
+- **Authentication**: JWT access tokens with refresh token rotation (legacy API key fallback)
 - **Validation**: Pydantic schemas + NASPA word dictionary + sentence-transformers similarity
 - **Queueing & Locks**: Redis-backed when available with in-memory/threaded fallback
 
 ### Authentication
 
-API key authentication with UUID v4 keys issued on player creation. See [API.md](API.md) for complete authentication documentation including:
-- Header format (`X-API-Key`)
-- Username-based API key recovery (`POST /player/login`)
-- Key rotation endpoint
+JWT authentication with short-lived access tokens and 30-day refresh tokens. See [API.md](API.md) for complete authentication documentation including:
+- Authorization header format (`Authorization: Bearer <token>`)
+- Credential-based login (`POST /auth/login`)
+- Refresh token endpoint (`POST /auth/refresh`)
+- Legacy API key rotation endpoint
 
 ---
 

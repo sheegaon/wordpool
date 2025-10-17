@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 import type {
   Player,
   CreatePlayerResponse,
@@ -14,7 +14,8 @@ import type {
   PhrasesetResults,
   HealthResponse,
   ApiError,
-  UsernameLoginResponse,
+  AuthTokenResponse,
+  SuggestUsernameResponse,
   PromptFeedbackResponse,
   GetPromptFeedbackResponse,
   PhrasesetListResponse,
@@ -29,7 +30,12 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Helper for dev logging
 const isDev = import.meta.env.DEV;
-const logApi = (method: string, endpoint: string, status: 'start' | 'success' | 'error', details?: any) => {
+const logApi = (
+  method: string,
+  endpoint: string,
+  status: 'start' | 'success' | 'error',
+  details?: any,
+) => {
   if (!isDev) return;
   const emoji = status === 'start' ? '📤' : status === 'success' ? '✅' : '❌';
   const message = `${emoji} API [${method.toUpperCase()} ${endpoint}]`;
@@ -42,37 +48,35 @@ const logApi = (method: string, endpoint: string, status: 'start' | 'success' | 
 
 // Helper function to extract meaningful error messages
 const extractErrorMessage = (error: any): string => {
-  // If it's already a string, return it
   if (typeof error === 'string') {
     return error;
   }
-  
+
   // If it's an Error object, use its message
   if (error instanceof Error) {
     return error.message;
   }
-  
+
   // If it's an object with a message property, use that
   if (error && typeof error === 'object') {
-    // Handle FastAPI/Pydantic validation errors
     if (error.detail) {
       const detail = error.detail;
-      // If detail is an array (Pydantic validation errors)
       if (Array.isArray(detail)) {
-        // Extract the first validation error message
         const firstError = detail[0];
         if (firstError) {
           if (typeof firstError === 'string') {
             return firstError;
           }
-          if (typeof firstError === 'object' && 'msg' in firstError && typeof firstError.msg === 'string') {
+          if (
+            typeof firstError === 'object' &&
+            'msg' in firstError &&
+            typeof firstError.msg === 'string'
+          ) {
             return firstError.msg;
           }
         }
-        // Fallback to a generic validation error message
         return 'Validation error';
       }
-      // If detail is a string (regular API errors)
       if (typeof detail === 'string') {
         return detail;
       }
@@ -86,7 +90,6 @@ const extractErrorMessage = (error: any): string => {
       }
     }
 
-    // Handle backend error objects like {"error": "invalid_phrase", "message": "..."}
     if (error.error && error.message) {
       return error.message;
     }
@@ -96,57 +99,146 @@ const extractErrorMessage = (error: any): string => {
     }
   }
 
-  // Fallback to string conversion
   return String(error);
 };
 
-// Create axios instance
+const ACCESS_TOKEN_KEY = 'quipflip_access_token';
+const ACCESS_TOKEN_EXPIRES_KEY = 'quipflip_access_token_expires_at';
+const USERNAME_STORAGE_KEY = 'quipflip_username';
+
+let accessToken: string | null = localStorage.getItem(ACCESS_TOKEN_KEY);
+let accessTokenExpiresAt = Number(localStorage.getItem(ACCESS_TOKEN_EXPIRES_KEY) ?? '0');
+
+// Create axios instance with credential support for refresh token cookie
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
-// Request interceptor to add API key and log requests
-api.interceptors.request.use((config) => {
-  const apiKey = localStorage.getItem('quipflip_api_key');
-  if (apiKey && config.headers) {
-    config.headers['X-API-Key'] = apiKey;
+const setAccessToken = (token: string | null, expiresInSeconds?: number) => {
+  accessToken = token;
+  if (token) {
+    const buffer = 5 * 1000;
+    const expiresAt = Date.now() + (expiresInSeconds ?? 0) * 1000 - buffer;
+    accessTokenExpiresAt = expiresAt;
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    if (expiresInSeconds) {
+      localStorage.setItem(ACCESS_TOKEN_EXPIRES_KEY, expiresAt.toString());
+    }
+  } else {
+    accessTokenExpiresAt = 0;
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(ACCESS_TOKEN_EXPIRES_KEY);
   }
-  
-  // Log the request
+};
+
+const clearStoredCredentials = () => {
+  setAccessToken(null);
+  localStorage.removeItem(USERNAME_STORAGE_KEY);
+};
+
+const shouldAttemptRefresh = () => {
+  if (!accessToken) return true;
+  if (!accessTokenExpiresAt) return false;
+  return Date.now() >= accessTokenExpiresAt;
+};
+
+let refreshPromise: Promise<string | null> | null = null;
+
+// Refresh the access token, deduplicating concurrent refresh attempts
+const performTokenRefresh = async (): Promise<string | null> => {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = api
+    .post<AuthTokenResponse>(
+      '/auth/refresh',
+      {},
+      {
+        headers: {
+          'X-Skip-Auth': 'true',
+        },
+      },
+    )
+    .then((response) => {
+      const token = response.data.access_token;
+      setAccessToken(token, response.data.expires_in);
+      return token;
+    })
+    .catch((error) => {
+      clearStoredCredentials();
+      throw error;
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
+};
+
+// Request interceptor to attach auth headers and log outgoing requests
+api.interceptors.request.use((config) => {
+  if (config.headers && !config.headers['X-Skip-Auth'] && accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  if (config.headers?.['X-Skip-Auth']) {
+    delete config.headers['X-Skip-Auth'];
+  }
+
   const method = config.method?.toUpperCase() || 'UNKNOWN';
   const endpoint = config.url || '';
   logApi(method, endpoint, 'start');
-  
+
   return config;
 });
 
-// Response interceptor for success/error logging and error handling
+// Response interceptor for success/error logging, auth refresh, and normalization
 api.interceptors.response.use(
   (response) => {
-    // Log successful response
     const method = response.config.method?.toUpperCase() || 'UNKNOWN';
     const endpoint = response.config.url || '';
     logApi(method, endpoint, 'success', response.data);
-    
+
     return response;
   },
-  (error: AxiosError<ApiError>) => {
-    // Log error response
+  async (error: AxiosError<ApiError>) => {
     if (error.config) {
       const method = error.config.method?.toUpperCase() || 'UNKNOWN';
       const endpoint = error.config.url || '';
       const errorMessage = error.response?.data?.detail || error.message;
       logApi(method, endpoint, 'error', errorMessage);
     }
-    
-    // Ignore aborted requests
+
     if (error.code === 'ERR_CANCELED') {
       return Promise.reject(error);
     }
-    // Transform error into a format the UI can parse without losing detail
+
+    const originalRequest = error.config as (AxiosRequestConfig & { _retry?: boolean }) | undefined;
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      originalRequest.url !== '/auth/login' &&
+      originalRequest.url !== '/auth/refresh' &&
+      originalRequest.url !== '/auth/logout'
+    ) {
+      originalRequest._retry = true;
+      try {
+        const token = await performTokenRefresh();
+        if (token && originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+        }
+        return api(originalRequest);
+      } catch (refreshError) {
+        clearStoredCredentials();
+        return Promise.reject(refreshError);
+      }
+    }
+
     if (error.response) {
       const { status, data } = error.response;
 
@@ -162,7 +254,7 @@ api.interceptors.response.use(
       }
 
       if (status === 401) {
-        errorPayload.detail = errorPayload.detail || 'Invalid API key. Please login again.';
+        errorPayload.detail = errorPayload.detail || 'Unauthorized. Please login again.';
       } else if (status === 429) {
         errorPayload.detail = errorPayload.detail || 'Rate limit exceeded. Please try again later.';
       }
@@ -176,11 +268,38 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
-// API Client methods
 export const apiClient = {
+  setSession(username: string | null, tokenResponse?: AuthTokenResponse) {
+    if (username) {
+      localStorage.setItem(USERNAME_STORAGE_KEY, username);
+    }
+    if (tokenResponse) {
+      setAccessToken(tokenResponse.access_token, tokenResponse.expires_in);
+    }
+  },
+
+  clearSession() {
+    clearStoredCredentials();
+  },
+
+  getStoredUsername(): string | null {
+    return localStorage.getItem(USERNAME_STORAGE_KEY);
+  },
+
+  async ensureAccessToken(): Promise<string | null> {
+    if (!shouldAttemptRefresh()) {
+      return accessToken;
+    }
+    try {
+      return await performTokenRefresh();
+    } catch (err) {
+      return null;
+    }
+  },
+
   // Health & Info
   async getHealth(signal?: AbortSignal): Promise<HealthResponse> {
     const { data } = await api.get('/health', { signal });
@@ -188,14 +307,55 @@ export const apiClient = {
   },
 
   // Player endpoints
-  async createPlayer(signal?: AbortSignal): Promise<CreatePlayerResponse> {
-    const { data } = await api.post('/player', {}, { signal });
+  async createPlayer(
+    payload: { username: string; email: string; password: string },
+    signal?: AbortSignal,
+  ): Promise<CreatePlayerResponse> {
+    const { data } = await api.post('/player', payload, { signal });
     return data;
   },
 
-  async loginWithUsername(username: string, signal?: AbortSignal): Promise<UsernameLoginResponse> {
-    const { data } = await api.post('/player/login', { username }, { signal });
+  async login(
+    payload: { email: string; password: string },
+    signal?: AbortSignal,
+  ): Promise<AuthTokenResponse> {
+    const { data} = await api.post('/auth/login', payload, {
+      signal,
+      headers: { 'X-Skip-Auth': 'true' },
+    });
     return data;
+  },
+
+  async suggestUsername(signal?: AbortSignal): Promise<SuggestUsernameResponse> {
+    const { data } = await api.get('/auth/suggest-username', {
+      signal,
+      headers: { 'X-Skip-Auth': 'true' },
+    });
+    return data;
+  },
+
+  async refreshToken(signal?: AbortSignal): Promise<AuthTokenResponse> {
+    const { data } = await api.post(
+      '/auth/refresh',
+      {},
+      {
+        signal,
+        headers: { 'X-Skip-Auth': 'true' },
+      },
+    );
+    return data;
+  },
+
+  async logout(signal?: AbortSignal): Promise<void> {
+    await api.post(
+      '/auth/logout',
+      {},
+      {
+        signal,
+        headers: { 'X-Skip-Auth': 'true' },
+      },
+    );
+    clearStoredCredentials();
   },
 
   async getBalance(signal?: AbortSignal): Promise<Player> {
@@ -292,8 +452,16 @@ export const apiClient = {
   },
 
   // Prompt feedback endpoints
-  async submitPromptFeedback(roundId: string, feedbackType: 'like' | 'dislike', signal?: AbortSignal): Promise<PromptFeedbackResponse> {
-    const { data } = await api.post(`/rounds/${roundId}/feedback`, { feedback_type: feedbackType }, { signal });
+  async submitPromptFeedback(
+    roundId: string,
+    feedbackType: 'like' | 'dislike',
+    signal?: AbortSignal,
+  ): Promise<PromptFeedbackResponse> {
+    const { data } = await api.post(
+      `/rounds/${roundId}/feedback`,
+      { feedback_type: feedbackType },
+      { signal },
+    );
     return data;
   },
 
@@ -305,5 +473,4 @@ export const apiClient = {
 
 export default apiClient;
 
-// Export the error message extraction utility for use in components
-export { extractErrorMessage };
+export { extractErrorMessage, clearStoredCredentials };

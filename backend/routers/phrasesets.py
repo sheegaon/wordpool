@@ -40,8 +40,7 @@ def ensure_utc(dt: datetime) -> datetime:
 async def submit_vote(
     phraseset_id: UUID = Path(...),
     request: VoteRequest = ...,
-    _: None = Depends(enforce_vote_rate_limit),
-    player: Player = Depends(get_current_player),
+    player: Player = Depends(enforce_vote_rate_limit),
     db: AsyncSession = Depends(get_db),
 ):
     """Submit vote for a phraseset."""

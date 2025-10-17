@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGame } from '../contexts/GameContext';
+import { BalanceFlipper } from './BalanceFlipper';
 
 export const Header: React.FC = () => {
   const { player, username, logout } = useGame();
@@ -19,14 +20,17 @@ export const Header: React.FC = () => {
 
           {/* Center: Username */}
           <div className="flex-1 text-center">
-            <p className="text-sm text-quip-navy font-semibold">{player.username || username}</p>
+            <p className="text-sm md:text-lg text-quip-turquoise font-semibold">{player.username || username}</p>
           </div>
 
           {/* Right: Flipcoins + Logout */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <img src="/flipcoin.png" alt="Flipcoin" className="w-10 h-10" />
-              <p className="text-3xl font-display font-bold text-quip-turquoise">{player.balance}</p>
+              <BalanceFlipper
+                value={player.balance}
+                className="text-3xl font-display font-bold text-quip-turquoise"
+              />
             </div>
             <button onClick={logout} className="text-quip-teal hover:text-quip-turquoise" title="Logout">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
