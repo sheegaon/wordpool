@@ -61,9 +61,10 @@ export const CopyRound: React.FC = () => {
     e.preventDefault();
     if (!phrase.trim() || !roundData) return;
 
+    setIsSubmitting(true);
+    setError(null);
+
     try {
-      setIsSubmitting(true);
-      setError(null);
       await apiClient.submitPhrase(roundData.round_id, phrase.trim());
       await refreshCurrentRound();
       await refreshBalance();
