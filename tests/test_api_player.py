@@ -1,17 +1,12 @@
 """Tests for player API endpoints."""
 import pytest
-import pytest
 from uuid import uuid4
 
 from httpx import AsyncClient, ASGITransport
 
-from backend.main import app
-from backend.models.player import Player
-from backend.services.player_service import PlayerService
-
 
 @pytest.mark.asyncio
-async def test_create_player():
+async def test_create_player(test_app):
     """Test POST /player creates a new player."""
     payload = {
         "username": f"testuser_{uuid4().hex[:6]}",
@@ -19,7 +14,7 @@ async def test_create_player():
         "password": "SecurePass123!",
     }
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         response = await client.post("/player", json=payload)
 
     assert response.status_code == 201
@@ -36,7 +31,7 @@ async def test_create_player():
 
 
 @pytest.mark.asyncio
-async def test_rotate_api_key():
+async def test_rotate_api_key(test_app):
     """Test POST /player/rotate-key generates new key."""
     # Create player via API (uses real database)
     payload = {
@@ -45,7 +40,7 @@ async def test_rotate_api_key():
         "password": "RotatePass123!",
     }
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         create_response = await client.post("/player", json=payload)
         assert create_response.status_code == 201
         create_data = create_response.json()
@@ -81,7 +76,7 @@ async def test_rotate_api_key():
 
 
 @pytest.mark.asyncio
-async def test_get_balance():
+async def test_get_balance(test_app):
     """Test GET /player/balance returns player info."""
     # Create player via API (uses real database)
     payload = {
@@ -90,7 +85,7 @@ async def test_get_balance():
         "password": "BalancePass123!",
     }
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         create_response = await client.post("/player", json=payload)
         assert create_response.status_code == 201
         create_data = create_response.json()
@@ -110,9 +105,9 @@ async def test_get_balance():
 
 
 @pytest.mark.asyncio
-async def test_authentication_required():
+async def test_authentication_required(test_app):
     """Test endpoints require valid authentication."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         # No header
         response = await client.get("/player/balance")
         assert response.status_code == 401
@@ -126,7 +121,7 @@ async def test_authentication_required():
 
 
 @pytest.mark.asyncio
-async def test_login_with_credentials():
+async def test_login_with_credentials(test_app):
     """Test logging in via credentials returns JWT tokens."""
     payload = {
         "username": f"login_user_{uuid4().hex[:6]}",
@@ -134,7 +129,7 @@ async def test_login_with_credentials():
         "password": "LoginPass123!",
     }
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         create_response = await client.post("/player", json=payload)
         assert create_response.status_code == 201
 
@@ -151,9 +146,9 @@ async def test_login_with_credentials():
 
 
 @pytest.mark.asyncio
-async def test_login_with_unknown_username_returns_401():
+async def test_login_with_unknown_username_returns_401(test_app):
     """Test logging in with unknown username returns 401."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         response = await client.post(
             "/auth/login",
             json={"username": "Nonexistent User", "password": "WrongPass1!"},
@@ -162,9 +157,9 @@ async def test_login_with_unknown_username_returns_401():
 
 
 @pytest.mark.asyncio
-async def test_health_endpoint():
+async def test_health_endpoint(test_app):
     """Test GET /health works without authentication."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         response = await client.get("/health")
 
     assert response.status_code == 200

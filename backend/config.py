@@ -18,10 +18,10 @@ class Settings(BaseSettings):
 
     # Application
     environment: str = "development"
-    secret_key: str = "dev-secret-key-change-in-production"
-    jwt_algorithm: str = "HS256"
-    access_token_exp_minutes: int = 15
-    refresh_token_exp_days: int = 30
+    secret_key: str = "dev-secret-key-change-in-production"  # Must be at least 32 characters in production
+    jwt_algorithm: str = "HS256"  # Use HS256 for symmetric signing
+    access_token_exp_minutes: int = 15  # Short-lived access tokens for security
+    refresh_token_exp_days: int = 30  # Longer-lived refresh tokens
     refresh_token_cookie_name: str = "quipflip_refresh_token"
 
     # Game Constants (all values in whole dollars)
@@ -56,8 +56,30 @@ class Settings(BaseSettings):
     word_similarity_threshold: float = 0.85  # Minimum ratio for considering words too similar
 
     @model_validator(mode="after")
-    def ensure_asyncpg(self):
-        """Normalize Postgres URLs and guard against malformed configuration."""
+    def validate_all_config(self):
+        """Validate security configuration and normalize Postgres URLs."""
+        # Security validation
+        if self.environment == "production":
+            if len(self.secret_key) < 32:
+                raise ValueError(
+                    "secret_key must be at least 32 characters in production. "
+                    "Generate a secure key with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+                )
+            if self.secret_key == "dev-secret-key-change-in-production":
+                raise ValueError("secret_key must be changed from default value in production")
+
+        # Validate JWT algorithm
+        if self.jwt_algorithm not in ["HS256", "HS384", "HS512"]:
+            raise ValueError(f"Unsupported JWT algorithm: {self.jwt_algorithm}. Use HS256, HS384, or HS512.")
+
+        # Validate token expiration times
+        if self.access_token_exp_minutes < 1 or self.access_token_exp_minutes > 1440:  # 1 min to 24 hours
+            raise ValueError("access_token_exp_minutes must be between 1 and 1440 (24 hours)")
+
+        if self.refresh_token_exp_days < 1 or self.refresh_token_exp_days > 365:
+            raise ValueError("refresh_token_exp_days must be between 1 and 365 days")
+
+        # Database URL normalization
         url = self.database_url
         if not url:
             self.database_url = "sqlite+aiosqlite:///./quipflip.db"

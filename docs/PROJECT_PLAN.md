@@ -2,35 +2,43 @@
 
 ## Implementation Priorities
 
-### Phase 1 - MVP (Core Gameplay) ✅ CLARIFIED
-1. **Player accounts and authentication** - JWT access + refresh tokens (legacy API key fallback)
-2. **Balance management and transactions** - Full amount deducted immediately, refunds on timeout
-3. **Core game loop** - Prompt (random assignment), copy, vote with full lifecycle
-4. **Word validation** - OWL2 list with 2-15 char, A-Z only validation
-5. **Queue system** - FIFO with Redis/in-memory fallback
-6. **Scoring and payouts** - Proportional distribution with rounding
-7. **One-round-at-a-time enforcement** - Via active_round_id in player table
-8. **Results viewing and prize collection** - Idempotent with ResultView tracking
-9. **Essential API endpoints** - All endpoints documented in ARCHITECTURE.md
-10. **Daily login bonus** - UTC date-based, \$100 once per day (excluding creation date)
-11. **Copy discount system** - \$90 when prompts_waiting > 10, system contributes \$10
-12. **Grace period handling** - 5-second backend grace on all submissions
-13. **Outstanding prompts limit** - Max 10 phrasesets in 'open' or 'closing' status
-14. **Vote timeline state machine** - 3rd vote (10 min window), 5th vote (60 sec window)
-15. **Copy abandonment** - Return to queue, prevent same player retry (24h cooldown)
-16. **Self-voting prevention** - Filter at assignment time
-17. **Health check endpoint** - GET /health for monitoring
-18. **Error standardization** - Consistent JSON error format across all endpoints
-19. **Legacy API key rotation endpoint** - POST /player/rotate-key (invalidate compromised keys)
-20. **Credential-based login** - POST /auth/login with username/password
+### Phase 1 - MVP (Core Gameplay) ✅ COMPLETE
+1. ✅ **Player accounts and authentication** - JWT access + refresh tokens with HTTP-only cookies (legacy API key in response)
+2. ✅ **Balance management and transactions** - Full amount deducted immediately, refunds on timeout
+3. ✅ **Core game loop** - Prompt (random assignment), copy, vote with full lifecycle
+4. ✅ **Word validation** - NASPA dictionary (191k words) with 1-5 words, 2-100 chars, A-Z only
+5. ✅ **Queue system** - FIFO with Redis/in-memory fallback
+6. ✅ **Scoring and payouts** - Proportional distribution with rounding
+7. ✅ **One-round-at-a-time enforcement** - Via active_round_id in player table
+8. ✅ **Results viewing and prize collection** - Separate claim endpoint for payouts
+9. ✅ **Essential API endpoints** - All endpoints documented in API.md
+10. ✅ **Daily login bonus** - UTC date-based, \$100 once per day (excluding creation date)
+11. ✅ **Copy discount system** - \$90 when prompts_waiting > 10, system contributes \$10
+12. ✅ **Grace period handling** - 5-second backend grace on all submissions
+13. ✅ **Outstanding prompts limit** - Max 10 phrasesets in 'open' or 'closing' status
+14. ✅ **Vote timeline state machine** - 3rd vote (10 min window), 5th vote (60 sec window)
+15. ✅ **Copy abandonment** - Return to queue, prevent same player retry (24h cooldown)
+16. ✅ **Self-voting prevention** - Filter at assignment time
+17. ✅ **Health check endpoint** - GET /health for monitoring
+18. ✅ **Error standardization** - Consistent JSON error format across all endpoints
+19. ✅ **Legacy API key rotation endpoint** - POST /player/rotate-key (invalidate compromised keys)
+20. ✅ **Credential-based login** - POST /auth/login with username/password, POST /auth/refresh, POST /auth/logout
+21. ✅ **Frontend MVP** - Complete React + TypeScript frontend with all game flows
+22. ✅ **Prompt feedback system** - Like/dislike feedback on prompts
+23. ✅ **Phraseset tracking** - Dashboard to view all phrasesets by role and status
+24. ✅ **Unclaimed results** - Separate endpoint for unclaimed prizes with claim functionality
 
 ### Phase 2 - Polish & Enhancements
-1. **JWT tokens with refresh** - Enhanced authentication beyond API keys ✅
+1. ✅ **JWT tokens with refresh** - Enhanced authentication beyond API keys (COMPLETE)
 2. **Transaction history endpoint** - GET /player/transactions with pagination
-3. **Comprehensive player statistics** - Win rates, earnings over time, favorite prompts
+3. **Enhanced player statistics** - Win rates, earnings over time, detailed analytics
 4. **Advanced rate limiting** - Per-endpoint, per-player rate limits
 5. **Prompt management** - Track usage_count, avg_copy_quality for rotation
 6. **Admin API endpoints** - Manual injection for testing (AI backup simulation)
+7. **Settings page** - User preferences, account management, API key rotation UI
+8. **Enhanced results visualization** - Charts, graphs, vote distribution graphics
+9. **Tutorial/onboarding flow** - Guide new players through first game
+10. **Dark mode** - Theme toggle with persistent preference
 
 ### Phase 3 - AI & Advanced Features
 1. **AI backup copies/votes** - After 10 minutes inactivity (GPT or embeddings-based)

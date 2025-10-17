@@ -1,12 +1,11 @@
-"""Minimal JWT encode/decode helpers (HS256 only)."""
+"""JWT encode/decode helpers using PyJWT library."""
 from __future__ import annotations
 
-import base64
-import json
-import time
-import hmac
-import hashlib
 from typing import Any, Dict
+
+import jwt
+from jwt.exceptions import ExpiredSignatureError as PyJWTExpiredSignatureError
+from jwt.exceptions import InvalidTokenError as PyJWTInvalidTokenError
 
 
 class InvalidTokenError(Exception):
@@ -17,56 +16,50 @@ class ExpiredSignatureError(InvalidTokenError):
     """Raised when a JWT has expired."""
 
 
-def _b64encode(data: bytes) -> str:
-    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
-
-
-def _b64decode(segment: str) -> bytes:
-    padding = '=' * (-len(segment) % 4)
-    return base64.urlsafe_b64decode(segment + padding)
-
-
 def encode_jwt(payload: Dict[str, Any], secret: str, algorithm: str = "HS256") -> str:
-    """Encode a JWT using HS256."""
+    """Encode a JWT using PyJWT.
 
-    if algorithm != "HS256":
-        raise ValueError("Only HS256 is supported")
+    Args:
+        payload: The JWT payload/claims
+        secret: The secret key for signing
+        algorithm: The algorithm to use (default: HS256)
 
-    header = {"typ": "JWT", "alg": algorithm}
-    header_segment = _b64encode(json.dumps(header, separators=(",", ":"), sort_keys=True).encode("utf-8"))
-    payload_segment = _b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
-    signing_input = f"{header_segment}.{payload_segment}".encode("utf-8")
-    signature = hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).digest()
-    signature_segment = _b64encode(signature)
-    return f"{header_segment}.{payload_segment}.{signature_segment}"
+    Returns:
+        The encoded JWT string
+    """
+    return jwt.encode(payload, secret, algorithm=algorithm)
 
 
 def decode_jwt(token: str, secret: str, algorithms: list[str] | None = None) -> Dict[str, Any]:
-    """Decode and validate a JWT."""
+    """Decode and validate a JWT using PyJWT.
 
+    Args:
+        token: The JWT token to decode
+        secret: The secret key for verification
+        algorithms: List of allowed algorithms (default: ["HS256"])
+
+    Returns:
+        The decoded payload
+
+    Raises:
+        ExpiredSignatureError: If the token has expired
+        InvalidTokenError: If the token is invalid
+    """
     algorithms = algorithms or ["HS256"]
-    if "HS256" not in algorithms:
-        raise InvalidTokenError("Unsupported algorithm")
 
     try:
-        header_segment, payload_segment, signature_segment = token.split(".")
-    except ValueError as exc:
-        raise InvalidTokenError("Token structure invalid") from exc
-
-    signing_input = f"{header_segment}.{payload_segment}".encode("utf-8")
-    expected_signature = hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).digest()
-    signature = _b64decode(signature_segment)
-    if not hmac.compare_digest(expected_signature, signature):
-        raise InvalidTokenError("Signature verification failed")
-
-    try:
-        payload_bytes = _b64decode(payload_segment)
-        payload = json.loads(payload_bytes.decode("utf-8"))
-    except (ValueError, json.JSONDecodeError) as exc:
-        raise InvalidTokenError("Payload decode failed") from exc
-
-    exp = payload.get("exp")
-    if exp is not None and time.time() >= float(exp):
-        raise ExpiredSignatureError("token_expired")
-
-    return payload
+        payload = jwt.decode(
+            token,
+            secret,
+            algorithms=algorithms,
+            options={
+                "verify_signature": True,
+                "verify_exp": True,
+                "require_exp": False,  # Don't require exp claim, but verify if present
+            }
+        )
+        return payload
+    except PyJWTExpiredSignatureError as exc:
+        raise ExpiredSignatureError("token_expired") from exc
+    except (PyJWTInvalidTokenError, ValueError, TypeError) as exc:
+        raise InvalidTokenError("invalid_token") from exc

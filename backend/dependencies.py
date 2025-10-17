@@ -50,8 +50,8 @@ async def _enforce_rate_limit(scope: str, identifier: str | None, limit: int) ->
     if retry_after is not None:
         headers["Retry-After"] = str(retry_after)
 
-    masked_key = _mask_api_key(api_key)
-    logger.warning("Rate limit exceeded for scope=%s api_key=%s", scope, masked_key)
+    masked_identifier = _mask_api_key(identifier)
+    logger.warning("Rate limit exceeded for scope=%s identifier=%s", scope, masked_identifier)
     raise HTTPException(status_code=429, detail=RATE_LIMIT_ERROR_MESSAGE, headers=headers or None)
 
 
@@ -107,7 +107,12 @@ async def enforce_vote_rate_limit(
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    """Enforce tighter limits on vote submissions."""
+    """Enforce tighter limits on vote submissions.
+
+    Note: This dependency should be used in conjunction with get_current_player
+    to ensure authentication. Invalid tokens will cause a 401 error rather than
+    silently bypassing rate limiting.
+    """
 
     identifier = None
     if authorization:
@@ -119,9 +124,14 @@ async def enforce_vote_rate_limit(
                 sub = payload.get("sub")
                 if sub:
                     identifier = str(sub)
-            except AuthError:
-                identifier = None
+            except AuthError as exc:
+                # Don't silently fail - invalid/expired tokens should return 401
+                detail = "token_expired" if "expired" in str(exc).lower() else "invalid_token"
+                raise HTTPException(status_code=401, detail=detail) from exc
+
     if not identifier and x_api_key:
         identifier = x_api_key
 
+    # If we still don't have an identifier and this is a rate-limited endpoint,
+    # that means neither auth method was provided - should have been caught by get_current_player
     await _enforce_rate_limit("vote_submit", identifier, VOTE_RATE_LIMIT)

@@ -6,12 +6,13 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config as AlembicConfig
-
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
 # Ensure the application uses a dedicated SQLite database during tests
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
 
 from backend.config import get_settings
+from backend.database import Base
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
