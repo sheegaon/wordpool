@@ -19,7 +19,7 @@ export const Header: React.FC = () => {
 
           {/* Center: Username */}
           <div className="flex-1 text-center">
-            <p className="text-sm text-quip-navy font-semibold">{player.username || username}</p>
+            <p className="text-sm md:text-lg text-quip-turquoise font-semibold">{player.username || username}</p>
           </div>
 
           {/* Right: Flipcoins + Logout */}

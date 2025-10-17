@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     similarity_model: str = "all-mpnet-base-v2"  # previously "all-MiniLM-L6-v2"  # Sentence transformer model
     word_similarity_threshold: float = 0.8  # Minimum ratio for considering words too similar
 
+    # AI Copy Service
+    ai_copy_provider: str = "openai"  # Options: "openai" or "gemini"
+    ai_copy_openai_model: str = "gpt-5-nano"  # OpenAI model for copy generation
+    ai_copy_gemini_model: str = "gemini-2.5-flash-lite"  # Gemini model for copy generation
+    ai_copy_timeout_seconds: int = 30  # Timeout for AI API calls
+    ai_backup_delay_minutes: int = 10  # Delay before AI provides backup copies/votes
+
     @model_validator(mode="after")
     def validate_all_config(self):
         """Validate security configuration and normalize Postgres URLs."""

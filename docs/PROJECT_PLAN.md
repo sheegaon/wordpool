@@ -30,23 +30,25 @@
 
 ### Phase 2 - Polish & Enhancements
 1. ✅ **JWT tokens with refresh** - Enhanced authentication beyond API keys (COMPLETE)
-2. **Transaction history endpoint** - GET /player/transactions with pagination
-3. **Enhanced player statistics** - Win rates, earnings over time, detailed analytics
-4. **Advanced rate limiting** - Per-endpoint, per-player rate limits
-5. **Prompt management** - Track usage_count, avg_copy_quality for rotation
-6. **Admin API endpoints** - Manual injection for testing (AI backup simulation)
-7. **Settings page** - User preferences, account management, API key rotation UI
-8. **Enhanced results visualization** - Charts, graphs, vote distribution graphics
-9. **Tutorial/onboarding flow** - Guide new players through first game
-10. **Dark mode** - Theme toggle with persistent preference
+2. ✅ **AI copy providers (OpenAI + Gemini)** - Configurable AI backup system (COMPLETE)
+3. **Transaction history endpoint** - GET /player/transactions with pagination
+4. **Enhanced player statistics** - Win rates, earnings over time, detailed analytics
+5. **Advanced rate limiting** - Per-endpoint, per-player rate limits
+6. **Prompt management** - Track usage_count, avg_copy_quality for rotation
+7. **Admin API endpoints** - Manual injection for testing (AI backup simulation)
+8. **Settings page** - User preferences, account management, API key rotation UI
+9. **Enhanced results visualization** - Charts, graphs, vote distribution graphics
+10. **Tutorial/onboarding flow** - Guide new players through first game
+11. **Dark mode** - Theme toggle with persistent preference
 
 ### Phase 3 - AI & Advanced Features
-1. **AI backup copies/votes** - After 10 minutes inactivity (GPT or embeddings-based)
-2. **Word similarity scoring** - Cosine similarity for copy quality metrics
-3. **Background jobs** - Proper timeout cleanup, finalization triggers
-4. **Comprehensive monitoring** - Metrics, dashboards, alerting
-5. **Performance optimization** - Query optimization, caching, connection pooling
-6. **Database-based queue fallback** - Alternative to Redis for true distributed setup
+1. 🔄 **AI backup copies** - Automated generation after 10 minutes (IN PROGRESS - service ready, needs scheduler)
+2. ✅ **AI provider infrastructure** - OpenAI + Gemini with automatic fallback (COMPLETE)
+3. **AI backup votes** - Automated voting when voters unavailable
+4. **Background job scheduler** - Celery/APScheduler for AI backup cycles and cleanup
+5. **Comprehensive monitoring** - Metrics, dashboards, alerting for AI usage
+6. **Performance optimization** - Query optimization, caching, connection pooling
+7. **Database-based queue fallback** - Alternative to Redis for true distributed setup
 
 ### Phase 4 - Social & Engagement
 1. **Player statistics dashboard** - Detailed win rates, earnings, patterns
@@ -57,6 +59,67 @@
 6. **Seasonal events** - Themed prompts and bonuses
 7. **User-submitted prompts** - Community content (moderated)
 8. **OAuth integration** - Google, Twitter, etc.
+
+---
+
+## AI Copy Service Implementation
+
+### Overview
+The AI copy service provides automated backup copy generation when human players are unavailable. The system supports multiple AI providers with automatic fallback and configurable behavior.
+
+### Supported Providers
+1. **OpenAI** (Default)
+   - Model: GPT-5 Nano (configurable)
+   - Fast, high-quality responses
+   - Requires `OPENAI_API_KEY`
+
+2. **Gemini**
+   - Model: gemini-2.5-flash-lite (configurable)
+   - Cost-effective alternative
+   - Requires `GEMINI_API_KEY`
+
+### Architecture
+```
+ai_copy_service.py          # Main orchestrator
+├── openai_api.py          # OpenAI provider implementation
+├── gemini_api.py          # Gemini provider implementation
+└── prompt_builder.py      # Shared prompt construction logic
+```
+
+### Configuration
+Environment variables in `.env`:
+```bash
+AI_COPY_PROVIDER=openai           # "openai" or "gemini"
+OPENAI_API_KEY=sk-...            # OpenAI API key
+GEMINI_API_KEY=...               # Gemini API key
+AI_COPY_OPENAI_MODEL=gpt-5-nano  # Model override (optional)
+AI_COPY_GEMINI_MODEL=gemini-2.5-flash-lite  # Model override (optional)
+AI_COPY_TIMEOUT_SECONDS=30       # API timeout
+AI_BACKUP_DELAY_MINUTES=10       # Wait time before AI backup
+```
+
+### Key Features
+- **Provider Selection**: Automatic based on config and available API keys
+- **Fallback Logic**: Falls back to alternate provider if primary unavailable
+- **Transaction Safety**: Proper transaction management in `run_backup_cycle()`
+- **Validation**: All AI phrases validated same as human submissions
+- **Error Handling**: Graceful degradation if AI services unavailable
+
+### Implementation Status
+- ✅ Provider infrastructure (OpenAI + Gemini)
+- ✅ Shared prompt builder (eliminates duplication)
+- ✅ Configuration system
+- ✅ Error handling and fallbacks
+- ✅ Phrase validation integration
+- ⏸️ Background scheduler integration (Phase 3)
+- ⏸️ AI voting support (Phase 3)
+
+### Next Steps
+1. Integrate with background job scheduler (Celery or APScheduler)
+2. Add monitoring and metrics for AI usage
+3. Implement AI voting for complete backup coverage
+4. Add cost tracking and optimization
+5. A/B testing between providers for quality comparison
 
 ---
 

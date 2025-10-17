@@ -11,9 +11,15 @@ The frontend is fully functional with:
 - All three round types (Prompt, Copy, Vote) with timers and feedback
 - Results viewing and prize claiming
 - Phraseset tracking dashboard
-- Prompt feedback system (like/dislike)
-- Responsive UI with custom branding
+- Prompt feedback system (like/dislike with improved mobile UI)
+- Responsive UI with custom branding and optimized mobile experience
 - Automatic token refresh and error handling
+- Enhanced username display (larger on desktop, matches flipcoin color)
+
+**Recent Updates:**
+- Prompt feedback buttons smaller on mobile (text-lg) for better UX
+- Prompt box height increased (min-h-[120px]) for better readability
+- Username font size larger on desktop (md:text-lg) and color matches balance (text-quip-turquoise)
 
 **Next Steps:** Phase 2 enhancements (Settings page, Transaction history, Enhanced statistics)
 

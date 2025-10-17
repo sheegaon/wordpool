@@ -159,17 +159,17 @@ export const PromptRound: React.FC = () => {
         </div>
 
         {/* Prompt */}
-        <div className="bg-quip-navy bg-opacity-5 border-2 border-quip-navy rounded-tile p-6 mb-6 relative">
-          <p className="text-2xl text-center font-display font-semibold text-quip-navy">
+        <div className="bg-quip-navy bg-opacity-5 border-2 border-quip-navy rounded-tile p-6 py-8 mb-6 relative min-h-[120px] flex items-center">
+          <p className="text-2xl text-center font-display font-semibold text-quip-navy flex-1 pr-12">
             {roundData.prompt_text}
           </p>
 
           {/* Feedback Icons */}
-          <div className="absolute top-4 right-4 flex gap-2">
+          <div className="absolute top-4 right-4 flex gap-1.5 md:gap-2">
             <button
               onClick={() => handleFeedback('like')}
               disabled={isSubmittingFeedback || roundData.status === 'submitted'}
-              className={`text-2xl transition-all ${
+              className={`text-lg md:text-2xl transition-all ${
                 feedbackType === 'like'
                   ? 'opacity-100 scale-110'
                   : 'opacity-40 hover:opacity-70 hover:scale-105'
@@ -182,7 +182,7 @@ export const PromptRound: React.FC = () => {
             <button
               onClick={() => handleFeedback('dislike')}
               disabled={isSubmittingFeedback || roundData.status === 'submitted'}
-              className={`text-2xl transition-all ${
+              className={`text-lg md:text-2xl transition-all ${
                 feedbackType === 'dislike'
                   ? 'opacity-100 scale-110'
                   : 'opacity-40 hover:opacity-70 hover:scale-105'
