@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 import { Timer } from '../components/Timer';
+import { Header } from '../components/Header';
 
 export const Dashboard: React.FC = () => {
   const {
-    username,
     player,
     activeRound,
     pendingResults,
@@ -18,7 +18,6 @@ export const Dashboard: React.FC = () => {
     refreshUnclaimedResults,
     refreshRoundAvailability,
     claimBonus,
-    logout,
   } = useGame();
   const navigate = useNavigate();
   const [isRoundExpired, setIsRoundExpired] = useState(false);
@@ -155,35 +154,19 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Quipflip</h1>
-            <p className="text-sm text-gray-600">
-              Signed in as <span className="font-semibold">{player.username || username}</span>
-            </p>
-          </div>
-          <button
-            onClick={logout}
-            className="text-sm text-gray-600 hover:text-gray-800"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-quip-cream bg-pattern">
+      <Header />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Active Round Notification */}
         {activeRound?.round_id && !isRoundExpired && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+          <div className="tile-card bg-quip-orange bg-opacity-10 border-2 border-quip-orange p-4 mb-6 slide-up-enter">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex-1">
-                <p className="font-semibold text-orange-800">
+                <p className="font-display font-semibold text-quip-orange-deep">
                   Active {activeRoundLabel || 'Current'} Round in Progress
                 </p>
-                <div className="mt-2 flex flex-col gap-2 text-sm text-orange-700 sm:flex-row sm:items-center">
+                <div className="mt-2 flex flex-col gap-2 text-sm text-quip-teal sm:flex-row sm:items-center">
                   <span>Time remaining:</span>
                   <Timer
                     expiresAt={activeRound.expires_at}
@@ -194,7 +177,7 @@ export const Dashboard: React.FC = () => {
               </div>
               <button
                 onClick={handleContinueRound}
-                className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-lg"
+                className="w-full sm:w-auto bg-quip-orange hover:bg-quip-orange-deep text-white font-bold py-2 px-6 rounded-tile transition-all hover:shadow-tile-sm"
               >
                 Continue Round
               </button>
@@ -204,17 +187,17 @@ export const Dashboard: React.FC = () => {
 
         {/* Pending Results Notification */}
         {pendingResults.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="tile-card bg-quip-turquoise bg-opacity-10 border-2 border-quip-turquoise p-4 mb-6 slide-up-enter">
             <div className="flex justify-between items-center">
               <div>
-                <p className="font-semibold text-blue-800">Results Ready!</p>
-                <p className="text-sm text-blue-700">
-                  {pendingResults.length} wordset{pendingResults.length > 1 ? 's' : ''} finalized
+                <p className="font-display font-semibold text-quip-turquoise">Results Ready!</p>
+                <p className="text-sm text-quip-teal">
+                  {pendingResults.length} quipset{pendingResults.length > 1 ? 's' : ''} finalized
                 </p>
               </div>
               <button
                 onClick={handleViewResults}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg"
+                className="bg-quip-turquoise hover:bg-quip-teal text-white font-bold py-2 px-6 rounded-tile transition-all hover:shadow-tile-sm"
               >
                 View Results
               </button>
@@ -223,17 +206,17 @@ export const Dashboard: React.FC = () => {
         )}
 
         {hasInProgress && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+          <div className="tile-card border-2 border-quip-navy p-4 mb-6 slide-up-enter">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-semibold text-gray-800">Past Rounds In Progress</p>
-                <p className="text-sm text-gray-700">
+                <p className="font-display font-semibold text-quip-navy">Past Rounds In Progress</p>
+                <p className="text-sm text-quip-teal">
                   {inProgressPrompts} prompt{inProgressPrompts === 1 ? '' : 's'} • {inProgressCopies} cop{inProgressCopies === 1 ? 'y' : 'ies'}
                 </p>
               </div>
               <button
                 onClick={handleTrackPhrasesets}
-                className="w-full sm:w-auto bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-6 rounded-lg"
+                className="w-full sm:w-auto bg-quip-navy hover:bg-quip-teal text-white font-bold py-2 px-6 rounded-tile transition-all hover:shadow-tile-sm"
               >
                 Track Progress
               </button>
@@ -242,17 +225,17 @@ export const Dashboard: React.FC = () => {
         )}
 
         {totalUnclaimedCount > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <div className="tile-card bg-quip-turquoise bg-opacity-10 border-2 border-quip-turquoise p-4 mb-6 slide-up-enter">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-semibold text-green-800">Prizes Ready to Claim</p>
-                <p className="text-sm text-green-700">
+                <p className="font-display font-semibold text-quip-turquoise">Quip-tastic! Prizes Ready to Claim</p>
+                <p className="text-sm text-quip-teal">
                   {unclaimedPromptCount} prompt{unclaimedPromptCount === 1 ? '' : 's'} • {unclaimedCopyCount} cop{unclaimedCopyCount === 1 ? 'y' : 'ies'} • ${totalUnclaimedAmount} total
                 </p>
               </div>
               <button
                 onClick={handleClaimResults}
-                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg"
+                className="w-full sm:w-auto bg-quip-turquoise hover:bg-quip-teal text-white font-bold py-2 px-6 rounded-tile transition-all hover:shadow-tile-sm"
               >
                 Claim Prizes
               </button>
@@ -262,15 +245,15 @@ export const Dashboard: React.FC = () => {
 
         {/* Daily Bonus */}
         {player.daily_bonus_available && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="tile-card bg-quip-orange bg-opacity-10 border-2 border-quip-orange p-4 mb-6 slide-up-enter">
             <div className="flex justify-between items-center">
               <div>
-                <p className="font-semibold text-yellow-800">Daily Bonus Available!</p>
-                <p className="text-sm text-yellow-700">Claim your ${player.daily_bonus_amount} bonus</p>
+                <p className="font-display font-semibold text-quip-orange-deep">Daily Bonus Available!</p>
+                <p className="text-sm text-quip-teal">Claim your ${player.daily_bonus_amount} bonus</p>
               </div>
               <button
                 onClick={handleClaimBonus}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded-lg"
+                className="bg-quip-orange hover:bg-quip-orange-deep text-white font-bold py-2 px-6 rounded-tile transition-all hover:shadow-tile-sm"
               >
                 Claim
               </button>
@@ -278,32 +261,27 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Balance Card */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="text-center">
-            <p className="text-gray-600 mb-2">Your Balance</p>
-            <p className="text-5xl font-bold text-green-600">${player.balance}</p>
-          </div>
-        </div>
-
         {/* Round Selection */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">Start a Round</h2>
+        <div className="tile-card p-6 shuffle-enter">
+          <h2 className="text-xl font-display font-bold mb-4 text-quip-navy">Start a Round</h2>
 
           <div className="space-y-4">
             {/* Prompt Round */}
-            <div className="border rounded-lg p-4">
+            <div className="border-2 border-quip-navy rounded-tile p-4 bg-quip-navy bg-opacity-5 hover:bg-opacity-10 transition-all">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-lg">Prompt Round</h3>
-                <span className="text-red-600 font-bold">-$100</span>
+                <div className="flex items-center gap-2">
+                  <img src="/icon_prompt.svg" alt="" className="w-8 h-8" />
+                  <h3 className="font-display font-semibold text-lg text-quip-navy">Prompt Round</h3>
+                </div>
+                <span className="text-quip-orange-deep font-bold">-$100</span>
               </div>
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-quip-teal mb-3">
                 Submit a phrase for a creative prompt
               </p>
               <button
                 onClick={handleStartPrompt}
                 disabled={!roundAvailability?.can_prompt}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                className="w-full bg-quip-navy hover:bg-quip-teal disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm"
               >
                 {roundAvailability?.can_prompt ? 'Start Prompt Round' :
                   player.balance < 100 ? 'Insufficient Balance' :
@@ -313,28 +291,31 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* Copy Round */}
-            <div className="border rounded-lg p-4">
+            <div className="border-2 border-quip-turquoise rounded-tile p-4 bg-quip-turquoise bg-opacity-5 hover:bg-opacity-10 transition-all">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-lg">Copy Round</h3>
-                <span className="text-red-600 font-bold">
+                <div className="flex items-center gap-2">
+                  <img src="/icon_copy.svg" alt="" className="w-8 h-8" />
+                  <h3 className="font-display font-semibold text-lg text-quip-turquoise">Copy Round</h3>
+                </div>
+                <span className="text-quip-orange-deep font-bold">
                   -${roundAvailability?.copy_cost || 100}
                   {roundAvailability?.copy_discount_active && (
-                    <span className="text-green-600 text-sm ml-1">(discount!)</span>
+                    <span className="text-quip-turquoise text-sm ml-1">(discount!)</span>
                   )}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 mb-1">
+              <p className="text-sm text-quip-teal mb-1">
                 Submit a similar phrase without seeing the prompt
               </p>
               {roundAvailability && roundAvailability.prompts_waiting > 0 && (
-                <p className="text-xs text-blue-600 mb-3">
+                <p className="text-xs text-quip-turquoise mb-3 font-semibold">
                   {roundAvailability.prompts_waiting} prompt{roundAvailability.prompts_waiting > 1 ? 's' : ''} waiting
                 </p>
               )}
               <button
                 onClick={handleStartCopy}
                 disabled={!roundAvailability?.can_copy}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                className="w-full bg-quip-turquoise hover:bg-quip-teal disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm"
               >
                 {roundAvailability?.can_copy ? 'Start Copy Round' :
                   roundAvailability?.prompts_waiting === 0 ? 'No Prompts Available' :
@@ -344,26 +325,29 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* Vote Round */}
-            <div className="border rounded-lg p-4">
+            <div className="border-2 border-quip-orange rounded-tile p-4 bg-quip-orange bg-opacity-5 hover:bg-opacity-10 transition-all">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-lg">Vote Round</h3>
-                <span className="text-red-600 font-bold">-$1</span>
+                <div className="flex items-center gap-2">
+                  <img src="/icon_vote.svg" alt="" className="w-8 h-8" />
+                  <h3 className="font-display font-semibold text-lg text-quip-orange-deep">Vote Round</h3>
+                </div>
+                <span className="text-quip-orange-deep font-bold">-$1</span>
               </div>
-              <p className="text-sm text-gray-600 mb-1">
+              <p className="text-sm text-quip-teal mb-1">
                 Identify the original phrase from three options
               </p>
               {roundAvailability && roundAvailability.phrasesets_waiting > 0 && (
-                <p className="text-xs text-blue-600 mb-3">
+                <p className="text-xs text-quip-orange-deep mb-3 font-semibold">
                   {roundAvailability.phrasesets_waiting} phraseset{roundAvailability.phrasesets_waiting > 1 ? 's' : ''} waiting
                 </p>
               )}
               <button
                 onClick={handleStartVote}
                 disabled={!roundAvailability?.can_vote}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                className="w-full bg-quip-orange hover:bg-quip-orange-deep disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm"
               >
                 {roundAvailability?.can_vote ? 'Start Vote Round' :
-                  roundAvailability?.phrasesets_waiting === 0 ? 'No Phrasesets Available' :
+                  roundAvailability?.phrasesets_waiting === 0 ? 'No Quips Available' :
                   player.balance < 1 ? 'Insufficient Balance' :
                   'Not Available'}
               </button>

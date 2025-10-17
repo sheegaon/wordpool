@@ -29,7 +29,7 @@ export const PhrasesetList: React.FC<PhrasesetListProps> = ({
   if (!phrasesets.length) {
     return (
       <div className="p-6 text-center text-sm text-gray-500">
-        No phrasesets yet. Complete rounds to get started.
+        No quips yet. Complete rounds to get started.
       </div>
     );
   }
