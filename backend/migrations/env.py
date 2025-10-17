@@ -3,8 +3,10 @@ from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.engine.url import make_url
 from alembic import context
 import asyncio
+import logging
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,6 +16,10 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Configure additional logging for debugging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Import Base and all models
 from backend.database import Base
@@ -56,24 +62,68 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Run migrations in async mode."""
+    logger.info("=== ALEMBIC MIGRATION DEBUG ===")
+    
     # Get configuration section
     configuration = config.get_section(config.config_ini_section, {})
     
-    # Add SSL configuration for Heroku/production if needed
+    # Get URL and log details
     url = config.get_main_option("sqlalchemy.url")
-    if url and ("heroku" in url or "amazonaws" in url or get_settings().environment == "production"):
-        configuration["sqlalchemy.connect_args"] = {"ssl": "require"}
+    logger.info(f"Migration URL length: {len(url) if url else 'None'}")
     
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
+    # Parse URL for debugging
+    try:
+        if url:
+            parsed_url = make_url(url)
+            logger.info(f"Migration driver: {parsed_url.drivername}")
+            logger.info(f"Migration host: {parsed_url.host}")
+            logger.info(f"Migration username: {parsed_url.username}")
+            
+            if parsed_url.password:
+                password = parsed_url.password
+                logger.info(f"Migration password length: {len(password)}")
+                logger.info(f"Migration password starts: {password[:4]}...")
+                logger.info(f"Migration password ends: ...{password[-4:]}")
+    except Exception as e:
+        logger.error(f"Failed to parse migration URL: {e}")
+    
+    # Add SSL configuration for Heroku/production if needed
+    needs_ssl = url and (
+        "heroku" in url or 
+        "amazonaws" in url or 
+        get_settings().environment == "production"
     )
+    
+    if needs_ssl:
+        configuration["sqlalchemy.connect_args"] = {"ssl": "require"}
+        logger.info("Migration SSL enabled (ssl=require)")
+    else:
+        logger.info("Migration SSL disabled")
+    
+    logger.info(f"Migration configuration keys: {list(configuration.keys())}")
+    
+    try:
+        connectable = async_engine_from_config(
+            configuration,
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+        )
+        logger.info("Migration engine created successfully")
+    except Exception as e:
+        logger.error(f"Failed to create migration engine: {e}")
+        raise
 
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-
-    await connectable.dispose()
+    try:
+        async with connectable.connect() as connection:
+            logger.info("Migration database connection established")
+            await connection.run_sync(do_run_migrations)
+            logger.info("Migrations completed successfully")
+    except Exception as e:
+        logger.error(f"Migration connection/execution failed: {e}")
+        raise
+    finally:
+        await connectable.dispose()
+        logger.info("Migration engine disposed")
 
 
 def run_migrations_online() -> None:

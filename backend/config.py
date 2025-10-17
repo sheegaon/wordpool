@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_all_config(self):
         """Validate security configuration and normalize Postgres URLs."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info("=== CONFIG VALIDATION DEBUG ===")
+        
         # Security validation
         # if self.environment == "production":
         #     if len(self.secret_key) < 32:
@@ -89,14 +94,32 @@ class Settings(BaseSettings):
 
         # Database URL normalization
         url = self.database_url
+        logger.info(f"Original DATABASE_URL length: {len(url)}")
+        logger.info(f"Original URL starts with: {url[:30]}...")
+        
         if not url:
+            logger.warning("Empty DATABASE_URL, using SQLite fallback")
             self.database_url = "sqlite+aiosqlite:///./quipflip.db"
             return self
 
         parsed: Optional[URL] = None
         try:
             parsed = make_url(url)
-        except Exception:  # pragma: no cover - defensive fallback
+            logger.info(f"URL parsed successfully")
+            logger.info(f"Original drivername: {parsed.drivername}")
+            
+            # Log password details for debugging
+            if parsed.password:
+                logger.info(f"Original password length: {len(parsed.password)}")
+                # Check for URL encoding issues
+                import urllib.parse
+                if '%' in parsed.password:
+                    logger.info("Password appears to be URL-encoded")
+                    decoded = urllib.parse.unquote(parsed.password)
+                    logger.info(f"Decoded password length: {len(decoded)}")
+                
+        except Exception as e:  # pragma: no cover - defensive fallback
+            logger.error(f"Failed to parse DATABASE_URL: {e}")
             logging.warning(
                 "Invalid DATABASE_URL '%s'; falling back to default sqlite database.",
                 url,
@@ -106,11 +129,15 @@ class Settings(BaseSettings):
 
         drivername = parsed.drivername
         if drivername.startswith("postgres") and "+asyncpg" not in drivername:
+            old_drivername = drivername
             parsed = parsed.set(drivername="postgresql+asyncpg")
+            logger.info(f"Driver normalized: {old_drivername} -> {parsed.drivername}")
             self.database_url = str(parsed)
+            logger.info(f"Final DATABASE_URL length: {len(self.database_url)}")
         else:
             # Keep the original value when no normalization is required.
             self.database_url = str(parsed)
+            logger.info(f"No driver normalization needed")
 
         return self
 
