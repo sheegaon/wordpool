@@ -10,7 +10,7 @@ bcrypt==5.0.0  # Password hashing
 # Database
 sqlalchemy[asyncio]==2.0.25
 asyncpg==0.29.0
-aiosqlite==0.19.0
+aiosqlite==0.21.0
 alembic==1.13.1
 
 # Redis (optional, for production)
@@ -23,16 +23,16 @@ python-dotenv==1.0.0
 
 # Testing
 pytest==8.4.2
-pytest-asyncio==0.23.3
+pytest-asyncio==1.2.0
 httpx==0.28.1
-faker==22.6.0
+faker==37.11.0
 
 # Utilities
 python-dateutil==2.8.2
 
 # Phrase similarity checking
-sentence-transformers==5.1.1
+sentence-transformers>=5.1.1
 scikit-learn==1.7.2
-numpy>=1.24.0
+numpy==1.24.0
 google-genai>=1.45.0
 openai>=2.4.0
