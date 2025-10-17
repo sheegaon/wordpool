@@ -74,10 +74,6 @@ export const Landing: React.FC = () => {
           />
         </div>
 
-        <p className="text-center text-quip-teal mb-8 text-sm">
-          A multiplayer phrase association game
-        </p>
-
           {error && (
             <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
               {error}
