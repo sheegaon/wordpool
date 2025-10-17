@@ -10,6 +10,7 @@ engine = create_async_engine(
     settings.database_url,
     echo=settings.environment == "development",
     future=True,
+    connect_args={"sslmode": "require"} if settings.environment == "production" else {}
 )
 
 # Session factory
