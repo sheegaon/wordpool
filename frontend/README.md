@@ -6,16 +6,21 @@ React + TypeScript frontend for the Quipflip phrase association game.
 
 ### Phase 1 MVP (Complete)
 
-- ✅ Player authentication with API key
+- ✅ Player authentication with JWT tokens (access + refresh tokens, HTTP-only cookies)
+- ✅ Registration and login with username/password
 - ✅ Dashboard with balance display
 - ✅ Daily bonus claiming
 - ✅ Three round types (Prompt, Copy, Vote)
 - ✅ Real-time countdown timers
 - ✅ Results viewing with vote breakdown
-- ✅ Responsive design with Tailwind CSS
+- ✅ Phraseset tracking (view all phrasesets by role and status)
+- ✅ Prompt feedback (like/dislike prompts)
+- ✅ Unclaimed results with claim functionality
+- ✅ Responsive design with Tailwind CSS and custom branding
 - ✅ Error handling and notifications
 - ✅ Automatic state polling and updates
 - ✅ Robust request cancellation (no memory leaks)
+- ✅ Automatic token refresh on 401 errors
 - ✅ Vercel Analytics integration
 - ✅ React Router v7 future flags enabled (clean console)
 
@@ -107,29 +112,32 @@ The frontend connects to the backend API using the `apiClient` in `src/api/clien
 
 ### Authentication
 
-API keys are stored in `localStorage` and automatically included in all requests via request interceptors.
+JWT access tokens are stored in `localStorage` and automatically included in all requests via Authorization header. Refresh tokens are stored in HTTP-only cookies for security. The frontend automatically refreshes expired access tokens using the refresh token when receiving 401 errors.
 
 ### State Management
 
 The `GameContext` manages global state:
+- Authentication status (JWT tokens)
 - Player balance and info
 - Active round state
 - Pending results
+- Phraseset summary
+- Unclaimed results
 - Round availability
 
 ### Polling Strategy
 
-- Balance: Every 30 seconds
-- Current round: Every 5 seconds (when active)
-- Pending results: Every 60 seconds
-- Round availability: Every 10 seconds (when idle)
+- Balance & round availability: Every 60 seconds
+- Pending results, phraseset summary, unclaimed results: Every 90 seconds
+- All data fetched on initial authentication
 
 ## User Flow
 
-1. **Landing Page** - Create account or login with existing API key
-2. **Dashboard** - View balance, claim bonus, select round type
-3. **Round Screens** - Complete prompt/copy/vote rounds with timers
-4. **Results** - View finalized phrasesets and collect payouts
+1. **Landing Page** - Create account (username/email/password) or login (username/password)
+2. **Dashboard** - View balance, claim bonus, select round type, access phraseset tracking
+3. **Round Screens** - Complete prompt/copy/vote rounds with timers and feedback
+4. **Results** - View finalized phrasesets with vote breakdown and collect payouts
+5. **Phraseset Tracking** - View all your phrasesets organized by role (prompt/copy/vote) and status
 
 ## Key Components
 
@@ -145,16 +153,18 @@ The `GameContext` manages global state:
 - API key persistence
 
 ### Round Pages
-- **PromptRound** - Submit a phrase for a creative prompt
+- **PromptRound** - Submit a phrase for a creative prompt with like/dislike feedback
 - **CopyRound** - Submit a similar phrase without seeing the prompt
 - **VoteRound** - Identify the original phrase from three options
-- **Results** - View vote breakdown and payouts
+- **Results** - View vote breakdown and collect payouts
+- **PhrasesetTracking** - Browse all phrasesets by role and status with filtering
 
 ## Error Handling
 
 - API errors are transformed to user-friendly messages
 - Error notifications auto-dismiss after 5 seconds
-- Invalid API keys trigger automatic logout
+- Invalid/expired tokens trigger automatic logout
+- 401 errors automatically trigger token refresh before retrying request
 - Network errors prompt retry suggestions
 - **Request cancellation:** AbortController integration prevents memory leaks and React warnings
 
@@ -184,7 +194,8 @@ See [FRONTEND_PLAN.md](../docs/FRONTEND_PLAN.md) for planned features:
 ### Backend not connecting
 - Ensure backend is running at the configured `VITE_API_URL`
 - Check browser console for CORS errors
-- Verify API key is valid (check localStorage)
+- Verify JWT access token is valid (check localStorage)
+- Ensure cookies are enabled for refresh token storage
 
 ### Timer not working
 - Ensure system clock is accurate
@@ -194,7 +205,8 @@ See [FRONTEND_PLAN.md](../docs/FRONTEND_PLAN.md) for planned features:
 ### Polling issues
 - Check browser console for API errors
 - Verify network connectivity
-- Ensure API key hasn't expired
+- Ensure JWT tokens haven't expired (automatic refresh should handle this)
+- Check that refresh token cookie is present and valid
 
 ## Development Tips
 
@@ -210,7 +222,8 @@ For production deployment:
 1. Update `VITE_API_URL` to production backend URL
 2. Build the app: `npm run build`
 3. Deploy `dist/` folder to static hosting (Vercel, Netlify, etc.)
-4. Ensure HTTPS for API key security
-5. Configure backend CORS for your frontend domain
+4. Ensure HTTPS for JWT token security
+5. Configure backend CORS for your frontend domain with credentials support
+6. Ensure cookie SameSite and Secure settings are properly configured for production
 
 See [FRONTEND_PLAN.md](../docs/FRONTEND_PLAN.md) for detailed deployment guidance.

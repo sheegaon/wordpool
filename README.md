@@ -70,17 +70,22 @@ Frontend runs at **http://localhost:5173**
 - NASPA dictionary validation (191k words)
 - Proportional prize distribution
 - Daily login bonuses
+- Prompt feedback system (like/dislike)
+- Phraseset tracking and unclaimed results
 - Transaction audit trail
-- 15+ REST API endpoints
+- 20+ REST API endpoints
 - 88% test coverage
 
 *Frontend:*
 - React 18 + TypeScript with Vite 5 (stable, production-ready)
-- Responsive UI with Tailwind CSS 3
-- Real-time countdown timers
-- Dashboard with balance & round selection
-- All three round types implemented
-- Results viewing with vote breakdown
+- JWT authentication with automatic token refresh
+- Username/password login and registration
+- Responsive UI with Tailwind CSS 3 and custom branding
+- Real-time countdown timers with visual states
+- Dashboard with balance, round selection, and phraseset tracking
+- All three round types with feedback mechanisms
+- Results viewing with vote breakdown and prize claiming
+- Phraseset tracking dashboard (by role and status)
 - Automatic state polling with request cancellation
 - Error handling & notifications
 - 22% smaller bundle size vs bleeding-edge versions
