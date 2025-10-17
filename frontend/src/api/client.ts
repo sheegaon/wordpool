@@ -47,17 +47,17 @@ const logApi = (
 
 // Helper function to extract meaningful error messages
 const extractErrorMessage = (error: any): string => {
-  // If it's already a string, return it
   if (typeof error === 'string') {
     return error;
   }
+
   // If it's an Error object, use its message
   if (error instanceof Error) {
     return error.message;
   }
+
   // If it's an object with a message property, use that
   if (error && typeof error === 'object') {
-    // Handle FastAPI/Pydantic validation errors
     if (error.detail) {
       const detail = error.detail;
       if (Array.isArray(detail)) {
@@ -89,7 +89,6 @@ const extractErrorMessage = (error: any): string => {
       }
     }
 
-    // Handle backend error objects like {"error": "invalid_phrase", "message": "..."}
     if (error.error && error.message) {
       return error.message;
     }
@@ -99,7 +98,6 @@ const extractErrorMessage = (error: any): string => {
     }
   }
 
-  // Fallback to string conversion
   return String(error);
 };
 

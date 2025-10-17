@@ -118,35 +118,46 @@ async def test_transaction_ledger_tracking(db_session):
 async def test_daily_bonus_logic(db_session):
     """Test daily bonus availability and claiming."""
     from datetime import date, timedelta, datetime, UTC
+    from backend.models.player import Player as PlayerModel
 
     player_service = PlayerService(db_session)
     transaction_service = TransactionService(db_session)
 
-    player = await player_service.create_player()
+    # Test 1: Bonus not available on creation day
+    player1 = await player_service.create_player()
+    available = await player_service.is_daily_bonus_available(player1)
+    assert available is False, "Bonus should not be available on creation day"
 
-    # Should not be available on creation day
-    available = await player_service.is_daily_bonus_available(player)
-    assert available is False
+    # Test 2: Bonus available for player created yesterday with old last_login_date
+    # Create a player with dates manually set
+    yesterday = date.today() - timedelta(days=1)
+    yesterday_dt = datetime.combine(yesterday, datetime.min.time()).replace(tzinfo=UTC)
 
-    # Simulate player created yesterday by modifying created_at and last_login_date
-    player.created_at = datetime.now(UTC) - timedelta(days=1)
-    player.last_login_date = date.today() - timedelta(days=1)
+    player2 = PlayerModel(
+        player_id=uuid.uuid4(),
+        api_key=str(uuid.uuid4()),
+        username="test_daily_bonus",
+        username_canonical="test_daily_bonus",
+        balance=1000,
+        created_at=yesterday_dt,
+        last_login_date=yesterday,
+    )
+    db_session.add(player2)
     await db_session.commit()
-    await db_session.refresh(player)
+    await db_session.refresh(player2)
 
-    # Should now be available (created yesterday, last login yesterday, today is new day)
-    available = await player_service.is_daily_bonus_available(player)
-    assert available is True
+    available = await player_service.is_daily_bonus_available(player2)
+    assert available is True, "Bonus should be available for player created yesterday"
 
-    # Claim bonus
-    amount = await player_service.claim_daily_bonus(player, transaction_service)
+    # Test 3: Claim bonus
+    amount = await player_service.claim_daily_bonus(player2, transaction_service)
     assert amount == 100
-    await db_session.refresh(player)
-    assert player.balance == 1100
+    await db_session.refresh(player2)
+    assert player2.balance == 1100
 
-    # Should no longer be available today (last_login_date now set to today)
-    available = await player_service.is_daily_bonus_available(player)
-    assert available is False
+    # Test 4: Bonus no longer available after claiming (last_login_date set to today)
+    available = await player_service.is_daily_bonus_available(player2)
+    assert available is False, "Bonus should not be available after claiming today"
 
 
 @pytest.mark.asyncio

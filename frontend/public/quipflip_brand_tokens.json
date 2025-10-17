@@ -1,0 +1,23 @@
+{
+  "colors": {
+    "sand": "#FFF6EE",
+    "teal": "#10B5A4",
+    "tealDark": "#0E6F6A",
+    "midnight": "#0B2137",
+    "ivory": "#FFF6EE",
+    "ink": "#0E0F14",
+    "sky": "#EAF7F4",
+    "rose": "#FF6B6B",
+    "gold": "#FFC857"
+  },
+  "typography": {
+    "display": "Manrope, Inter, ui-sans-serif, system-ui",
+    "text": "Inter, ui-sans-serif, system-ui"
+  },
+  "radii": {
+    "tile": 44,
+    "chip": 20,
+    "button": 16,
+    "card": 24
+  }
+}

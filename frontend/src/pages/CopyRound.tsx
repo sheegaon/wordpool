@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 import apiClient, { extractErrorMessage } from '../api/client';
 import { Timer } from '../components/Timer';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useTimer } from '../hooks/useTimer';
+import { getRandomMessage, loadingMessages } from '../utils/brandedMessages';
 import type { CopyState } from '../api/types';
 
 export const CopyRound: React.FC = () => {
@@ -13,6 +15,7 @@ export const CopyRound: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roundData, setRoundData] = useState<CopyState | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const hasInitialized = useRef(false);
 
   const { isExpired } = useTimer(roundData?.expires_at || null);
@@ -58,34 +61,60 @@ export const CopyRound: React.FC = () => {
     e.preventDefault();
     if (!phrase.trim() || !roundData) return;
 
+    setIsSubmitting(true);
+    setError(null);
+
     try {
-      setIsSubmitting(true);
-      setError(null);
       await apiClient.submitPhrase(roundData.round_id, phrase.trim());
       await refreshCurrentRound();
       await refreshBalance();
-      navigate('/dashboard');
+
+      // Show success message
+      const message = getRandomMessage('copySubmitted');
+      setSuccessMessage(message);
+
+      // Navigate after brief delay
+      setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err) {
       setError(extractErrorMessage(err) || 'Failed to submit phrase');
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   if (!roundData) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-xl">Loading round...</div>
+      <div className="min-h-screen bg-quip-cream bg-pattern flex items-center justify-center">
+        <LoadingSpinner message={loadingMessages.starting} />
+      </div>
+    );
+  }
+
+  // Show success state
+  if (successMessage) {
+    return (
+      <div className="min-h-screen bg-quip-cream bg-pattern flex items-center justify-center p-4">
+        <div className="tile-card max-w-md w-full p-8 text-center flip-enter">
+          <div className="flex justify-center mb-4">
+            <img src="/icon_copy.svg" alt="" className="w-24 h-24" />
+          </div>
+          <h2 className="text-2xl font-display font-bold text-quip-turquoise mb-2 success-message">
+            {successMessage}
+          </h2>
+          <p className="text-quip-teal">Returning to dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white rounded-lg shadow-xl p-8">
+    <div className="min-h-screen bg-gradient-to-br from-quip-turquoise to-quip-teal flex items-center justify-center p-4 bg-pattern">
+      <div className="max-w-2xl w-full tile-card p-8 slide-up-enter">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Copy Round</h1>
-          <p className="text-gray-600">Submit a similar phrase</p>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <img src="/icon_copy.svg" alt="" className="w-8 h-8" />
+            <h1 className="text-3xl font-display font-bold text-quip-navy">Copy Round</h1>
+          </div>
+          <p className="text-quip-teal">Submit a similar phrase</p>
         </div>
 
         {/* Timer */}
@@ -94,16 +123,16 @@ export const CopyRound: React.FC = () => {
         </div>
 
         {/* Original Phrase */}
-        <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 mb-6">
-          <p className="text-sm text-green-700 mb-2 text-center">Original Phrase:</p>
-          <p className="text-3xl text-center font-bold text-green-900">
+        <div className="bg-quip-turquoise bg-opacity-5 border-2 border-quip-turquoise rounded-tile p-6 mb-6">
+          <p className="text-sm text-quip-teal mb-2 text-center font-medium">Original Phrase:</p>
+          <p className="text-3xl text-center font-display font-bold text-quip-turquoise">
             {roundData.original_phrase}
           </p>
         </div>
 
         {/* Instructions */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <p className="text-sm text-yellow-800">
+        <div className="bg-quip-orange bg-opacity-10 border-2 border-quip-orange rounded-tile p-4 mb-6">
+          <p className="text-sm text-quip-navy">
             <strong>⚠️ Important:</strong> You don't know the prompt! Submit a phrase that could be similar or related to the original phrase.
           </p>
         </div>
@@ -123,11 +152,11 @@ export const CopyRound: React.FC = () => {
               value={phrase}
               onChange={(e) => setPhrase(e.target.value)}
               placeholder="Enter your phrase"
-              className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-3 text-lg border-2 border-quip-teal rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
               disabled={isExpired || isSubmitting}
               maxLength={100}
             />
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-quip-teal mt-1">
               1-5 words (2-100 characters), A-Z and spaces only, must be different from the original
             </p>
           </div>
@@ -135,29 +164,33 @@ export const CopyRound: React.FC = () => {
           <button
             type="submit"
             disabled={isExpired || isSubmitting || !phrase.trim()}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg"
+            className="w-full bg-quip-turquoise hover:bg-quip-teal disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm text-lg"
           >
-            {isExpired ? "Time's Up" : isSubmitting ? 'Submitting...' : 'Submit Phrase'}
+            {isExpired ? "Time's Up" : isSubmitting ? loadingMessages.submitting : 'Submit Phrase'}
           </button>
         </form>
 
-        {/* Cancel Button */}
+        {/* Home Button */}
         <button
           onClick={() => navigate('/dashboard')}
-          className="w-full mt-4 text-gray-600 hover:text-gray-800 py-2"
+          className="w-full mt-4 flex items-center justify-center gap-2 text-quip-teal hover:text-quip-turquoise py-2 font-medium transition-colors"
+          title="Back to Dashboard"
         >
-          Back to Dashboard
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span>Back to Dashboard</span>
         </button>
 
         {/* Info */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600">
-            <strong>Cost:</strong> ${roundData.cost}
+        <div className="mt-6 p-4 bg-quip-turquoise bg-opacity-5 rounded-tile">
+          <p className="text-sm text-quip-teal">
+            <strong className="text-quip-navy">Cost:</strong> ${roundData.cost}
             {roundData.discount_active && (
-              <span className="text-green-600 font-semibold"> (10% discount!)</span>
+              <span className="text-quip-turquoise font-semibold"> (10% discount!)</span>
             )}
           </p>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-quip-teal mt-1">
             If you don't submit, ${roundData.discount_active ? 85 : 95} will be refunded (${roundData.discount_active ? 5 : 5} penalty)
           </p>
         </div>

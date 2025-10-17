@@ -258,12 +258,13 @@ class TestSimilarityChecking:
         """Test very similar phrase is rejected (above threshold)."""
         # Test with phrases that are semantically very similar
         # Note: This might vary based on the similarity threshold
-        # Using "happy" vs "very happy" - should be similar
+        # Using "happy" vs "very happy" - will be caught by word overlap rule
         is_valid, error = validator.validate_copy("very happy", "happy")
         # May or may not fail depending on threshold, but should at least validate format
         assert isinstance(is_valid, bool)
         if not is_valid:
-            assert "similar" in error.lower()
+            # Can be rejected for either word overlap or similarity
+            assert "similar" in error.lower() or "word" in error.lower()
 
     def test_dissimilar_phrase_accepted(self, validator):
         """Test dissimilar phrase is accepted."""

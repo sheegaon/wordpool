@@ -1,31 +1,35 @@
-"""Simple password hashing utilities using PBKDF2."""
+"""Password hashing utilities using passlib."""
 from __future__ import annotations
 
-import base64
-import binascii
-import hashlib
-import hmac
-import os
+from passlib.context import CryptContext
+
+# Use argon2 (recommended) with bcrypt as fallback
+# Argon2 is the winner of the Password Hashing Competition and is the current best practice
+pwd_context = CryptContext(
+    schemes=["argon2", "bcrypt"],
+    deprecated="auto",
+    argon2__memory_cost=65536,  # 64 MB
+    argon2__time_cost=3,  # 3 iterations
+    argon2__parallelism=4,  # 4 parallel threads
+)
 
 
-def hash_password(password: str, iterations: int = 120_000) -> str:
-    """Hash a password using PBKDF2-HMAC-SHA256."""
-    salt = os.urandom(16)
-    derived = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, iterations)
-    encoded_salt = base64.b64encode(salt).decode('ascii')
-    encoded_hash = base64.b64encode(derived).decode('ascii')
-    return f"{iterations}:{encoded_salt}:{encoded_hash}"
+def hash_password(password: str) -> str:
+    """Hash a password using argon2 (with bcrypt fallback)."""
+    return pwd_context.hash(password)
 
 
-def verify_password(password: str, encoded: str) -> bool:
-    """Verify a password against a stored PBKDF2 hash."""
+def verify_password(password: str, password_hash: str) -> bool:
+    """Verify a password against a stored hash.
+
+    Automatically handles verification and upgrades deprecated hashes.
+    """
     try:
-        iterations_str, encoded_salt, encoded_hash = encoded.split(':')
-        iterations = int(iterations_str)
-        salt = base64.b64decode(encoded_salt)
-        expected = base64.b64decode(encoded_hash)
-    except (ValueError, TypeError, binascii.Error):
+        return pwd_context.verify(password, password_hash)
+    except (ValueError, TypeError):
         return False
 
-    computed = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, iterations)
-    return hmac.compare_digest(expected, computed)
+
+def needs_update(password_hash: str) -> bool:
+    """Check if a password hash needs to be upgraded to current algorithm."""
+    return pwd_context.needs_update(password_hash)
