@@ -338,6 +338,12 @@ class TestAIMetricsService:
         """Should calculate vote accuracy correctly."""
         metrics_service = AIMetricsService(db_session)
 
+        # Get initial counts
+        initial_accuracy = await metrics_service.get_vote_accuracy()
+        initial_total = initial_accuracy["total_votes"]
+        initial_correct = initial_accuracy["correct_votes"]
+        initial_incorrect = initial_accuracy["incorrect_votes"]
+
         # Add vote metrics
         votes = [
             AIMetric(
@@ -370,10 +376,14 @@ class TestAIMetricsService:
         # Get accuracy
         accuracy = await metrics_service.get_vote_accuracy()
 
-        assert accuracy["total_votes"] == 3
-        assert accuracy["correct_votes"] == 2
-        assert accuracy["incorrect_votes"] == 1
-        assert accuracy["accuracy_percent"] == pytest.approx(66.67, rel=0.1)
+        # Assert the new metrics were added correctly
+        assert accuracy["total_votes"] == initial_total + 3
+        assert accuracy["correct_votes"] == initial_correct + 2
+        assert accuracy["incorrect_votes"] == initial_incorrect + 1
+
+        # Check that the accuracy calculation is correct based on the new data
+        expected_accuracy = ((initial_correct + 2) / (initial_total + 3)) * 100
+        assert accuracy["accuracy_percent"] == pytest.approx(expected_accuracy, rel=0.1)
 
 
 class TestAIPlayerManagement:

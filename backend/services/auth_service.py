@@ -42,6 +42,7 @@ class AuthService:
     # ------------------------------------------------------------------
     async def register_player(self, username: str, email: str, password: str) -> Player:
         """Create a new player with provided credentials."""
+        from backend.services.username_service import UsernameService
 
         normalized_username = normalize_username(username)
         canonical_username = canonicalize_username(normalized_username)
@@ -51,13 +52,19 @@ class AuthService:
         email_normalized = email.strip().lower()
         password_hash = hash_password(password)
 
+        # Generate unique pseudonym for this player
+        username_service = UsernameService(self.db)
+        pseudonym_display, pseudonym_canonical = await username_service.generate_unique_username()
+
         try:
             player = await self.player_service.create_player(
                 username=normalized_username,
                 email=email_normalized,
                 password_hash=password_hash,
+                pseudonym=pseudonym_display,
+                pseudonym_canonical=pseudonym_canonical,
             )
-            logger.info("Created player %s via credential signup", player.player_id)
+            logger.info("Created player %s via credential signup with pseudonym %s", player.player_id, pseudonym_display)
             return player
         except ValueError as exc:
             message = str(exc)
@@ -72,13 +79,14 @@ class AuthService:
     # ------------------------------------------------------------------
     # Authentication
     # ------------------------------------------------------------------
-    async def authenticate_player(self, username: str, password: str) -> Player:
-        canonical_username = canonicalize_username(username)
-        if not canonical_username:
+    async def authenticate_player(self, email: str, password: str) -> Player:
+        """Authenticate a player using email and password."""
+        email_normalized = email.strip().lower()
+        if not email_normalized:
             raise AuthError("invalid_credentials")
 
         result = await self.db.execute(
-            select(Player).where(Player.username_canonical == canonical_username)
+            select(Player).where(Player.email == email_normalized)
         )
         player = result.scalar_one_or_none()
         if not player or not verify_password(password, player.password_hash):

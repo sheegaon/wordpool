@@ -96,7 +96,8 @@ class PhrasesetDashboardSummary(BaseSchema):
 class PhrasesetContributor(BaseSchema):
     """Contributor information."""
     player_id: UUID
-    username: str
+    username: str  # Will be hidden from UI, only for debug
+    pseudonym: str  # Public display name shown to other players
     is_you: bool
     phrase: Optional[str] = None
 
@@ -105,7 +106,8 @@ class PhrasesetVote(BaseSchema):
     """Vote entry for phraseset details."""
     vote_id: UUID
     voter_id: UUID
-    voter_username: str
+    voter_username: str  # Will be hidden from UI, only for debug
+    voter_pseudonym: str  # Public display name shown to other players
     voted_phrase: str
     correct: bool
     voted_at: datetime

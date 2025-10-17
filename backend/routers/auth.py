@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_settings
 from backend.database import get_db
-from backend.schemas.auth import AuthTokenResponse, LoginRequest, LogoutRequest, RefreshRequest
+from backend.schemas.auth import AuthTokenResponse, LoginRequest, LogoutRequest, RefreshRequest, SuggestUsernameResponse
 from backend.services.auth_service import AuthService, AuthError
 from backend.utils.cookies import clear_refresh_cookie, set_refresh_cookie
 
@@ -20,11 +20,11 @@ async def login(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> AuthTokenResponse:
-    """Authenticate a player via username/password and issue JWT tokens."""
+    """Authenticate a player via email/password and issue JWT tokens."""
 
     auth_service = AuthService(db)
     try:
-        player = await auth_service.authenticate_player(request.username, request.password)
+        player = await auth_service.authenticate_player(request.email, request.password)
     except AuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
@@ -40,8 +40,20 @@ async def login(
         expires_in=expires_in,
         player_id=player.player_id,
         username=player.username,
-        legacy_api_key=player.api_key,
     )
+
+
+@router.get("/suggest-username", response_model=SuggestUsernameResponse)
+async def suggest_username(
+    db: AsyncSession = Depends(get_db),
+) -> SuggestUsernameResponse:
+    """Generate a suggested username for registration."""
+    from backend.services.username_service import UsernameService
+
+    username_service = UsernameService(db)
+    display_name, _ = await username_service.generate_unique_username()
+
+    return SuggestUsernameResponse(suggested_username=display_name)
 
 
 @router.post("/refresh", response_model=AuthTokenResponse)
@@ -74,7 +86,6 @@ async def refresh_tokens(
         expires_in=expires_in,
         player_id=player.player_id,
         username=player.username,
-        legacy_api_key=player.api_key,
     )
 
 

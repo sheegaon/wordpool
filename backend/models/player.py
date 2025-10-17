@@ -23,6 +23,8 @@ class Player(Base):
     api_key = Column(String(36), unique=True, nullable=False, index=True, default=lambda: str(uuid.uuid4()))
     username = Column(String(80), unique=True, nullable=False)
     username_canonical = Column(String(80), nullable=False)
+    pseudonym = Column(String(80), nullable=False, index=True)
+    pseudonym_canonical = Column(String(80), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     balance = Column(Integer, default=1000, nullable=False)

@@ -27,14 +27,19 @@ class AuthTokenResponse(BaseModel):
     expires_in: int
     player_id: UUID
     username: str
-    legacy_api_key: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
     """Login payload."""
 
-    username: UsernameStr
+    email: EmailLike
     password: PasswordStr
+
+
+class SuggestUsernameResponse(BaseModel):
+    """Response containing a suggested username."""
+
+    suggested_username: str
 
 
 class RefreshRequest(BaseModel):

@@ -344,7 +344,6 @@ class TestLongRunningOperations:
 
         assert successful_rounds >= 9, "Should complete at least 9 rounds with $1000"
 
-        client.close()
         auth_client.close()
 
 

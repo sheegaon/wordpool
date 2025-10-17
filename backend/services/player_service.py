@@ -36,6 +36,8 @@ class PlayerService:
         username: str,
         email: str,
         password_hash: str,
+        pseudonym: str,
+        pseudonym_canonical: str,
     ) -> Player:
         """Create new player using explicit credentials."""
 
@@ -49,6 +51,8 @@ class PlayerService:
             api_key=str(uuid.uuid4()),
             username=normalized_username,
             username_canonical=canonical_username,
+            pseudonym=pseudonym,
+            pseudonym_canonical=pseudonym_canonical,
             email=email.strip().lower(),
             password_hash=password_hash,
             balance=settings.starting_balance,
@@ -59,9 +63,10 @@ class PlayerService:
             await self.db.commit()
             await self.db.refresh(player)
             logger.info(
-                "Created player: %s username=%s balance=%s",
+                "Created player: %s username=%s pseudonym=%s balance=%s",
                 player.player_id,
                 player.username,
+                player.pseudonym,
                 player.balance,
             )
             return player

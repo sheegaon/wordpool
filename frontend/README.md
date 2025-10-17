@@ -112,7 +112,9 @@ The frontend connects to the backend API using the `apiClient` in `src/api/clien
 
 ### Authentication
 
-JWT access tokens are stored in `localStorage` and automatically included in all requests via Authorization header. Refresh tokens are stored in HTTP-only cookies for security. The frontend automatically refreshes expired access tokens using the refresh token when receiving 401 errors.
+Players authenticate using email and password. JWT access tokens are stored in `localStorage` and automatically included in all requests via Authorization header. Refresh tokens are stored in HTTP-only cookies for security. The frontend automatically refreshes expired access tokens using the refresh token when receiving 401 errors.
+
+Each player has a visible username (chosen during registration, auto-suggested from random pool) and a hidden pseudonym (auto-generated) that other players see in game results.
 
 ### State Management
 
@@ -133,10 +135,10 @@ The `GameContext` manages global state:
 
 ## User Flow
 
-1. **Landing Page** - Create account (username/email/password) or login (username/password)
+1. **Landing Page** - Create account (username/email/password with auto-suggested username) or login (email/password)
 2. **Dashboard** - View balance, claim bonus, select round type, access phraseset tracking
 3. **Round Screens** - Complete prompt/copy/vote rounds with timers and feedback
-4. **Results** - View finalized phrasesets with vote breakdown and collect payouts
+4. **Results** - View finalized phrasesets with pseudonym display, vote breakdown and collect payouts
 5. **Phraseset Tracking** - View all your phrasesets organized by role (prompt/copy/vote) and status
 
 ## Key Components

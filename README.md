@@ -64,7 +64,8 @@ Frontend runs at **http://localhost:5173**
 **✅ Phase 1 MVP Complete (100%)**
 
 *Backend:*
-- Player accounts with JWT + refresh token authentication (legacy API keys supported)
+- Player accounts with JWT + refresh token authentication (HTTP-only cookies)
+- Email-based login with auto-generated player pseudonyms
 - Three round types (Prompt, Copy, Vote)
 - Queue management with dynamic pricing
 - NASPA dictionary validation (191k words)
@@ -79,12 +80,12 @@ Frontend runs at **http://localhost:5173**
 *Frontend:*
 - React 18 + TypeScript with Vite 5 (stable, production-ready)
 - JWT authentication with automatic token refresh
-- Username/password login and registration
+- Email/password login with auto-suggested usernames for registration
 - Responsive UI with Tailwind CSS 3 and custom branding
 - Real-time countdown timers with visual states
 - Dashboard with balance, round selection, and phraseset tracking
 - All three round types with feedback mechanisms
-- Results viewing with vote breakdown and prize claiming
+- Results viewing with pseudonym display, vote breakdown and prize claiming
 - Phraseset tracking dashboard (by role and status)
 - Automatic state polling with request cancellation
 - Error handling & notifications
@@ -119,7 +120,7 @@ Frontend runs at **http://localhost:5173**
 ## 🧪 Testing
 
 ```bash
-pytest
+pytest tests/
 ```
 
 ---

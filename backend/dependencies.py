@@ -57,54 +57,35 @@ async def _enforce_rate_limit(scope: str, identifier: str | None, limit: int) ->
 
 async def get_current_player(
     authorization: str | None = Header(default=None, alias="Authorization"),
-    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
     db: AsyncSession = Depends(get_db),
 ) -> Player:
-    """Resolve the current authenticated player via JWT or legacy API key."""
+    """Resolve the current authenticated player via JWT access token."""
 
-    player_service = PlayerService(db)
-
-    if authorization:
-        scheme, _, token = authorization.partition(" ")
-        if scheme.lower() != "bearer" or not token:
-            raise HTTPException(status_code=401, detail="invalid_authorization_header")
-        auth_service = AuthService(db)
-        try:
-            payload = auth_service.decode_access_token(token)
-            player_id_str = payload.get("sub")
-            if not player_id_str:
-                raise AuthError("invalid_token")
-            player_id = UUID(str(player_id_str))
-        except (ValueError, AuthError) as exc:
-            detail = "token_expired" if isinstance(exc, AuthError) and str(exc) == "token_expired" else "invalid_token"
-            raise HTTPException(status_code=401, detail=detail) from exc
-
-        player = await player_service.get_player_by_id(player_id)
-        if not player:
-            raise HTTPException(status_code=401, detail="invalid_token")
-
-        await _enforce_rate_limit("general", str(player.player_id), GENERAL_RATE_LIMIT)
-        logger.debug("Authenticated player via JWT: %s", player.player_id)
-        return player
-
-    if not x_api_key:
+    if not authorization:
         raise HTTPException(status_code=401, detail="missing_credentials")
 
-    # First, apply a rate limit on the API key itself to prevent database abuse
-    # from brute force attempts with invalid keys
-    await _enforce_rate_limit("invalid_key_attempts", x_api_key, GENERAL_RATE_LIMIT)
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise HTTPException(status_code=401, detail="invalid_authorization_header")
 
-    player = await player_service.get_player_by_api_key(x_api_key)
+    auth_service = AuthService(db)
+    try:
+        payload = auth_service.decode_access_token(token)
+        player_id_str = payload.get("sub")
+        if not player_id_str:
+            raise AuthError("invalid_token")
+        player_id = UUID(str(player_id_str))
+    except (ValueError, AuthError) as exc:
+        detail = "token_expired" if isinstance(exc, AuthError) and str(exc) == "token_expired" else "invalid_token"
+        raise HTTPException(status_code=401, detail=detail) from exc
 
+    player_service = PlayerService(db)
+    player = await player_service.get_player_by_id(player_id)
     if not player:
-        logger.warning(f"Invalid API key attempt: {x_api_key[:8]}...")
-        raise HTTPException(status_code=401, detail="Invalid API key")
+        raise HTTPException(status_code=401, detail="invalid_token")
 
-    # Now apply the general rate limit based on player_id (not API key)
-    # This prevents users from bypassing rate limits by rotating their API key
     await _enforce_rate_limit("general", str(player.player_id), GENERAL_RATE_LIMIT)
-
-    logger.debug(f"Authenticated player via API key: {player.player_id}")
+    logger.debug("Authenticated player via JWT: %s", player.player_id)
     return player
 
 

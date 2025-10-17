@@ -15,6 +15,7 @@ import type {
   HealthResponse,
   ApiError,
   AuthTokenResponse,
+  SuggestUsernameResponse,
   PromptFeedbackResponse,
   GetPromptFeedbackResponse,
   PhrasesetListResponse,
@@ -315,10 +316,18 @@ export const apiClient = {
   },
 
   async login(
-    payload: { username: string; password: string },
+    payload: { email: string; password: string },
     signal?: AbortSignal,
   ): Promise<AuthTokenResponse> {
-    const { data } = await api.post('/auth/login', payload, {
+    const { data} = await api.post('/auth/login', payload, {
+      signal,
+      headers: { 'X-Skip-Auth': 'true' },
+    });
+    return data;
+  },
+
+  async suggestUsername(signal?: AbortSignal): Promise<SuggestUsernameResponse> {
+    const { data } = await api.get('/auth/suggest-username', {
       signal,
       headers: { 'X-Skip-Auth': 'true' },
     });

@@ -52,9 +52,3 @@ class CreatePlayerResponse(AuthTokenResponse):
 
     balance: int
     message: str
-
-
-class RotateKeyResponse(BaseModel):
-    """Rotate API key response."""
-    new_api_key: str
-    message: str

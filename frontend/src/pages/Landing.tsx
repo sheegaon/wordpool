@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 import apiClient, { extractErrorMessage } from '../api/client';
@@ -9,11 +9,18 @@ export const Landing: React.FC = () => {
   const [registerUsername, setRegisterUsername] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
-  const [loginUsername, setLoginUsername] = useState(() => apiClient.getStoredUsername() ?? '');
+  const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
   const { startSession } = useGame();
   const navigate = useNavigate();
+
+  // Fetch suggested username on component mount
+  useEffect(() => {
+    apiClient.suggestUsername()
+      .then(response => setRegisterUsername(response.suggested_username))
+      .catch(() => {}); // Silently fail if suggestion fails
+  }, []);
 
   const handleCreatePlayer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +48,8 @@ export const Landing: React.FC = () => {
 
   const handleExistingPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginUsername.trim() || !loginPassword.trim()) {
-      setError('Please enter your username and password.');
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setError('Please enter your email and password.');
       return;
     }
 
@@ -50,13 +57,13 @@ export const Landing: React.FC = () => {
       setIsLoading(true);
       setError(null);
       const response = await apiClient.login({
-        username: loginUsername.trim(),
+        email: loginEmail.trim(),
         password: loginPassword,
       });
       startSession(response.username, response);
       navigate('/dashboard');
     } catch (err) {
-      setError(extractErrorMessage(err) || 'Invalid username or password');
+      setError(extractErrorMessage(err) || 'Invalid email or password');
     } finally {
       setIsLoading(false);
     }
@@ -127,10 +134,10 @@ export const Landing: React.FC = () => {
               <h2 className="text-xl font-semibold mb-4 text-quip-navy">Returning Player</h2>
               <form onSubmit={handleExistingPlayer} className="space-y-3">
                 <input
-                  type="text"
-                  value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
-                  placeholder="Username"
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="Email address"
                   className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
                   disabled={isLoading}
                 />

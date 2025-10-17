@@ -13,7 +13,6 @@ from backend.schemas.player import (
     PendingResultsResponse,
     PendingResult,
     CreatePlayerResponse,
-    RotateKeyResponse,
 )
 from backend.schemas.phraseset import (
     PhrasesetListResponse,
@@ -81,34 +80,11 @@ async def create_player(
         token_type="bearer",
         player_id=player.player_id,
         username=player.username,
-        legacy_api_key=player.api_key,
         balance=player.balance,
         message=(
             "Player created! Your account is ready to play. "
             "An access token and refresh token have been issued for authentication."
         ),
-    )
-
-
-@router.post("/rotate-key", response_model=RotateKeyResponse)
-async def rotate_api_key(
-    player: Player = Depends(get_current_player),
-    db: AsyncSession = Depends(get_db),
-):
-    """Rotate API key for security purposes.
-
-    Generates a new API key and invalidates the old one. The old API key
-    will immediately stop working. Use this if you suspect your key has been compromised.
-
-    **Important:** You must start using the new key immediately - the old key in your
-    current request will no longer work for future requests.
-    """
-    player_service = PlayerService(db)
-    new_key = await player_service.rotate_api_key(player)
-
-    return RotateKeyResponse(
-        new_api_key=new_key,
-        message="API key rotated successfully. Use the new key for all future requests. Your old key is now invalid."
     )
 
 
