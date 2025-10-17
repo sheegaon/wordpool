@@ -1,9 +1,9 @@
 """
-AI Copy Service for automated backup copy generation.
+AI Copy Service for automated backup copy and vote generation.
 
-This service provides AI-generated backup copies when human players
+This service provides AI-generated backup copies and votes when human players
 are unavailable, supporting multiple AI providers (OpenAI, Gemini)
-with configurable fallback behavior.
+with configurable fallback behavior and comprehensive metrics tracking.
 """
 
 import logging
@@ -16,7 +16,9 @@ from sqlalchemy import select
 from backend.config import get_settings
 from backend.models.player import Player
 from backend.models.round import Round
+from backend.models.phraseset import PhraseSet
 from backend.services.phrase_validator import PhraseValidator
+from backend.services.ai_metrics_service import AIMetricsService, MetricsTracker
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +27,16 @@ class AICopyError(RuntimeError):
     """Raised when AI copy generation fails."""
 
 
+class AIVoteError(RuntimeError):
+    """Raised when AI vote generation fails."""
+
+
 class AICopyService:
     """
-    Service for generating AI backup copies using multiple providers.
+    Service for generating AI backup copies and votes using multiple providers.
 
-    Supports OpenAI and Gemini as AI providers, with automatic fallback
-    and configurable provider selection.
+    Supports OpenAI and Gemini as AI providers, with automatic fallback,
+    configurable provider selection, and comprehensive metrics tracking.
     """
 
     def __init__(self, db: AsyncSession, validator: PhraseValidator):
@@ -43,6 +49,7 @@ class AICopyService:
         """
         self.db = db
         self.validator = validator
+        self.metrics_service = AIMetricsService(db)
         self.settings = get_settings()
 
         # Determine which provider to use based on config and available API keys
@@ -129,7 +136,7 @@ class AICopyService:
             prompt_text: str,
     ) -> str:
         """
-        Generate a copy phrase using the configured AI provider.
+        Generate a copy phrase using the configured AI provider with metrics tracking.
 
         Args:
             original_phrase: The original phrase to create a copy of
@@ -141,7 +148,18 @@ class AICopyService:
         Raises:
             AICopyError: If generation or validation fails
         """
-        try:
+        model = (
+            self.settings.ai_copy_openai_model
+            if self.provider == "openai"
+            else self.settings.ai_copy_gemini_model
+        )
+
+        async with MetricsTracker(
+                self.metrics_service,
+                operation_type="copy_generation",
+                provider=self.provider,
+                model=model,
+        ) as tracker:
             # Generate using configured provider
             if self.provider == "openai":
                 from backend.services.openai_api import generate_copy as openai_generate
@@ -162,20 +180,102 @@ class AICopyService:
 
             # Validate the generated phrase
             validation_result = await self.validator.validate_phrase(phrase)
-            if not validation_result.is_valid:
+            validation_passed = validation_result.is_valid
+
+            if not validation_passed:
+                tracker.set_result(
+                    phrase,
+                    success=False,
+                    prompt_length=len(prompt_text) + len(original_phrase),
+                    response_length=len(phrase),
+                    validation_passed=False,
+                )
                 raise AICopyError(
                     f"AI generated invalid phrase: {validation_result.error_message}"
                 )
+
+            # Track successful generation
+            tracker.set_result(
+                phrase,
+                success=True,
+                prompt_length=len(prompt_text) + len(original_phrase),
+                response_length=len(phrase),
+                validation_passed=True,
+            )
 
             logger.info(
                 f"AI ({self.provider}) generated valid copy: '{phrase}' for prompt: '{prompt_text[:50]}...'"
             )
             return phrase
 
-        except Exception as exc:
-            if isinstance(exc, AICopyError):
-                raise
-            raise AICopyError(f"Failed to generate AI copy: {exc}") from exc
+    async def generate_vote_choice(
+            self,
+            phraseset: PhraseSet,
+    ) -> str:
+        """
+        Generate a vote choice using the configured AI provider with metrics tracking.
+
+        Args:
+            phraseset: The phraseset to vote on (must have prompt and 3 phrases loaded)
+
+        Returns:
+            The chosen phrase (one of the 3 phrases in the phraseset)
+
+        Raises:
+            AIVoteError: If vote generation fails
+        """
+        from backend.services.ai_vote_helper import generate_vote_choice
+
+        # Extract prompt and phrases
+        prompt_text = phraseset.prompt_round.phrase
+        phrases = [
+            phraseset.prompt_round.phrase,
+            phraseset.copy_round_1.phrase,
+            phraseset.copy_round_2.phrase,
+        ]
+
+        model = (
+            self.settings.ai_copy_openai_model
+            if self.provider == "openai"
+            else self.settings.ai_copy_gemini_model
+        )
+
+        async with MetricsTracker(
+                self.metrics_service,
+                operation_type="vote_generation",
+                provider=self.provider,
+                model=model,
+        ) as tracker:
+            # Generate vote choice
+            choice_index = await generate_vote_choice(
+                prompt_text=prompt_text,
+                phrases=phrases,
+                provider=self.provider,
+                openai_model=self.settings.ai_copy_openai_model,
+                gemini_model=self.settings.ai_copy_gemini_model,
+                timeout=self.settings.ai_copy_timeout_seconds,
+            )
+
+            chosen_phrase = phrases[choice_index]
+
+            # Determine if vote is correct (index 0 is the original)
+            vote_correct = (choice_index == 0)
+
+            # Track the vote
+            tracker.set_result(
+                chosen_phrase,
+                success=True,
+                prompt_length=len(prompt_text) + sum(len(p) for p in phrases),
+                response_length=len(str(choice_index)),
+                vote_correct=vote_correct,
+            )
+
+            logger.info(
+                f"AI ({self.provider}) voted for phrase '{chosen_phrase}' (index {choice_index}, "
+                f"{'CORRECT' if vote_correct else 'INCORRECT'})"
+            )
+
+            return chosen_phrase
 
     async def run_backup_cycle(self) -> dict:
         """
