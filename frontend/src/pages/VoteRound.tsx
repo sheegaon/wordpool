@@ -48,7 +48,7 @@ export const VoteRound: React.FC = () => {
             phrases: response.phrases,
           });
         } catch (err) {
-          setError(extractErrorMessage(err) || 'Failed to start round');
+          setError(extractErrorMessage(err) || 'No vote rounds available right now. Try again in a moment or complete other round types first.');
           setTimeout(() => navigate('/dashboard'), 2000);
         }
       }
@@ -69,13 +69,10 @@ export const VoteRound: React.FC = () => {
       await refreshBalance();
       await refreshPendingResults();
 
-      // Show result for 3 seconds, then redirect
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 3000);
+      // Navigate after showing results for 3 seconds
+      setTimeout(() => navigate('/dashboard'), 3000);
     } catch (err) {
-      setError(extractErrorMessage(err) || 'Failed to submit vote');
-    } finally {
+      setError(extractErrorMessage(err) || 'Unable to submit your vote. The round may have expired or someone else may have already voted.');
       setIsSubmitting(false);
     }
   };

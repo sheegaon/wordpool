@@ -54,6 +54,13 @@ const extractErrorMessage = (error: any): string => {
 
   // If it's an Error object, use its message
   if (error instanceof Error) {
+    // Handle network errors with user-friendly messages
+    if (error.name === 'NetworkError' || error.message.includes('fetch')) {
+      return 'Connection problem. Please check your internet and try again.';
+    }
+    if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
+      return 'Request timed out. Please try again in a moment.';
+    }
     return error.message;
   }
 
@@ -75,9 +82,25 @@ const extractErrorMessage = (error: any): string => {
             return firstError.msg;
           }
         }
-        return 'Validation error';
+        return 'Please check your input and try again.';
       }
       if (typeof detail === 'string') {
+        // Improve common backend error messages
+        if (detail.includes('already exists')) {
+          return 'This email is already registered. Try logging in instead.';
+        }
+        if (detail.includes('not found') || detail.includes('invalid credentials')) {
+          return 'Email or password is incorrect. Please try again.';
+        }
+        if (detail.includes('insufficient funds') || detail.includes('balance')) {
+          return 'Not enough coins for this round. Claim your daily bonus or complete more rounds.';
+        }
+        if (detail.includes('round not found') || detail.includes('expired')) {
+          return 'This round has expired. Please start a new round.';
+        }
+        if (detail.includes('already submitted')) {
+          return 'You\'ve already submitted for this round.';
+        }
         return detail;
       }
       if (detail && typeof detail === 'object') {
@@ -87,6 +110,28 @@ const extractErrorMessage = (error: any): string => {
         if ('message' in detail && typeof detail.message === 'string') {
           return detail.message;
         }
+      }
+    }
+
+    // Handle HTTP status-specific errors
+    if (error.status) {
+      switch (error.status) {
+        case 401:
+          return 'Your session has expired. Please log in again.';
+        case 403:
+          return 'You don\'t have permission to do that.';
+        case 404:
+          return 'The requested item could not be found.';
+        case 409:
+          return 'This action conflicts with current game state. Please refresh and try again.';
+        case 422:
+          return 'Please check your input and try again.';
+        case 429:
+          return 'Too many requests. Please wait a moment and try again.';
+        case 500:
+          return 'Server error. Please try again in a few moments.';
+        case 503:
+          return 'Service temporarily unavailable. Please try again later.';
       }
     }
 

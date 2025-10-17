@@ -40,7 +40,7 @@ export const Landing: React.FC = () => {
       startSession(response.username, response);
       navigate('/dashboard');
     } catch (err) {
-      setError(extractErrorMessage(err) || 'Failed to create player');
+      setError(extractErrorMessage(err) || 'Unable to create your account. Please try again or contact support if the problem persists.');
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +63,7 @@ export const Landing: React.FC = () => {
       startSession(response.username, response);
       navigate('/dashboard');
     } catch (err) {
-      setError(extractErrorMessage(err) || 'Invalid email or password');
+      setError(extractErrorMessage(err) || 'Login failed. Please check your email and password, or create a new account.');
     } finally {
       setIsLoading(false);
     }

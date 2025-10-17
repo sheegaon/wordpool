@@ -72,7 +72,7 @@ export const PhrasesetTracking: React.FC = () => {
       }
       setError(null);
     } catch (err) {
-      setError(extractErrorMessage(err) || 'Unable to load phrasesets');
+      setError(extractErrorMessage(err) || 'Unable to load your past rounds. Please refresh the page or try again in a moment.');
     } finally {
       setListLoading(false);
     }
@@ -89,7 +89,7 @@ export const PhrasesetTracking: React.FC = () => {
       setDetails(data);
       setError(null);
     } catch (err) {
-      setError(extractErrorMessage(err) || 'Unable to load phraseset details');
+      setError(extractErrorMessage(err) || 'Unable to load the details for this round. It may no longer be available.');
     } finally {
       setDetailsLoading(false);
     }

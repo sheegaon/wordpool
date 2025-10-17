@@ -118,7 +118,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (err) {
         if (err instanceof Error && err.name === 'CanceledError') return;
         const errorMessage = extractErrorMessage(err);
-        setError(errorMessage || 'Failed to fetch balance');
+        setError(errorMessage || 'Unable to update your balance. Please refresh the page.');
         handleAuthError(errorMessage);
       }
     },
@@ -134,7 +134,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(null);
       } catch (err) {
         if (err instanceof Error && err.name === 'CanceledError') return;
-        const message = extractErrorMessage(err) || 'Failed to fetch current round';
+        const message = extractErrorMessage(err) || 'Unable to check your active rounds. Please refresh or try again.';
         setError(message);
         handleAuthError(message);
       }
@@ -151,7 +151,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(null);
       } catch (err) {
         if (err instanceof Error && err.name === 'CanceledError') return;
-        const message = extractErrorMessage(err) || 'Failed to fetch pending results';
+        const message = extractErrorMessage(err) || 'Unable to load your results. They may still be processing.';
         setError(message);
         handleAuthError(message);
       }
@@ -168,7 +168,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(null);
       } catch (err) {
         if (err instanceof Error && err.name === 'CanceledError') return;
-        const message = extractErrorMessage(err) || 'Failed to fetch phraseset summary';
+        const message = extractErrorMessage(err) || 'Unable to load your game statistics. Please try refreshing.';
         setError(message);
         handleAuthError(message);
       }
@@ -185,7 +185,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(null);
       } catch (err) {
         if (err instanceof Error && err.name === 'CanceledError') return;
-        const message = extractErrorMessage(err) || 'Failed to fetch unclaimed results';
+        const message = extractErrorMessage(err) || 'Unable to check for unclaimed prizes. Please try again later.';
         setError(message);
         handleAuthError(message);
       }
@@ -202,7 +202,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(null);
       } catch (err) {
         if (err instanceof Error && err.name === 'CanceledError') return;
-        const message = extractErrorMessage(err) || 'Failed to fetch round availability';
+        const message = extractErrorMessage(err) || 'Unable to check available rounds. Please refresh or try again.';
         setError(message);
         handleAuthError(message);
       }
@@ -218,7 +218,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await refreshBalance();
       setError(null);
     } catch (err) {
-      const message = extractErrorMessage(err) || 'Failed to claim bonus';
+      const message = extractErrorMessage(err) || 'Unable to claim your daily bonus right now. You may have already claimed it today, or there may be a temporary issue.';
       setError(message);
       handleAuthError(message);
       throw err;

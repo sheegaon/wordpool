@@ -34,7 +34,7 @@ export const Results: React.FC = () => {
         await refreshPendingResults();
         await refreshBalance();
       } catch (err) {
-        setError(extractErrorMessage(err) || 'Failed to fetch results');
+        setError(extractErrorMessage(err) || 'Unable to load the results for this round. It may still be in progress or no longer available.');
       } finally {
         setLoading(false);
       }
