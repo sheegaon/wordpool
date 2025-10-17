@@ -8,10 +8,10 @@ PyJWT==2.10.1
 bcrypt==5.0.0  # Password hashing
 
 # Database
-sqlalchemy[asyncio]==2.0.44
+sqlalchemy[asyncio]==2.0.25
 asyncpg==0.29.0
-aiosqlite==0.21.0
-alembic==1.17.0
+aiosqlite==0.19.0
+alembic==1.13.1
 
 # Redis (optional, for production)
 redis==6.4.0
