@@ -48,7 +48,7 @@ export const CopyRound: React.FC = () => {
             discount_active: response.discount_active,
           });
         } catch (err) {
-          setError(extractErrorMessage(err) || 'Failed to start round');
+          setError(extractErrorMessage(err) || 'Unable to start a copy round right now. Please check your balance or try again in a moment.');
           setTimeout(() => navigate('/dashboard'), 2000);
         }
       }
@@ -76,7 +76,7 @@ export const CopyRound: React.FC = () => {
       // Navigate after brief delay
       setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err) {
-      setError(extractErrorMessage(err) || 'Failed to submit phrase');
+      setError(extractErrorMessage(err) || 'Unable to submit your phrase. The round may have expired or there may be a connection issue.');
       setIsSubmitting(false);
     }
   };
