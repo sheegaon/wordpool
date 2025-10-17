@@ -5,8 +5,7 @@ python-multipart==0.0.20
 
 # Authentication and Security
 PyJWT==2.10.1
-passlib[argon2]==1.7.4  # Includes argon2-cffi for argon2 password hashing
-bcrypt==5.0.0  # Fallback password hashing algorithm
+bcrypt==5.0.0  # Password hashing
 
 # Database
 sqlalchemy[asyncio]==2.0.44
