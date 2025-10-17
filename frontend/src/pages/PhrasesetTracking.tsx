@@ -161,11 +161,7 @@ export const PhrasesetTracking: React.FC = () => {
           <div className="flex justify-between items-center">
             {/* Left: Logo */}
             <div className="flex items-center">
-              <img
-                src="/quipflip_logo_horizontal_light.png"
-                alt="Quipflip"
-                className="h-12 w-auto"
-              />
+              <img src="/quipflip_logo_horizontal_transparent.png" alt="Quipflip" className="h-14 w-auto" />
             </div>
 
             {/* Center: Username */}
@@ -179,14 +175,7 @@ export const PhrasesetTracking: React.FC = () => {
                 <img src="/flipcoin.png" alt="Flipcoin" className="w-10 h-10" />
                 <p className="text-3xl font-display font-bold text-quip-turquoise">{player.balance}</p>
               </div>
-
-              {/* Logout Icon */}
-              <button
-                onClick={logout}
-                className="text-quip-teal hover:text-quip-turquoise transition-colors p-2 hover:bg-quip-cream rounded-lg"
-                title="Logout"
-                aria-label="Logout"
-              >
+              <button onClick={logout} className="text-quip-teal hover:text-quip-turquoise">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>

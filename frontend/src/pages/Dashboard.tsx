@@ -160,19 +160,9 @@ export const Dashboard: React.FC = () => {
       <div className="bg-white shadow-tile-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            {/* Left: Logo and branding */}
-            <div className="flex items-center gap-4">
-              <img
-                src="/large_icon.png"
-                alt="Quipflip"
-                className="h-12 w-12"
-              />
-              <div>
-                <h1 className="text-xl font-display font-bold text-quip-navy">Quipflip</h1>
-                <p className="text-xs text-quip-teal italic">
-                  Can you flip their quip?
-                </p>
-              </div>
+            {/* Left: Logo */}
+            <div className="flex items-center">
+              <img src="/quipflip_logo_horizontal_transparent.png" alt="Quipflip" className="h-14 w-auto" />
             </div>
 
             {/* Center: Username */}
@@ -180,20 +170,13 @@ export const Dashboard: React.FC = () => {
               <p className="text-sm text-quip-navy font-semibold">{player.username || username}</p>
             </div>
 
-            {/* Right: Quip Bank + Logout */}
+            {/* Right: Flipcoins + Logout */}
             <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-xs text-quip-teal font-medium">Quip Bank</p>
-                <p className="text-2xl font-display font-bold text-quip-turquoise">${player.balance}</p>
+              <div className="flex items-center gap-2">
+                <img src="/flipcoin.png" alt="Flipcoin" className="w-10 h-10" />
+                <p className="text-3xl font-display font-bold text-quip-turquoise">{player.balance}</p>
               </div>
-
-              {/* Logout Icon */}
-              <button
-                onClick={logout}
-                className="text-quip-teal hover:text-quip-turquoise transition-colors p-2 hover:bg-quip-cream rounded-lg"
-                title="Logout"
-                aria-label="Logout"
-              >
+              <button onClick={logout} className="text-quip-teal hover:text-quip-turquoise">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
@@ -316,7 +299,7 @@ export const Dashboard: React.FC = () => {
             <div className="border-2 border-quip-navy rounded-tile p-4 bg-quip-navy bg-opacity-5 hover:bg-opacity-10 transition-all">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">💡</span>
+                  <img src="/icon_prompt.svg" alt="" className="w-8 h-8" />
                   <h3 className="font-display font-semibold text-lg text-quip-navy">Prompt Round</h3>
                 </div>
                 <span className="text-quip-orange-deep font-bold">-$100</span>
@@ -340,7 +323,7 @@ export const Dashboard: React.FC = () => {
             <div className="border-2 border-quip-turquoise rounded-tile p-4 bg-quip-turquoise bg-opacity-5 hover:bg-opacity-10 transition-all">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">🔄</span>
+                  <img src="/icon_copy.svg" alt="" className="w-8 h-8" />
                   <h3 className="font-display font-semibold text-lg text-quip-turquoise">Copy Round</h3>
                 </div>
                 <span className="text-quip-orange-deep font-bold">
@@ -374,7 +357,7 @@ export const Dashboard: React.FC = () => {
             <div className="border-2 border-quip-orange rounded-tile p-4 bg-quip-orange bg-opacity-5 hover:bg-opacity-10 transition-all">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">🎯</span>
+                  <img src="/icon_vote.svg" alt="" className="w-8 h-8" />
                   <h3 className="font-display font-semibold text-lg text-quip-orange-deep">Vote Round</h3>
                 </div>
                 <span className="text-quip-orange-deep font-bold">-$1</span>

@@ -52,7 +52,7 @@ export const Landing: React.FC = () => {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <img
-            src="/quipflip_logo_horizontal_light.png"
+            src="/quipflip_logo_horizontal_transparent.png"
             alt="Quipflip"
             className="h-24 w-auto"
           />
