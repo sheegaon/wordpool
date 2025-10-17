@@ -59,7 +59,7 @@ export const PromptRound: React.FC = () => {
             prompt_text: response.prompt_text,
           });
         } catch (err) {
-          setError(extractErrorMessage(err) || 'Failed to start round');
+          setError(extractErrorMessage(err) || 'Unable to start a new prompt round. Please check your balance and try again.');
           setTimeout(() => navigate('/dashboard'), 2000);
         }
       }
@@ -112,7 +112,7 @@ export const PromptRound: React.FC = () => {
       // Navigate after brief delay
       setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err) {
-      setError(extractErrorMessage(err) || 'Failed to submit phrase');
+      setError(extractErrorMessage(err) || 'Unable to submit your phrase. Please check your connection and try again.');
       setIsSubmitting(false);
     }
   };
