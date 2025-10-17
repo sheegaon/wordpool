@@ -1,35 +1,31 @@
-"""Password hashing utilities using passlib."""
+"""Password hashing utilities using bcrypt."""
 from __future__ import annotations
 
-from passlib.context import CryptContext
-
-# Use argon2 (recommended) with bcrypt as fallback
-# Argon2 is the winner of the Password Hashing Competition and is the current best practice
-pwd_context = CryptContext(
-    schemes=["argon2", "bcrypt"],
-    deprecated="auto",
-    argon2__memory_cost=65536,  # 64 MB
-    argon2__time_cost=3,  # 3 iterations
-    argon2__parallelism=4,  # 4 parallel threads
-)
+import bcrypt
 
 
 def hash_password(password: str) -> str:
-    """Hash a password using argon2 (with bcrypt fallback)."""
-    return pwd_context.hash(password)
+    """Hash a password using bcrypt."""
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    """Verify a password against a stored hash.
-
-    Automatically handles verification and upgrades deprecated hashes.
-    """
+    """Verify a password against a stored hash."""
     try:
-        return pwd_context.verify(password, password_hash)
-    except (ValueError, TypeError):
+        password_bytes = password.encode('utf-8')
+        hash_bytes = password_hash.encode('utf-8')
+        return bcrypt.checkpw(password_bytes, hash_bytes)
+    except (ValueError, TypeError, AttributeError):
         return False
 
 
 def needs_update(password_hash: str) -> bool:
-    """Check if a password hash needs to be upgraded to current algorithm."""
-    return pwd_context.needs_update(password_hash)
+    """Check if a password hash needs to be upgraded to current algorithm.
+
+    With bcrypt, hashes don't typically need updating unless you want to
+    increase the cost factor. This function always returns False for now.
+    """
+    return False
