@@ -84,16 +84,17 @@ export const Landing: React.FC = () => {
             </div>
           )}
 
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">Create an Account</h2>
+          <div className="space-y-6">
+            {/* New Player */}
+            <div className="border-b border-quip-teal pb-6">
+              <h2 className="text-xl font-semibold mb-4 text-quip-navy">New Player</h2>
               <form onSubmit={handleCreatePlayer} className="space-y-3">
                 <input
                   type="text"
                   value={registerUsername}
                   onChange={(e) => setRegisterUsername(e.target.value)}
                   placeholder="Choose a username"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
                   disabled={isLoading}
                 />
                 <input
@@ -101,7 +102,7 @@ export const Landing: React.FC = () => {
                   value={registerEmail}
                   onChange={(e) => setRegisterEmail(e.target.value)}
                   placeholder="Your email"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
                   disabled={isLoading}
                 />
                 <input
@@ -109,29 +110,32 @@ export const Landing: React.FC = () => {
                   value={registerPassword}
                   onChange={(e) => setRegisterPassword(e.target.value)}
                   placeholder="Create a password"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
                   disabled={isLoading}
                 />
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                  className="w-full bg-quip-turquoise hover:bg-quip-teal disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm transform hover:-translate-y-0.5"
                 >
-                  {isLoading ? 'Creating Account...' : 'Sign Up'}
+                  {isLoading ? 'Creating Account...' : 'Create New Account'}
                 </button>
               </form>
-              <p className="text-sm text-gray-600 mt-2">Start with a $1,000 balance and earn more by playing rounds.</p>
+              <p className="text-sm text-quip-teal mt-2">
+                Start with 1,000 Flipcoins
+              </p>
             </div>
 
+            {/* Returning Player */}
             <div>
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">Returning Players</h2>
+              <h2 className="text-xl font-semibold mb-4 text-quip-navy">Returning Player</h2>
               <form onSubmit={handleExistingPlayer} className="space-y-3">
                 <input
                   type="text"
                   value={loginUsername}
                   onChange={(e) => setLoginUsername(e.target.value)}
                   placeholder="Username"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
                   disabled={isLoading}
                 />
                 <input
@@ -139,41 +143,29 @@ export const Landing: React.FC = () => {
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-tile focus:outline-none focus:ring-2 focus:ring-quip-turquoise"
                   disabled={isLoading}
                 />
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                  className="w-full bg-quip-orange hover:bg-quip-orange-deep disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-tile transition-all hover:shadow-tile-sm transform hover:-translate-y-0.5"
                 >
-                  {isLoading ? 'Signing In...' : 'Login'}
+                  {isLoading ? 'Logging in...' : 'Login'}
                 </button>
               </form>
-              <p className="text-sm text-gray-600 mt-2">Forgot your password? Email support@quipflip.gg for assistance.</p>
+              <p className="text-sm text-gray-600 mt-2">
+                Forgot your password? Email support@quipflip.gg for assistance.
+              </p>
             </div>
           </div>
-        </div>
 
-        <div className="space-y-6 text-gray-700">
-          <div>
-            <h3 className="text-xl font-semibold mb-2">How to Play</h3>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Submit clever phrases for prompts.</li>
-              <li>Copy phrases without seeing the prompt.</li>
-              <li>Vote to identify the original phrase and earn rewards.</li>
-            </ol>
+          <div className="mt-8 text-center text-sm text-quip-navy">
+            <p className="font-display font-semibold mb-2">How to Play:</p>
+            <p className="text-quip-teal">1. Submit phrases for prompts</p>
+            <p className="text-quip-teal">2. Copy others' phrases without seeing the prompt</p>
+            <p className="text-quip-teal">3. Vote to identify the original phrase</p>
           </div>
-
-          <div>
-            <h3 className="text-xl font-semibold mb-2">Why Create an Account?</h3>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Secure login with your username and password.</li>
-              <li>Automatic token refresh keeps you playing.</li>
-              <li>Email-based account recovery coming soon.</li>
-            </ul>
-          </div>
-        </div>
       </div>
     </div>
   );
