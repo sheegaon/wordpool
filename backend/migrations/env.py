@@ -62,7 +62,7 @@ async def run_async_migrations() -> None:
     # Add SSL configuration for Heroku/production if needed
     url = config.get_main_option("sqlalchemy.url")
     if url and ("heroku" in url or "amazonaws" in url or get_settings().environment == "production"):
-        configuration["sqlalchemy.connect_args"] = {"sslmode": "require"}
+        configuration["sqlalchemy.connect_args"] = {"ssl": "require"}
     
     connectable = async_engine_from_config(
         configuration,

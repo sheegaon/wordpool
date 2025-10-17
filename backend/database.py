@@ -8,7 +8,7 @@ settings = get_settings()
 # Determine if we need SSL (for Heroku or other cloud databases)
 connect_args = {}
 if "heroku" in settings.database_url or "amazonaws" in settings.database_url or settings.environment == "production":
-    connect_args["sslmode"] = "require"
+    connect_args["ssl"] = "require"
 
 # Create async engine
 engine = create_async_engine(
