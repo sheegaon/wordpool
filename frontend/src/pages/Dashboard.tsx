@@ -4,6 +4,8 @@ import { useGame } from '../contexts/GameContext';
 import { Timer } from '../components/Timer';
 import { Header } from '../components/Header';
 
+const formatWaitingCount = (count: number): string => (count > 10 ? 'over 10' : count.toString());
+
 export const Dashboard: React.FC = () => {
   const {
     player,
@@ -309,7 +311,8 @@ export const Dashboard: React.FC = () => {
               </p>
               {roundAvailability && roundAvailability.prompts_waiting > 0 && (
                 <p className="text-xs text-quip-turquoise mb-3 font-semibold">
-                  {roundAvailability.prompts_waiting} prompt{roundAvailability.prompts_waiting > 1 ? 's' : ''} waiting
+                  {formatWaitingCount(roundAvailability.prompts_waiting)} prompt
+                  {roundAvailability.prompts_waiting > 1 ? 's' : ''} waiting
                 </p>
               )}
               <button
@@ -338,7 +341,8 @@ export const Dashboard: React.FC = () => {
               </p>
               {roundAvailability && roundAvailability.phrasesets_waiting > 0 && (
                 <p className="text-xs text-quip-orange-deep mb-3 font-semibold">
-                  {roundAvailability.phrasesets_waiting} phraseset{roundAvailability.phrasesets_waiting > 1 ? 's' : ''} waiting
+                  {formatWaitingCount(roundAvailability.phrasesets_waiting)} phraseset
+                  {roundAvailability.phrasesets_waiting > 1 ? 's' : ''} waiting
                 </p>
               )}
               <button
