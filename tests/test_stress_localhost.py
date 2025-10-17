@@ -15,15 +15,51 @@ from typing import List, Dict
 BASE_URL = "http://localhost:8000"
 TIMEOUT = 30.0
 
+# Counter for unique test users
+_player_counter = 0
+
+
+def create_test_player_data():
+    """Generate unique test player registration data."""
+    global _player_counter
+    _player_counter += 1
+    return {
+        "username": f"stresstest{_player_counter}_{int(time.time()*1000)}",
+        "email": f"stresstest{_player_counter}_{int(time.time()*1000)}@example.com",
+        "password": "TestPassword123!"
+    }
+
+
+def create_authenticated_client():
+    """Create a new player and return an authenticated client."""
+    client = TestClient()
+    player_data = create_test_player_data()
+    response = client.post("/player", json=player_data)
+
+    if response.status_code != 201:
+        raise Exception(f"Failed to create player: {response.status_code} - {response.text}")
+
+    data = response.json()
+    access_token = data.get("access_token")
+
+    client.close()
+
+    # Return new client with access token and the player data
+    auth_client = TestClient(access_token=access_token)
+    return auth_client, data
+
 
 class TestClient:
     """Helper class for making API requests."""
 
-    def __init__(self, api_key: str = None):
+    def __init__(self, access_token: str = None, api_key: str = None):
+        self.access_token = access_token
         self.api_key = api_key
         self.client = httpx.Client(base_url=BASE_URL, timeout=TIMEOUT)
 
     def headers(self) -> Dict[str, str]:
+        if self.access_token:
+            return {"Authorization": f"Bearer {self.access_token}"}
         if self.api_key:
             return {"X-API-Key": self.api_key}
         return {}
@@ -57,15 +93,15 @@ class TestHighVolumePlayerCreation:
 
     def test_create_100_players(self, verify_server_running):
         """Create 100 players in quick succession."""
-        client = TestClient()
         players = []
+        clients = []
 
         start_time = time.time()
 
         for i in range(100):
-            response = client.post("/player")
-            assert response.status_code == 201
-            players.append(response.json())
+            client, player_data = create_authenticated_client()
+            players.append(player_data)
+            clients.append(client)
 
         end_time = time.time()
         duration = end_time - start_time
@@ -73,14 +109,16 @@ class TestHighVolumePlayerCreation:
         print(f"\nCreated 100 players in {duration:.2f} seconds")
         print(f"Average: {duration/100:.3f} seconds per player")
 
-        # Verify all players have unique IDs and API keys
+        # Verify all players have unique IDs and access tokens
         player_ids = [p["player_id"] for p in players]
-        api_keys = [p["api_key"] for p in players]
+        access_tokens = [p["access_token"] for p in players]
 
         assert len(set(player_ids)) == 100, "Duplicate player IDs found"
-        assert len(set(api_keys)) == 100, "Duplicate API keys found"
+        assert len(set(access_tokens)) == 100, "Duplicate access tokens found"
 
-        client.close()
+        # Cleanup
+        for client in clients:
+            client.close()
 
 
 class TestConcurrentRounds:
@@ -93,14 +131,12 @@ class TestConcurrentRounds:
         # Create players
         players = []
         for _ in range(num_players):
-            client = TestClient()
-            player = client.post("/player").json()
-            players.append(player)
-            client.close()
+            client, player_data = create_authenticated_client()
+            players.append((client, player_data))
 
         # Start prompt rounds concurrently
-        def start_prompt(api_key):
-            client = TestClient(api_key)
+        def start_prompt(access_token):
+            client = TestClient(access_token=access_token)
             try:
                 response = client.post("/rounds/prompt", json={})
                 return response.status_code, response.json()
@@ -109,8 +145,8 @@ class TestConcurrentRounds:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = [
-                executor.submit(start_prompt, player["api_key"])
-                for player in players
+                executor.submit(start_prompt, player_data["access_token"])
+                for client, player_data in players
             ]
             results = [future.result() for future in futures]
 
@@ -120,17 +156,19 @@ class TestConcurrentRounds:
 
         assert success_count == num_players
 
+        # Cleanup
+        for client, _ in players:
+            client.close()
+
     def test_concurrent_balance_checks(self, verify_server_running):
         """Test concurrent balance check requests."""
         # Create player
-        client = TestClient()
-        player = client.post("/player").json()
-        api_key = player["api_key"]
-        client.close()
+        auth_client, player_data = create_authenticated_client()
+        access_token = player_data["access_token"]
 
         # Make 50 concurrent balance requests
         def check_balance():
-            client = TestClient(api_key)
+            client = TestClient(access_token=access_token)
             try:
                 response = client.get("/player/balance")
                 return response.status_code, response.json()
@@ -146,15 +184,15 @@ class TestConcurrentRounds:
         balances = [data["balance"] for _, data in results]
         assert all(b == balances[0] for b in balances), "Balance inconsistency detected"
 
+        auth_client.close()
+
 
 class TestRateLimiting:
     """Test rate limiting behavior."""
 
     def test_rapid_requests(self, verify_server_running):
         """Test making many requests rapidly."""
-        client = TestClient()
-        player = client.post("/player").json()
-        auth_client = TestClient(player["api_key"])
+        auth_client, player_data = create_authenticated_client()
 
         # Make 150 rapid requests (rate limit is 100/min)
         responses = []
@@ -177,7 +215,6 @@ class TestRateLimiting:
         # Note: Rate limiting may or may not be enabled
         # This test documents behavior rather than asserting specific limits
 
-        client.close()
         auth_client.close()
 
 
@@ -186,7 +223,6 @@ class TestQueueStress:
 
     def test_queue_many_prompts(self, verify_server_running):
         """Test adding many prompts to queue."""
-        players = []
         word_list = [
             "beautiful", "wonderful", "amazing", "fantastic", "incredible",
             "peaceful", "joyful", "happy", "excited", "grateful",
@@ -196,11 +232,7 @@ class TestQueueStress:
 
         # Create 20 players and submit prompts
         for i in range(20):
-            client = TestClient()
-            player = client.post("/player").json()
-            players.append(player)
-
-            auth_client = TestClient(player["api_key"])
+            auth_client, player_data = create_authenticated_client()
             prompt_round = auth_client.post("/rounds/prompt", json={})
 
             if prompt_round.status_code == 200:
@@ -211,13 +243,10 @@ class TestQueueStress:
                     json={"phrase": word}
                 )
 
-            client.close()
             auth_client.close()
 
         # Check queue status
-        check_client = TestClient()
-        player = check_client.post("/player").json()
-        auth_check = TestClient(player["api_key"])
+        auth_check, check_player = create_authenticated_client()
 
         availability = auth_check.get("/rounds/available").json()
         prompts_waiting = availability["prompts_waiting"]
@@ -226,7 +255,6 @@ class TestQueueStress:
 
         assert prompts_waiting > 0, "No prompts in queue"
 
-        check_client.close()
         auth_check.close()
 
 
@@ -236,14 +264,10 @@ class TestDatabaseConsistency:
     def test_sequential_transaction_consistency(self, verify_server_running):
         """Test balance consistency with sequential operations."""
         # Create player
-        client = TestClient()
-        player = client.post("/player").json()
-        api_key = player["api_key"]
-        initial_balance = player["balance"]
-        client.close()
+        auth_client, player_data = create_authenticated_client()
+        initial_balance = player_data["balance"]
 
         # Start a prompt round
-        auth_client = TestClient(api_key)
         round_response = auth_client.post("/rounds/prompt", json={})
         assert round_response.status_code == 200
 
@@ -276,9 +300,7 @@ class TestLongRunningOperations:
 
     def test_sequential_rounds(self, verify_server_running):
         """Test player completing many rounds sequentially."""
-        client = TestClient()
-        player = client.post("/player").json()
-        auth_client = TestClient(player["api_key"])
+        auth_client, player_data = create_authenticated_client()
 
         words = [
             "happy", "joyful", "peaceful", "calm", "serene",
@@ -331,9 +353,7 @@ class TestErrorRecovery:
 
     def test_recovery_from_invalid_submissions(self, verify_server_running):
         """Test system handles invalid submissions gracefully."""
-        client = TestClient()
-        player = client.post("/player").json()
-        auth_client = TestClient(player["api_key"])
+        auth_client, player_data = create_authenticated_client()
 
         # Start prompt round
         round_response = auth_client.post("/rounds/prompt", json={})
@@ -361,7 +381,6 @@ class TestErrorRecovery:
         )
         assert valid_response.status_code == 200
 
-        client.close()
         auth_client.close()
 
 

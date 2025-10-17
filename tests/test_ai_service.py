@@ -380,6 +380,7 @@ class TestAIPlayerManagement:
     """Test AI player creation and management."""
 
     @pytest.mark.asyncio
+    @patch.dict('os.environ', {'OPENAI_API_KEY': 'sk-test'})
     async def test_get_or_create_ai_player_creates_new(self, db_session, mock_validator):
         """Should create AI player if it doesn't exist."""
         service = AICopyService(db_session, mock_validator)
@@ -399,13 +400,16 @@ class TestAIPlayerManagement:
             mock_create.assert_called_once()
 
     @pytest.mark.asyncio
+    @patch.dict('os.environ', {'OPENAI_API_KEY': 'sk-test'})
     async def test_get_or_create_ai_player_reuses_existing(self, db_session, mock_validator):
         """Should reuse existing AI player."""
         # Create AI player first
         ai_player = Player(
             player_id=uuid.uuid4(),
             username="AI_BACKUP",
+            username_canonical="ai_backup",
             email="ai@quipflip.internal",
+            password_hash="not-used",
             balance=1000,
         )
         db_session.add(ai_player)

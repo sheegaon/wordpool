@@ -115,15 +115,13 @@ class AICopyService:
         if not ai_player:
             # Create AI player
             from backend.services.player_service import PlayerService
-            from backend.services.username_service import UsernameService
 
-            username_service = UsernameService()
-            player_service = PlayerService(self.db, username_service)
+            player_service = PlayerService(self.db)
 
             ai_player = await player_service.create_player(
                 username="AI_BACKUP",
                 email="ai@quipflip.internal",
-                password="not-used-for-ai-player",
+                password_hash="not-used-for-ai-player",
             )
             # Note: Do not commit here - let caller manage transaction
             logger.info("Created AI backup player account")
@@ -160,23 +158,28 @@ class AICopyService:
                 provider=self.provider,
                 model=model,
         ) as tracker:
-            # Generate using configured provider
-            if self.provider == "openai":
-                from backend.services.openai_api import generate_copy as openai_generate
-                phrase = await openai_generate(
-                    original_phrase=original_phrase,
-                    prompt_text=prompt_text,
-                    model=self.settings.ai_copy_openai_model,
-                    timeout=self.settings.ai_copy_timeout_seconds,
-                )
-            else:  # gemini
-                from backend.services.gemini_api import generate_copy as gemini_generate
-                phrase = await gemini_generate(
-                    original_phrase=original_phrase,
-                    prompt_text=prompt_text,
-                    model=self.settings.ai_copy_gemini_model,
-                    timeout=self.settings.ai_copy_timeout_seconds,
-                )
+            try:
+                # Generate using configured provider
+                if self.provider == "openai":
+                    from backend.services.openai_api import generate_copy as openai_generate
+                    phrase = await openai_generate(
+                        original_phrase=original_phrase,
+                        prompt_text=prompt_text,
+                        model=self.settings.ai_copy_openai_model,
+                        timeout=self.settings.ai_copy_timeout_seconds,
+                    )
+                else:  # gemini
+                    from backend.services.gemini_api import generate_copy as gemini_generate
+                    phrase = await gemini_generate(
+                        original_phrase=original_phrase,
+                        prompt_text=prompt_text,
+                        model=self.settings.ai_copy_gemini_model,
+                        timeout=self.settings.ai_copy_timeout_seconds,
+                    )
+            except Exception as e:
+                # Wrap API exceptions in AICopyError
+                logger.error(f"Failed to generate AI copy: {e}")
+                raise AICopyError(f"Failed to generate AI copy: {e}")
 
             # Validate the generated phrase
             validation_result = await self.validator.validate_phrase(phrase)

@@ -363,11 +363,7 @@ class TestCopyRoundFlow:
     def test_copy_round_with_prompt(self, verify_server_running):
         """Test complete copy round flow."""
         # Create first player and submit prompt
-        client1 = TestClient()
-        player1_response = client1.post("/player")
-        player1_key = player1_response.json()["api_key"]
-
-        p1_client = TestClient(player1_key)
+        p1_client, player1_data = create_authenticated_client()
         prompt_response = p1_client.post("/rounds/prompt", json={})
         round1_id = prompt_response.json()["round_id"]
 
@@ -378,11 +374,7 @@ class TestCopyRoundFlow:
         )
 
         # Create second player for copy round
-        client2 = TestClient()
-        player2_response = client2.post("/player")
-        player2_key = player2_response.json()["api_key"]
-
-        p2_client = TestClient(player2_key)
+        p2_client, player2_data = create_authenticated_client()
 
         # Small delay to ensure prompt is in queue
         time.sleep(0.5)
@@ -438,9 +430,7 @@ class TestCompleteGameFlow:
     def test_full_game_cycle(self, verify_server_running):
         """Test complete game: prompt -> 2 copies -> votes."""
         # Create prompt player
-        prompt_client = TestClient()
-        prompt_player = create_authenticated_client()
-        p1 = auth_client
+        p1, prompt_player = create_authenticated_client()
 
         # Start and submit prompt
         prompt_round = p1.post("/rounds/prompt", json={}).json()
@@ -450,9 +440,7 @@ class TestCompleteGameFlow:
         )
 
         # Create first copy player
-        copy1_client = TestClient()
-        copy1_player = create_authenticated_client()
-        c1 = auth_client
+        c1, copy1_player = create_authenticated_client()
 
         time.sleep(0.5)  # Ensure prompt is in queue
 
@@ -466,9 +454,7 @@ class TestCompleteGameFlow:
             )
 
             # Create second copy player
-            copy2_client = TestClient()
-            copy2_player = create_authenticated_client()
-            c2 = auth_client
+            c2, copy2_player = create_authenticated_client()
 
             time.sleep(0.5)
 
@@ -482,9 +468,7 @@ class TestCompleteGameFlow:
                 )
 
                 # Create voter
-                voter_client = TestClient()
-                voter_player = create_authenticated_client()
-                v1 = auth_client
+                v1, voter_player = create_authenticated_client()
 
                 time.sleep(0.5)
 
@@ -507,16 +491,12 @@ class TestCompleteGameFlow:
                         assert "original_phrase" in vote_result  # Changed from original_word to original_phrase
 
                 v1.close()
-                voter_client.close()
 
             c2.close()
-            copy2_client.close()
 
         # Cleanup
         p1.close()
-        prompt_client.close()
         c1.close()
-        copy1_client.close()
 
 
 class TestEdgeCases:
@@ -545,13 +525,8 @@ class TestEdgeCases:
     def test_submit_word_to_wrong_round(self, verify_server_running):
         """Test submitting word to round not owned by player."""
         # Create two players
-        client1 = TestClient()
-        player1 = client1.post("/player").json()
-        p1 = auth_client
-
-        client2 = TestClient()
-        player2 = client2.post("/player").json()
-        p2 = auth_client
+        p1, player1 = create_authenticated_client()
+        p2, player2 = create_authenticated_client()
 
         # Player 1 starts round
         round_data = p1.post("/rounds/prompt", json={}).json()
@@ -566,8 +541,6 @@ class TestEdgeCases:
         assert response.status_code in [404, 422]  # 404 for not found or 422 for validation
 
         # Cleanup
-        client1.close()
-        client2.close()
         p1.close()
         p2.close()
 
@@ -664,18 +637,11 @@ class TestConcurrency:
 
     def test_multiple_players_can_play_simultaneously(self, verify_server_running):
         """Test multiple players can have active rounds at same time."""
-        players = []
-        clients = []
         auth_clients = []
 
         # Create 3 players
         for _ in range(3):
-            client = TestClient()
-            player = client.post("/player").json()
-            auth_client = auth_client
-
-            players.append(player)
-            clients.append(client)
+            auth_client, player_data = create_authenticated_client()
             auth_clients.append(auth_client)
 
         # Each player starts a prompt round
@@ -690,8 +656,6 @@ class TestConcurrency:
             assert current["round_type"] == "prompt"
 
         # Cleanup
-        for client in clients:
-            client.close()
         for auth_client in auth_clients:
             auth_client.close()
 
