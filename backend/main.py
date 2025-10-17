@@ -63,8 +63,8 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(
     title="Quipflip API",
-    description="Phase 1 MVP - Word association game backend",
-    version="1.0.0",
+    description="Phase 2 MVP - Phrase association game backend",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
@@ -102,8 +102,8 @@ app.include_router(phrasesets.router, prefix="/phrasesets", tags=["phrasesets"])
 async def root():
     """Root endpoint."""
     return {
-        "message": "Quipflip API - Phase 1 MVP",
-        "version": "1.0.0",
+        "message": "Quipflip API - Phase 2 MVP",
+        "version": "1.1.0",
         "environment": settings.environment,
         "docs": "/docs",
     }

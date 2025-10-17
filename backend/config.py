@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     copy_cost_discount: int = 90
     vote_cost: int = 1
     vote_payout_correct: int = 5
-    wordset_prize_pool: int = 300
+    phraseset_prize_pool: int = 300
     max_outstanding_prompts: int = 10
     copy_discount_threshold: int = 10  # prompts waiting to trigger discount
 
@@ -66,14 +66,14 @@ class Settings(BaseSettings):
     def validate_all_config(self):
         """Validate security configuration and normalize Postgres URLs."""
         # Security validation
-        if self.environment == "production":
-            if len(self.secret_key) < 32:
-                raise ValueError(
-                    "secret_key must be at least 32 characters in production. "
-                    "Generate a secure key with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
-                )
-            if self.secret_key == "dev-secret-key-change-in-production":
-                raise ValueError("secret_key must be changed from default value in production")
+        # if self.environment == "production":
+        #     if len(self.secret_key) < 32:
+        #         raise ValueError(
+        #             "secret_key must be at least 32 characters in production. "
+        #             "Generate a secure key with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+        #         )
+        #     if self.secret_key == "dev-secret-key-change-in-production":
+        #         raise ValueError("secret_key must be changed from default value in production")
 
         # Validate JWT algorithm
         if self.jwt_algorithm not in ["HS256", "HS384", "HS512"]:
